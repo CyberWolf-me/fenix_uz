@@ -247,6 +247,102 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Lookup order or reservation status by code or phone
+  if (req.method === "GET" && (url.pathname === "/api/lookup" || url.pathname.startsWith("/api/check-status/"))) {
+    const rawQ = (url.searchParams.get("q") || url.pathname.replace("/api/check-status/", "") || "").trim();
+    const cleanNum = parseInt(rawQ.replace(/[^0-9]/g, ""), 10);
+    const cleanPhone = rawQ.replace(/[^0-9+]/g, "");
+
+    let found = null;
+    if (db && (cleanNum || cleanPhone)) {
+      try {
+        if (cleanNum) {
+          const res = db.prepare("SELECT * FROM reservations WHERE code = ? ORDER BY id DESC LIMIT 1").get(cleanNum);
+          if (res) {
+            found = {
+              type: "reservation",
+              code: `WEB-${res.code}`,
+              rawCode: res.code,
+              name: res.customer_name,
+              phone: res.customer_phone,
+              date: res.res_date,
+              time: res.res_time,
+              guests: res.guests,
+              zone: res.zone,
+              status: res.status,
+              createdAt: res.created_at
+            };
+          }
+        }
+        if (!found && cleanNum) {
+          const ord = db.prepare("SELECT * FROM orders WHERE order_num = ? ORDER BY id DESC LIMIT 1").get(cleanNum);
+          if (ord) {
+            let items = {};
+            try { items = JSON.parse(ord.items_json); } catch (_) {}
+            found = {
+              type: "order",
+              code: `WEB-${ord.order_num}`,
+              rawCode: ord.order_num,
+              name: ord.customer_name,
+              phone: ord.customer_phone,
+              orderType: ord.order_type,
+              address: ord.address,
+              payment: ord.payment_method,
+              items,
+              total: ord.total_price,
+              status: ord.status,
+              createdAt: ord.created_at
+            };
+          }
+        }
+        if (!found && cleanPhone && cleanPhone.length >= 7) {
+          const res = db.prepare("SELECT * FROM reservations WHERE customer_phone LIKE ? ORDER BY id DESC LIMIT 1").get(`%${cleanPhone.slice(-7)}%`);
+          if (res) {
+            found = {
+              type: "reservation",
+              code: `WEB-${res.code}`,
+              rawCode: res.code,
+              name: res.customer_name,
+              phone: res.customer_phone,
+              date: res.res_date,
+              time: res.res_time,
+              guests: res.guests,
+              zone: res.zone,
+              status: res.status,
+              createdAt: res.created_at
+            };
+          } else {
+            const ord = db.prepare("SELECT * FROM orders WHERE customer_phone LIKE ? ORDER BY id DESC LIMIT 1").get(`%${cleanPhone.slice(-7)}%`);
+            if (ord) {
+              let items = {};
+              try { items = JSON.parse(ord.items_json); } catch (_) {}
+              found = {
+                type: "order",
+                code: `WEB-${ord.order_num}`,
+                rawCode: ord.order_num,
+                name: ord.customer_name,
+                phone: ord.customer_phone,
+                orderType: ord.order_type,
+                address: ord.address,
+                payment: ord.payment_method,
+                items,
+                total: ord.total_price,
+                status: ord.status,
+                createdAt: ord.created_at
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[DB Lookup Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, found: Boolean(found), record: found }));
+    return;
+  }
+
   // API Submission Endpoints
   if (req.method === "POST" && url.pathname.startsWith("/api/")) {
     const ip = req.socket.remoteAddress || "unknown";

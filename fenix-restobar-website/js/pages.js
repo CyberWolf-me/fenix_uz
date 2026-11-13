@@ -139,7 +139,7 @@
         ${eyebrow('sign.kicker')}
         <h2 class="h2" style="margin:20px 0 10px">${tx('sign.title')}</h2>
         <div style="height:28px"></div>
-        <ol>${SIGS.map((id, i) => { const it = S.byId[id]; return `<li class="sig-row" tabindex="0" data-sig="${id}" data-n="${String(i + 1).padStart(2, '0')}"><span class="i">${String(i + 1).padStart(2, '0')}</span><div><p class="n">${e(S.iName(it))}</p><p class="sub">${e(t('menu.tabs.' + it.menu))} · ${e(S.secLabel(it.menu, it.section))}</p></div><span class="price">${S.money(it.price)}</span></li>`; }).join('')}</ol>
+        <ol>${SIGS.map((id, i) => { const it = S.byId[id]; return `<li class="sig-row${i === 0 ? ' on' : ''}" tabindex="0" data-sig="${id}" data-n="${String(i + 1).padStart(2, '0')}"><span class="i">${String(i + 1).padStart(2, '0')}</span><div><p class="n">${e(S.iName(it))}</p><p class="sub">${e(t('menu.tabs.' + it.menu))} · ${e(S.secLabel(it.menu, it.section))}</p></div><span class="price">${S.money(it.price)}</span></li>`; }).join('')}</ol>
         <a class="btn btn-line" style="margin-top:28px" href="#/menu">${e(t('sign.all'))}${I('arrow')}</a>
       </div>
     </div></section>`;

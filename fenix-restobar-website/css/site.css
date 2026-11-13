@@ -13,7 +13,7 @@ ul{list-style:none;margin:0;padding:0}
 .skip:focus{top:12px}
 
 /* ── frame (printed-page hairline) ── */
-.frame{position:fixed;inset:var(--frame-inset);border:1px solid var(--line);pointer-events:none;z-index:90}
+.frame{position:fixed;top:var(--header-h);bottom:var(--frame-inset);left:var(--frame-inset);right:var(--frame-inset);border:1px solid var(--line);pointer-events:none;z-index:70}
 .frame i{position:absolute;width:9px;height:9px;border:1px solid var(--line-strong)}
 .frame i:nth-child(1){left:-5px;top:-5px}.frame i:nth-child(2){right:-5px;top:-5px}
 .frame i:nth-child(3){left:-5px;bottom:-5px}.frame i:nth-child(4){right:-5px;bottom:-5px}
@@ -58,7 +58,7 @@ main{min-height:70vh}
 .tap{display:inline-flex;align-items:center;min-height:var(--tap-min)}
 
 /* ── header ── */
-.hdr{position:fixed;left:0;right:0;top:0;z-index:80;height:var(--header-h);transition:background var(--dur-fast),border-color var(--dur-fast);border-bottom:1px solid transparent}
+.hdr{position:fixed;left:0;right:0;top:0;z-index:100;height:var(--header-h);transition:background var(--dur-fast),border-color var(--dur-fast);border-bottom:1px solid transparent}
 .hdr.solid{background:rgba(11,9,6,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom-color:var(--line)}
 .hdr-in{height:100%;display:flex;align-items:center;gap:24px;padding:0 calc(var(--frame-inset) + var(--gutter)*.6)}
 .logo{display:flex;align-items:center;color:var(--ink);min-height:var(--tap-min)}
@@ -291,7 +291,8 @@ main{min-height:70vh}
 .dish-stage{background:radial-gradient(60% 55% at 50% 52%,rgba(192,138,62,.22),rgba(126,58,24,.08) 55%,transparent 75%),var(--bg-raised)}
 .dish-stage img{object-fit:contain;padding:9%;filter:drop-shadow(0 24px 30px rgba(0,0,0,.55));transition:opacity .35s var(--ease-out),transform var(--dur-slow) var(--ease-out)}
 .dish-stage:hover img{transform:scale(1.03)}
-.sig-row{cursor:default}
+.sig-row{cursor:pointer;transition:border-color .3s ease}
+.sig-row:hover,.sig-row.on{border-top-color:var(--accent)}
 .sig-row.on .n{color:var(--accent)}
 .dstrip{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:6px 0 14px}
 .dcard{display:grid;gap:6px;text-align:left;padding:0 0 10px;border-bottom:1px solid var(--line)}

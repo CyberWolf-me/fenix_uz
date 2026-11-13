@@ -44,6 +44,8 @@
     main.innerHTML = `<div class="page">${S.pages[route](params)}</div>`;
     S.mountForms();
     if (route === 'menu') initMenu();
+    if (route === 'home') initSigAutoRotation();
+    else if (sigInterval) { clearInterval(sigInterval); sigInterval = null; }
     onScroll();
     if (route === 'menu' && params[1]) {
       requestAnimationFrame(() => { const el = document.getElementById(`m-${params[0]}-${params[1]}`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - 130, behavior: 'auto' }); });
@@ -109,6 +111,26 @@
     if (a.dataset.lb != null) return openLb(+a.dataset.lb, a);
     if (a.dataset.dish) { S.galKeys = [...S.DISH_PHOTOS].map(id => 'dish/' + id); return openLb(S.galKeys.indexOf('dish/' + a.dataset.dish), a); }
   });
+  let sigInterval = null;
+  let sigPaused = false;
+  function initSigAutoRotation() {
+    if (sigInterval) clearInterval(sigInterval);
+    sigPaused = false;
+    const container = document.querySelector('.sign');
+    if (!container) return;
+    container.addEventListener('mouseenter', () => { sigPaused = true; }, { passive: true });
+    container.addEventListener('mouseleave', () => { sigPaused = false; }, { passive: true });
+    sigInterval = setInterval(() => {
+      if (sigPaused) return;
+      const rows = [...document.querySelectorAll('.sig-row')];
+      if (!rows.length) return;
+      let idx = rows.findIndex(r => r.classList.contains('on'));
+      if (idx === -1) idx = 0;
+      const nextIdx = (idx + 1) % rows.length;
+      sig(rows[nextIdx]);
+    }, 3600);
+  }
+
   function sig(row) {
     const ph = document.getElementById('sig-photo'); if (!ph || !row) return;
     document.querySelectorAll('.sig-row').forEach(r => r.classList.toggle('on', r === row));
@@ -118,6 +140,7 @@
     setTimeout(() => { im.src = 'img/dish/' + id + '.webp'; im.alt = S.iName(S.byId[id]); document.getElementById('sig-cap').textContent = S.iName(S.byId[id]); document.getElementById('sig-n').textContent = row.dataset.n; im.onload = () => { im.style.opacity = 1; }; }, 180);
   }
   document.addEventListener('mouseover', ev => { const r = ev.target.closest('.sig-row'); if (r) sig(r); });
+  document.addEventListener('click', ev => { const r = ev.target.closest('.sig-row'); if (r) sig(r); });
   document.addEventListener('focusin', ev => { const r = ev.target.closest('.sig-row'); if (r) sig(r); });
   addEventListener('hashchange', () => { closeDrawer(); render(); });
 
