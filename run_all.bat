@@ -9,12 +9,13 @@ echo   [1] Запуск Node.js веб-сервера (http://localhost:3000)...
 start "FENIX Website Server (Port 3000)" cmd /k "cd /d %~dp0fenix-restobar-website && node server/server.mjs"
 
 echo   [2] Запуск Telegram-бота (@Fenix_restaurant_bot)...
-start "FENIX Telegram Bot" cmd /k "cd /d %~dp0Fenix меню и визитка && python bot.py"
+start "FENIX Telegram Bot" cmd /k "cd /d %~dp0bot && python bot.py"
 
 echo.
 echo ====================================================================
 echo   ✅ Сервер сайта и Telegram-бот запущены в отдельных окнах!
 echo   🌐 Веб-сайт: http://localhost:3000
+echo   📊 Админ-панель: http://localhost:3000/admin
 echo   🤖 Telegram-бот: https://t.me/Fenix_restaurant_bot
 echo ====================================================================
 echo.
