@@ -25,18 +25,28 @@ window.FX = (function () {
           if (match && match.ru) secRu = match.ru;
         }
 
-        if (!catMap[secRu]) {
-          catMap[secRu] = { cat: secRu, items: [] };
-          menuList.push(catMap[secRu]);
+        const cuisineLabel = menuType === 'europe' ? 'Европейская кухня' : menuType === 'korea' ? 'Корейская кухня' : 'Барная карта';
+        const groupKey = `${cuisineLabel} · ${secRu}`;
+
+        if (!catMap[groupKey]) {
+          catMap[groupKey] = {
+            cat: groupKey,
+            section: secRu,
+            cuisine: cuisineLabel,
+            menuType: menuType,
+            items: []
+          };
+          menuList.push(catMap[groupKey]);
         }
 
-        catMap[secRu].items.push({
+        catMap[groupKey].items.push({
           id: it[0],
           n: ruName,
-          nUz: it[4],
-          nEn: it[5],
+          nUz: it[4] || '',
+          nEn: it[5] || '',
           p: price,
-          cost: Math.round(price * 0.38),
+          cuisine: cuisineLabel,
+          section: secRu,
           on: true,
           stop: false,
         });
@@ -48,27 +58,31 @@ window.FX = (function () {
     // Clean fallback categories if menu-data not loaded yet
     return [
       {
-        cat: 'Закуски',
+        cat: 'Европейская кухня · Закуски',
+        section: 'Закуски',
+        cuisine: 'Европейская кухня',
         items: [
-          { n: 'Селёдка традиционная', p: 85000, cost: 32000, on: true },
-          { n: 'Холодец', p: 75000, cost: 28000, on: true },
-          { n: 'Сельдерей с мясом', p: 185000, cost: 70000, on: true },
+          { n: 'Селёдка традиционная', p: 85000, cuisine: 'Европейская кухня', on: true },
+          { n: 'Холодец', p: 75000, cuisine: 'Европейская кухня', on: true },
+          { n: 'Сельдерей с мясом', p: 185000, cuisine: 'Европейская кухня', on: true },
         ],
       },
       {
-        cat: 'Салаты',
+        cat: 'Европейская кухня · Салаты',
+        section: 'Салаты',
+        cuisine: 'Европейская кухня',
         items: [
-          { n: 'Салат «Феникс»', p: 85000, cost: 32000, on: true },
-          { n: 'Цезарь с курицей', p: 85000, cost: 32000, on: true },
-          { n: 'Цезарь с креветками', p: 99000, cost: 38000, on: true },
+          { n: 'Цезарь с курицей', p: 85000, cuisine: 'Европейская кухня', on: true },
+          { n: 'Цезарь с креветками', p: 99000, cuisine: 'Европейская кухня', on: true },
         ],
       },
       {
-        cat: 'Горячие блюда',
+        cat: 'Европейская кухня · Горячие блюда',
+        section: 'Горячие блюда',
+        cuisine: 'Европейская кухня',
         items: [
-          { n: 'Стейк Рибай', p: 375000, cost: 142000, on: true },
-          { n: 'Мясо по-французски', p: 185000, cost: 70000, on: true },
-          { n: 'Рёбра с овощами', p: 140000, cost: 53000, on: true },
+          { n: 'Стейк Рибай', p: 375000, cuisine: 'Европейская кухня', on: true },
+          { n: 'Мясо по-французски', p: 185000, cuisine: 'Европейская кухня', on: true },
         ],
       },
     ];

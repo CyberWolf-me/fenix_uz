@@ -148,27 +148,51 @@ function Bookings({ t, toast }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <table className="tbl">
+        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            <col style={{ width: '85px' }} />
+            <col style={{ width: '105px' }} />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '180px' }} />
+            <col style={{ width: '145px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '90px' }} />
+            <col style={{ width: '100px' }} />
+            <col style={{ width: '125px' }} />
+            <col style={{ width: '110px' }} />
+          </colgroup>
           <thead>
             <tr>
-              <th>{t('id')}</th><th>{t('date')}</th><th>{t('time')}</th><th>{t('client')}</th>
-              <th>{t('phone')}</th><th>{t('zone')}</th><th>{t('guests')}</th><th>{t('table')}</th>
-              <th>{t('status')}</th><th className="tbl-right">{t('actions')}</th>
+              <th style={{ paddingLeft: 18, textAlign: 'left' }}>{t('id')}</th>
+              <th style={{ textAlign: 'left' }}>{t('date')}</th>
+              <th style={{ textAlign: 'left' }}>{t('time')}</th>
+              <th style={{ textAlign: 'left' }}>{t('client')}</th>
+              <th style={{ textAlign: 'left' }}>{t('phone')}</th>
+              <th style={{ textAlign: 'left' }}>{t('zone')}</th>
+              <th style={{ textAlign: 'right', paddingRight: 16 }}>{t('guests')}</th>
+              <th style={{ textAlign: 'left' }}>{t('table')}</th>
+              <th style={{ textAlign: 'center' }}>{t('status')}</th>
+              <th style={{ textAlign: 'right', paddingRight: 18 }}>{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
             {list.map((b) => (
               <tr key={b.id + b.time} style={{ cursor: 'default' }}>
-                <td className="mono dim">#{b.id}</td>
+                <td className="mono dim" style={{ paddingLeft: 18 }}>#{b.id}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>{b.date === 'today' ? t('today') : b.date === 'tomorrow' ? t('tomorrow') : b.date}</td>
                 <td className="mono" style={{ fontWeight: 600 }}>{b.time}</td>
-                <td style={{ fontWeight: 600 }}>{b.client}</td>
-                <td className="mono dim" style={{ fontSize: 10.5 }}>{b.phone}</td>
-                <td className="dim">{b.zone === 'any' ? 'Любой' : b.zone}</td>
-                <td><span className="row" style={{ gap: 4 }}><Icon name="users" size={12} style={{ color: 'var(--text-3)' }} />{b.guests}</span></td>
-                <td className="dim">{b.table || '—'}</td>
-                <td><Pill tone={BOOK_TONE[b.status]} dot={b.status === 'pending'}>{t(b.status === 'pending' ? 'pending_b' : b.status)}</Pill></td>
-                <td className="tbl-right">
+                <td style={{ fontWeight: 600 }} className="trunc">{b.client}</td>
+                <td className="mono dim" style={{ fontSize: 11 }}>{b.phone}</td>
+                <td className="dim trunc">{b.zone === 'any' ? 'Любой' : b.zone}</td>
+                <td style={{ textAlign: 'right', paddingRight: 16, fontFamily: 'var(--f-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  <span className="row" style={{ justifyContent: 'flex-end', gap: 4 }}>
+                    <Icon name="users" size={12} style={{ color: 'var(--text-3)' }} />
+                    {b.guests}
+                  </span>
+                </td>
+                <td className="dim trunc">{b.table || '—'}</td>
+                <td style={{ textAlign: 'center' }}><Pill tone={BOOK_TONE[b.status]} dot={b.status === 'pending'}>{t(b.status === 'pending' ? 'pending_b' : b.status)}</Pill></td>
+                <td style={{ textAlign: 'right', paddingRight: 18 }}>
                   {b.status === 'pending' ? (
                     <span className="row" style={{ justifyContent: 'flex-end', gap: 4 }}>
                       <Btn size="sm" variant="accent" icon="check" onClick={() => act(b.id, 'confirmed')}>{t('confirm')}</Btn>
@@ -273,26 +297,46 @@ function Banquets({ t, toast }) {
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <table className="tbl">
-          <thead><tr>
-            <th>{t('id')}</th><th>{t('date')}</th><th>{t('client')}</th><th>{t('phone')}</th>
-            <th>{t('kind')}</th><th>{t('guests_lbl')}</th><th>{t('hall_lbl')}</th>
-            <th className="tbl-right">{t('deposit')}</th><th>{t('status')}</th><th className="tbl-right">{t('actions')}</th>
-          </tr></thead>
+        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            <col style={{ width: '85px' }} />
+            <col style={{ width: '110px' }} />
+            <col style={{ width: '180px' }} />
+            <col style={{ width: '145px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '90px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '130px' }} />
+            <col style={{ width: '115px' }} />
+            <col style={{ width: '100px' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th style={{ paddingLeft: 18, textAlign: 'left' }}>{t('id')}</th>
+              <th style={{ textAlign: 'left' }}>{t('date')}</th>
+              <th style={{ textAlign: 'left' }}>{t('client')}</th>
+              <th style={{ textAlign: 'left' }}>{t('phone')}</th>
+              <th style={{ textAlign: 'left' }}>{t('kind')}</th>
+              <th style={{ textAlign: 'right', paddingRight: 16 }}>{t('guests_lbl')}</th>
+              <th style={{ textAlign: 'left' }}>{t('hall_lbl')}</th>
+              <th style={{ textAlign: 'right', paddingRight: 18 }}>{t('deposit')}</th>
+              <th style={{ textAlign: 'center' }}>{t('status')}</th>
+              <th style={{ textAlign: 'right', paddingRight: 18 }}>{t('actions')}</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((b) => (
               <tr key={b.id} style={{ cursor: 'default' }}>
-                <td className="mono dim">{b.id}</td>
+                <td className="mono dim" style={{ paddingLeft: 18 }}>{b.id}</td>
                 <td className="mono" style={{ whiteSpace: 'nowrap' }}>{b.date}</td>
-                <td style={{ fontWeight: 600 }}>{b.client}</td>
-                <td className="mono dim" style={{ fontSize: 10.5 }}>{b.phone}</td>
+                <td style={{ fontWeight: 600 }} className="trunc">{b.client}</td>
+                <td className="mono dim" style={{ fontSize: 11 }}>{b.phone}</td>
                 <td>{b.kind}</td>
-                <td>{b.guests}</td>
-                <td className="dim">{b.hall}</td>
-                <td className="tbl-right mono" style={{ fontWeight: 600 }}>{summ(b.deposit)}</td>
-                <td><Pill tone={b.status === 'waiting' ? 'warn' : b.status === 'confirmed' ? 'ok' : 'muted'} dot={b.status === 'waiting'}>
-                  {t(b.status)}</Pill></td>
-                <td className="tbl-right">
+                <td style={{ textAlign: 'right', paddingRight: 16, fontFamily: 'var(--f-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{b.guests}</td>
+                <td className="dim trunc">{b.hall}</td>
+                <td style={{ textAlign: 'right', paddingRight: 18, fontFamily: 'var(--f-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--accent-2)' }}>{summ(b.deposit)} сум</td>
+                <td style={{ textAlign: 'center' }}><Pill tone={b.status === 'waiting' ? 'warn' : b.status === 'confirmed' ? 'ok' : 'muted'} dot={b.status === 'waiting'}>{t(b.status)}</Pill></td>
+                <td style={{ textAlign: 'right', paddingRight: 18 }}>
                   {b.status === 'waiting'
                     ? <Btn size="sm" variant="accent" icon="check" onClick={() => confirmBanquet(b)}>{t('confirm')}</Btn>
                     : <Btn size="sm" variant="ghost" icon="more" />}
@@ -315,46 +359,70 @@ function Banquets({ t, toast }) {
   );
 }
 
-/* ── floor plan ─────────────────────────────────────── */
-const FLOOR_TABLES = [
-  { id: 'T1', label: '1', x: 7, y: 12, seats: 4, st: 'free' },
-  { id: 'T2', label: '2', x: 7, y: 40, seats: 4, st: 'occupied' },
-  { id: 'T3', label: '3', x: 7, y: 68, seats: 2, st: 'booked' },
-  { id: 'T4', label: '4', x: 26, y: 12, seats: 6, st: 'occupied' },
-  { id: 'T5', label: '5', x: 26, y: 40, seats: 4, st: 'free' },
-  { id: 'T6', label: '6', x: 26, y: 68, seats: 4, st: 'cleaning' },
-  { id: 'T7', label: '7', x: 46, y: 26, seats: 8, st: 'occupied' },
-  { id: 'T9', label: '9', x: 46, y: 66, seats: 2, st: 'booked' },
-  { id: 'VIP1', label: 'VIP 1', x: 72, y: 10, seats: 8, st: 'free', vip: true },
-  { id: 'VIP2', label: 'VIP 2', x: 72, y: 44, seats: 6, st: 'booked', vip: true },
-  { id: 'BAR', label: 'Бар', x: 88, y: 74, seats: 6, st: 'occupied', bar: true },
+/* ── floor plan (Real Two-Floor Scheme: 120 + 170 seats) ─── */
+const FLOOR_1_TABLES = [
+  { id: 'T1', label: 'Стол 1', x: 8, y: 14, seats: 4, st: 'free' },
+  { id: 'T2', label: 'Стол 2', x: 8, y: 42, seats: 4, st: 'occupied' },
+  { id: 'T3', label: 'Стол 3', x: 8, y: 70, seats: 2, st: 'booked' },
+  { id: 'T4', label: 'Стол 4', x: 26, y: 14, seats: 6, st: 'occupied' },
+  { id: 'T5', label: 'Стол 5', x: 26, y: 42, seats: 4, st: 'free' },
+  { id: 'T6', label: 'Стол 6', x: 26, y: 70, seats: 4, st: 'cleaning' },
+  { id: 'T7', label: 'Стол 7', x: 45, y: 14, seats: 8, st: 'free' },
+  { id: 'T8', label: 'Стол 8', x: 45, y: 42, seats: 6, st: 'occupied' },
+  { id: 'T9', label: 'Стол 9', x: 45, y: 70, seats: 4, st: 'booked' },
+  { id: 'T10', label: 'Стол 10', x: 64, y: 14, seats: 4, st: 'free' },
+  { id: 'T11', label: 'Стол 11', x: 64, y: 42, seats: 6, st: 'free' },
+  { id: 'T12', label: 'Стол 12', x: 64, y: 70, seats: 4, st: 'free' },
+  { id: 'STAGE', label: 'Сцена & DJ', x: 83, y: 12, seats: 0, st: 'special', stage: true },
+  { id: 'BAR', label: 'Барная стойка', x: 83, y: 55, seats: 8, st: 'occupied', bar: true },
 ];
-const FLOOR_TONE = { free: 'ok', occupied: 'danger', booked: 'warn', cleaning: 'info' };
+
+const FLOOR_2_TABLES = [
+  { id: 'B1', label: 'Банкет Б-1', x: 8, y: 16, seats: 20, st: 'booked', banquet: true },
+  { id: 'B2', label: 'Банкет Б-2', x: 8, y: 58, seats: 20, st: 'free', banquet: true },
+  { id: 'B3', label: 'Банкет Б-3', x: 36, y: 16, seats: 24, st: 'free', banquet: true },
+  { id: 'B4', label: 'Банкет Б-4', x: 36, y: 58, seats: 24, st: 'occupied', banquet: true },
+  { id: 'B5', label: 'Банкет Б-5', x: 62, y: 16, seats: 16, st: 'free', banquet: true },
+  { id: 'B6', label: 'Банкет Б-6', x: 62, y: 58, seats: 16, st: 'cleaning', banquet: true },
+  { id: 'VIP1', label: 'VIP 1 Караоке', x: 84, y: 10, seats: 10, st: 'booked', vip: true },
+  { id: 'VIP2', label: 'VIP 2 Лаунж', x: 84, y: 42, seats: 8, st: 'occupied', vip: true },
+  { id: 'VIP3', label: 'VIP 3 Премиум', x: 84, y: 74, seats: 12, st: 'free', vip: true },
+];
+
+const FLOOR_TONE = { free: 'ok', occupied: 'danger', booked: 'warn', cleaning: 'info', special: 'accent' };
 
 function Floor({ t, toast }) {
-  const [tables, setTables] = useState(FLOOR_TABLES);
+  const [currentFloor, setCurrentFloor] = useState(1); // 1 = 1-й этаж (Основной), 2 = 2-й этаж (Банкетный)
+  const [floor1Tables, setFloor1Tables] = useState(FLOOR_1_TABLES);
+  const [floor2Tables, setFloor2Tables] = useState(FLOOR_2_TABLES);
   const [sel, setSel] = useState(null);
   const [drag, setDrag] = useState(null);
   const [liveBookings, setLiveBookings] = useState([]);
 
+  const activeTables = currentFloor === 1 ? floor1Tables : floor2Tables;
+  const setActiveTables = currentFloor === 1 ? setFloor1Tables : setFloor2Tables;
+
   useEffect(() => {
     fetch('/api/admin/reservations')
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.ok && Array.isArray(data.reservations)) {
-          setLiveBookings(data.reservations.map(r => ({
-            id: r.id || r.code,
-            time: r.res_time || '19:00',
-            date: r.res_date || '',
-            client: r.customer_name || 'Гость',
-            guests: r.guests || 2,
-            zone: r.zone || 'Основной зал',
-            table: r.table || r.zone || 'Основной зал',
-            status: r.status || 'confirmed'
-          })));
+          setLiveBookings(
+            data.reservations.map((r) => ({
+              id: r.id || r.code,
+              time: r.res_time || '19:00',
+              date: r.res_date || '',
+              client: r.customer_name || 'Гость',
+              phone: r.customer_phone || '',
+              guests: r.guests || 2,
+              zone: r.zone || 'Основной зал',
+              table: r.table || r.zone || 'Основной зал',
+              status: r.status || 'confirmed',
+            }))
+          );
         }
       })
-      .catch(err => console.error('Floor reservations fetch error:', err));
+      .catch((err) => console.error('Floor reservations fetch error:', err));
   }, []);
 
   const onDrop = (e) => {
@@ -363,119 +431,334 @@ function Floor({ t, toast }) {
     if (e.clientX < rect.left || e.clientX > rect.right) { setDrag(null); return; }
     const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
     const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
-    setTables((ts) => ts.map((tb) => (tb.id === drag ? { ...tb, x: Math.max(0, Math.min(90, x)), y: Math.max(0, Math.min(88, y)) } : tb)));
+    setActiveTables((ts) => ts.map((tb) => (tb.id === drag ? { ...tb, x: Math.max(0, Math.min(88, x)), y: Math.max(0, Math.min(86, y)) } : tb)));
     setDrag(null);
   };
 
-  const cycle = { free: 'occupied', occupied: 'cleaning', cleaning: 'booked', booked: 'free' };
+  const cycleStatus = (tbId) => {
+    const cycle = { free: 'occupied', occupied: 'cleaning', cleaning: 'booked', booked: 'free', special: 'special' };
+    setActiveTables((ts) =>
+      ts.map((tb) => {
+        if (tb.id !== tbId || tb.stage) return tb;
+        const nextSt = cycle[tb.st] || 'free';
+        toast(`Стол ${tb.label}: статус изменён на "${t(nextSt)}"`, nextSt === 'occupied' ? 'warn' : 'ok');
+        return { ...tb, st: nextSt };
+      })
+    );
+  };
+
+  const selectedTable = activeTables.find((x) => x.id === sel);
+
+  // Filter bookings matching selected table/zone
+  const matchingBookings = selectedTable
+    ? liveBookings.filter((b) => {
+        const lbl = selectedTable.label.toLowerCase();
+        const tid = selectedTable.id.toLowerCase();
+        const bTable = (b.table || '').toLowerCase();
+        const bZone = (b.zone || '').toLowerCase();
+        return bTable.includes(lbl) || bTable.includes(tid) || bZone.includes(lbl) || (currentFloor === 2 && (bZone.includes('банкет') || bZone.includes('vip')));
+      })
+    : [];
+
+  const freeCount = activeTables.filter((x) => x.st === 'free' && !x.stage).length;
+  const occupiedCount = activeTables.filter((x) => x.st === 'occupied').length;
+  const bookedCount = activeTables.filter((x) => x.st === 'booked').length;
 
   return (
     <div className="page">
-      <div className="filters" style={{ marginTop: 0 }}>
-        {Object.entries(FLOOR_TONE).map(([k, tone]) => (
-          <span key={k} className="row" style={{ gap: 5, fontSize: 10.5, color: 'var(--text-2)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--' + tone + ')' }} />
-            {t(k === 'booked' ? 'booked' : k === 'occupied' ? 'occupied' : k === 'cleaning' ? 'cleaning' : 'free')}
-          </span>
-        ))}
+      {/* Floor & Zone Switcher Header */}
+      <div className="filters" style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            className="chip"
+            data-on={currentFloor === 1 ? '1' : '0'}
+            onClick={() => { setCurrentFloor(1); setSel(null); }}
+            style={{ fontWeight: 700 }}
+          >
+            🏛️ 1-й этаж · Основной зал (120 мест)
+          </button>
+          <button
+            className="chip"
+            data-on={currentFloor === 2 ? '1' : '0'}
+            onClick={() => { setCurrentFloor(2); setSel(null); }}
+            style={{ fontWeight: 700 }}
+          >
+            🎉 2-й этаж · Банкетный зал & VIP (170 мест)
+          </button>
+        </div>
+
         <span className="grow" />
-        <span className="dim" style={{ fontSize: 10 }}>{t('floor_hint')}</span>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 11, color: 'var(--text-2)' }}>
+          <span className="row" style={{ gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--ok)' }} />
+            Свободен ({freeCount})
+          </span>
+          <span className="row" style={{ gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--danger)' }} />
+            Занят ({occupiedCount})
+          </span>
+          <span className="row" style={{ gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--warn)' }} />
+            Бронь ({bookedCount})
+          </span>
+          <span className="row" style={{ gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--info)' }} />
+            Уборка
+          </span>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 288px', gap: 12, flex: 1, minHeight: 0 }}>
-        <div className="card" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}
-             style={{
-               position: 'relative', padding: 0, overflow: 'hidden',
-               background: 'radial-gradient(circle at 50% 0%, var(--surface-2), var(--surface) 70%)',
-               minHeight: 430,
-             }}>
-          {/* room outline */}
-          <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: .5 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 14, flex: 1, minHeight: 0 }}>
+        {/* Interactive Floor Scheme Canvas */}
+        <div
+          className="card"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDrop}
+          style={{
+            position: 'relative',
+            padding: 0,
+            overflow: 'hidden',
+            background: 'radial-gradient(circle at 50% 0%, var(--surface-2), var(--surface) 75%)',
+            minHeight: 520,
+            border: '1px solid var(--line)',
+          }}
+        >
+          {/* Subtle architectural grid pattern */}
+          <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.35 }}>
             <defs>
-              <pattern id="gridp" width="26" height="26" patternUnits="userSpaceOnUse">
-                <path d="M26 0H0v26" fill="none" stroke="var(--line-soft)" strokeWidth="1" />
+              <pattern id="gridp" width="28" height="28" patternUnits="userSpaceOnUse">
+                <path d="M28 0H0v28" fill="none" stroke="var(--line-soft)" strokeWidth="1" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#gridp)" />
           </svg>
-          <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, letterSpacing: 'var(--track-label)', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700 }}>
-            Вход · Яшнабадский район, ул. Хуснобод 5-й проезд, 1
+
+          {/* Hall Title Watermark */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 14,
+              left: 18,
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              color: 'var(--accent-2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />
+            {currentFloor === 1 ? '1-й этаж · Основной зал (120 мест) · Живая музыка и Бар' : '2-й этаж · Банкетный зал (170 мест) · Банкеты и VIP-залы'}
           </div>
-          {tables.map((tb) => {
-            const tone = 'var(--' + FLOOR_TONE[tb.st] + ')';
+
+          {/* Entrance Marker */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              fontSize: 9.5,
+              letterSpacing: 'var(--track-label)',
+              textTransform: 'uppercase',
+              color: 'var(--text-3)',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span>🚪 Главный вход · ул. Хуснобод 5-й проезд, 1</span>
+          </div>
+
+          {/* Render All Tables on Current Floor */}
+          {activeTables.map((tb) => {
+            const isStage = !!tb.stage;
+            const isVip = !!tb.vip;
+            const isBanquet = !!tb.banquet;
+            const isBar = !!tb.bar;
+            const tone = isStage ? 'var(--accent)' : 'var(--' + FLOOR_TONE[tb.st] + ')';
             const on = sel === tb.id;
+
+            const w = isStage ? 120 : isBanquet ? 116 : isBar ? 110 : isVip ? 96 : tb.seats >= 6 ? 84 : 64;
+            const h = isStage ? 86 : isBanquet ? 84 : isBar ? 78 : isVip ? 80 : tb.seats >= 6 ? 74 : 64;
+            const borderRadius = isStage ? '12px' : isVip ? '10px' : isBanquet ? '14px' : tb.seats >= 6 ? '12px' : '50%';
+
             return (
-              <button key={tb.id} draggable
-                      onDragStart={() => setDrag(tb.id)}
-                      onClick={() => setSel(on ? null : tb.id)}
-                      onDoubleClick={() => { setTables((ts) => ts.map((x) => x.id === tb.id ? { ...x, st: cycle[x.st] } : x)); toast('Стол ' + tb.label + ' → ' + tb.st, 'warn'); }}
+              <button
+                key={tb.id}
+                draggable={!isStage}
+                onDragStart={() => setDrag(tb.id)}
+                onClick={() => setSel(on ? null : tb.id)}
+                onDoubleClick={() => cycleStatus(tb.id)}
+                title={isStage ? 'Сцена живой музыки' : `${tb.label} (${tb.seats} мест) — Дважды кликните для смены статуса`}
+                style={{
+                  position: 'absolute',
+                  left: `${tb.x}%`,
+                  top: `${tb.y}%`,
+                  width: w,
+                  height: h,
+                  borderRadius,
+                  border: '1.5px solid ' + (on ? tone : isStage ? 'var(--accent-line)' : 'var(--line)'),
+                  borderLeftWidth: isVip || isBanquet ? 4 : undefined,
+                  borderLeftColor: isVip || isBanquet ? tone : undefined,
+                  backgroundColor: on
+                    ? `color-mix(in srgb, ${tone} 18%, var(--surface))`
+                    : isStage
+                    ? 'rgba(211, 170, 99, 0.08)'
+                    : 'var(--surface)',
+                  color: 'var(--text)',
+                  cursor: isStage ? 'default' : 'grab',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 3,
+                  boxShadow: on ? `0 0 0 3px color-mix(in srgb, ${tone} 25%, transparent)` : 'var(--shadow)',
+                  transition: 'all .16s var(--ease)',
+                  fontFamily: 'var(--f-body)',
+                  zIndex: on ? 10 : 2,
+                }}
+              >
+                {isStage ? (
+                  <>
+                    <span style={{ fontSize: 16 }}>🎷</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-2)' }}>Сцена & DJ</span>
+                    <span style={{ fontSize: 8.5, color: 'var(--text-3)' }}>Живой звук</span>
+                  </>
+                ) : (
+                  <>
+                    <span
                       style={{
-                        position: 'absolute', left: tb.x + '%', top: tb.y + '%',
-                        width: tb.bar ? 92 : tb.vip ? 86 : tb.seats >= 6 ? 82 : 60,
-                        height: tb.seats >= 6 || tb.vip || tb.bar ? 74 : 60,
-                        borderRadius: tb.vip ? 'var(--r-sm)' : tb.seats >= 6 ? '10px' : '50%',
-                        border: '1.5px solid ' + (on ? tone : 'var(--line)'),
-                        borderLeftWidth: tb.vip ? 4 : undefined,
-                        background: 'var(--surface)',
-                        backgroundColor: on ? `color-mix(in srgb, ${tone} 15%, var(--surface))` : 'var(--surface)',
-                        color: 'var(--text)', cursor: 'grab', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center', gap: 2,
-                        boxShadow: on ? '0 0 0 3px color-mix(in srgb, ' + tone + ' 18%, transparent)' : 'var(--shadow)',
-                        transition: 'all .16s var(--ease)', fontFamily: 'var(--f-body)',
-                      }}>
-                    <span style={{ fontSize: tb.vip || tb.bar ? 11 : 15, fontWeight: 700, fontFamily: tb.vip || tb.bar ? 'var(--f-body)' : 'var(--f-display)', letterSpacing: tb.vip ? '.04em' : 0 }}>
+                        fontSize: isBanquet || isVip || isBar ? 11 : 13,
+                        fontWeight: 700,
+                        fontFamily: isBanquet || isVip || isBar ? 'var(--f-body)' : 'var(--f-display)',
+                        letterSpacing: isVip ? '.03em' : 0,
+                      }}
+                    >
                       {tb.label}
                     </span>
-                    <span style={{ fontSize: 8.5, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Icon name="users" size={8} /> {tb.seats}
+                    <span style={{ fontSize: 9, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <Icon name="users" size={8.5} /> {tb.seats} мест
                     </span>
-                    <span style={{ width: 5, height: 5, borderRadius: 50, background: tone, marginTop: 1 }} />
-                  </button>
-                );
-              })}
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: tone, marginTop: 1 }} />
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="card" style={{ padding: 13, overflowY: 'auto' }}>
-          {sel ? (() => {
-            const tb = tables.find((x) => x.id === sel);
-            const tone = 'var(--' + FLOOR_TONE[tb.st] + ')';
-            return (
-              <div className="col-flex" style={{ gap: 11 }}>
-                <div>
-                  <div className="label">{t('table')}</div>
-                  <div style={{ fontFamily: 'var(--f-display)', fontSize: 22, fontWeight: 600, lineHeight: 1.1, marginTop: 2 }}>
-                    {tb.vip || tb.bar ? tb.label : 'Стол ' + tb.label}
-                  </div>
-                  <div className="row" style={{ marginTop: 5, gap: 5 }}>
-                    <Pill tone={FLOOR_TONE[tb.st]} dot>{t(tb.st === 'free' ? 'free' : tb.st === 'booked' ? 'booked' : tb.st === 'occupied' ? 'occupied' : 'cleaning')}</Pill>
-                    <Pill tone="muted"><Icon name="users" size={9} /> {tb.seats}</Pill>
-                  </div>
+        {/* Right Details Sidebar for Selected Table */}
+        <div className="card" style={{ padding: 14, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          {selectedTable ? (
+            <div className="col-flex" style={{ gap: 12 }}>
+              <div>
+                <div className="label">
+                  {currentFloor === 1 ? '1-й этаж · Основной зал' : '2-й этаж · Банкетный зал'}
                 </div>
-                <div className="sect-title" style={{ margin: 0 }}>{t('actions')}</div>
-                <Btn icon="users" onClick={() => toast('Гости посажены за ' + tb.label)}>{t('seat')}</Btn>
-                <Btn icon="calendar" onClick={() => toast('Бронь на этот стол')}>{t('bookings')}</Btn>
-                <Btn icon="gear" variant="ghost" onClick={() => { setTables((ts) => ts.map((x) => x.id === tb.id ? { ...x, st: cycle[x.st] } : x)); }}>Изменить статус</Btn>
-                <div style={{ paddingTop: 9, borderTop: '1px solid var(--line-soft)' }}>
-                  <div className="label">{t('today')}</div>
-                  <div className="col-flex" style={{ marginTop: 6, gap: 6 }}>
-                    {liveBookings.filter((b) => (b.table && b.table.includes(tb.label)) || (b.zone && b.zone.includes(tb.label))).slice(0, 3).map((b) => (
-                      <div key={b.id} style={{ fontSize: 10.5, display: 'flex', gap: 6 }}>
-                        <span className="mono dim">{b.time}</span>
-                        <span className="trunc">{b.client}</span>
-                        <span className="dim" style={{ marginLeft: 'auto' }}>{b.guests} чел.</span>
-                      </div>
-                    ))}
-                    {!liveBookings.filter((b) => (b.table && b.table.includes(tb.label)) || (b.zone && b.zone.includes(tb.label))).length && (
-                      <span className="dim" style={{ fontSize: 10.5 }}>Броней нет</span>
-                    )}
-                  </div>
+                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 700, lineHeight: 1.1, marginTop: 3 }}>
+                  {selectedTable.label}
                 </div>
+                {!selectedTable.stage && (
+                  <div className="row" style={{ marginTop: 8, gap: 6, flexWrap: 'wrap' }}>
+                    <Pill tone={FLOOR_TONE[selectedTable.st]} dot>
+                      {t(selectedTable.st === 'free' ? 'free' : selectedTable.st === 'booked' ? 'booked' : selectedTable.st === 'occupied' ? 'occupied' : selectedTable.st === 'cleaning' ? 'cleaning' : 'ok')}
+                    </Pill>
+                    <Pill tone="muted">
+                      <Icon name="users" size={10} /> Вместимость: {selectedTable.seats} гостей
+                    </Pill>
+                  </div>
+                )}
               </div>
-            );
-          })() : (
-            <div className="empty" style={{ height: '100%' }}>
-              <Icon name="grid" size={24} />
-              <span>Выберите стол на плане</span>
+
+              {!selectedTable.stage && (
+                <>
+                  <div className="sect-title" style={{ margin: 0 }}>Управление столом</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <Btn
+                      icon="users"
+                      variant="accent"
+                      onClick={() => {
+                        setActiveTables((ts) => ts.map((x) => (x.id === selectedTable.id ? { ...x, st: 'occupied' } : x)));
+                        toast(`Гости посажены за "${selectedTable.label}"`, 'ok', 'check');
+                      }}
+                    >
+                      Посадить гостей (Занят)
+                    </Btn>
+                    <Btn
+                      icon="check"
+                      onClick={() => {
+                        setActiveTables((ts) => ts.map((x) => (x.id === selectedTable.id ? { ...x, st: 'free' } : x)));
+                        toast(`Стол "${selectedTable.label}" освобождён`, 'ok', 'check');
+                      }}
+                    >
+                      Освободить стол (Свободен)
+                    </Btn>
+                    <Btn
+                      icon="rotate"
+                      variant="ghost"
+                      onClick={() => cycleStatus(selectedTable.id)}
+                    >
+                      Сменить статус (Уборка/Бронь)
+                    </Btn>
+                  </div>
+
+                  {/* Matching Customer Bookings */}
+                  <div style={{ paddingTop: 10, borderTop: '1px solid var(--line-soft)' }}>
+                    <div className="label">Бронирования из базы данных</div>
+                    <div className="col-flex" style={{ marginTop: 8, gap: 8 }}>
+                      {matchingBookings.slice(0, 3).map((b) => (
+                        <div
+                          key={b.id}
+                          style={{
+                            background: 'var(--surface-2)',
+                            borderRadius: '8px',
+                            padding: '8px 10px',
+                            border: '1px solid var(--line-soft)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 3,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: 600, fontSize: 12 }}>{b.client}</span>
+                            <span className="mono" style={{ fontSize: 11, color: 'var(--accent-2)', fontWeight: 700 }}>
+                              {b.time}
+                            </span>
+                          </div>
+                          {b.phone && (
+                            <div className="mono dim" style={{ fontSize: 10.5 }}>
+                              📞 {b.phone}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-3)' }}>
+                            <span>Гостей: {b.guests} чел.</span>
+                            <span>{b.date || 'Сегодня'}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {!matchingBookings.length && (
+                        <div style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-3)', fontSize: 11 }}>
+                          На этот стол нет активных броней
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="empty" style={{ height: '100%', padding: '40px 10px' }}>
+              <Icon name="grid" size={26} />
+              <span style={{ fontWeight: 600, marginTop: 8 }}>Выберите стол</span>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', textAlign: 'center', marginTop: 4 }}>
+                Кликните по любому столу или VIP-залу на плане для управления статусом посадки
+              </span>
             </div>
           )}
         </div>

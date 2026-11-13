@@ -1,154 +1,374 @@
-/* ═══════════ COURIERS · MENU · STAFF ═══════════ */
+/* ═══════════ COURIERS & DELIVERY DISPATCH · REAL MENU & PRICES · STAFF ═══════════ */
 
+// Approximate coordinate map for Tashkent districts & addresses
+const TASHKENT_DISTRICT_COORDS = {
+  yashnabad: [41.2858, 69.3402], // FENIX Restobar Hub
+  mirabad: [41.2985, 69.2789],
+  chilanzar: [41.2721, 69.2045],
+  yunusabad: [41.3645, 69.2885],
+  sergeli: [41.2215, 69.2205],
+  shaykhontohur: [41.3255, 69.2395],
+  mirzoulugbek: [41.3325, 69.3385],
+  olmazar: [41.3515, 69.2215],
+  uchtepa: [41.2925, 69.1765],
+  center: [41.3111, 69.2797],
+};
+
+function getCoordsForAddress(addr) {
+  const s = String(addr || '').toLowerCase();
+  if (s.includes('чиланзар') || s.includes('chilonzor')) return TASHKENT_DISTRICT_COORDS.chilanzar;
+  if (s.includes('юнусабад') || s.includes('yunusobod')) return TASHKENT_DISTRICT_COORDS.yunusabad;
+  if (s.includes('мирабад') || s.includes('mirobod')) return TASHKENT_DISTRICT_COORDS.mirabad;
+  if (s.includes('сергели') || s.includes('sergeli')) return TASHKENT_DISTRICT_COORDS.sergeli;
+  if (s.includes('шайхантахур') || s.includes('shayxontohur')) return TASHKENT_DISTRICT_COORDS.shaykhontohur;
+  if (s.includes('улугбек') || s.includes('ulug')) return TASHKENT_DISTRICT_COORDS.mirzoulugbek;
+  if (s.includes('яшнабад') || s.includes('yashnobod') || s.includes('хуснобод')) return [41.2890, 69.3350];
+  // Default offset around Tashkent center
+  const hash = s.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const latOffset = ((hash % 100) - 50) * 0.0008;
+  const lngOffset = (((hash * 7) % 100) - 50) * 0.0010;
+  return [41.3111 + latOffset, 69.2797 + lngOffset];
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. COURIERS & DELIVERY DISPATCH (Real Orders + Real Tashkent Map)
+   ───────────────────────────────────────────────────────────────────────────── */
 function Couriers({ t, toast, orders = [] }) {
-  const [sel, setSel] = useState('C-1');
-  const deliveringCount = orders.filter((o) => o.type === 'delivery' && o.col === 'way').length;
-  const completedDeliveries = orders.filter((o) => o.type === 'delivery' && o.col === 'done').length;
+  const deliveryOrders = orders.filter((o) => o.type === 'delivery');
+  const [selId, setSelId] = useState(null);
+  const [filterMode, setFilterMode] = useState('active'); // active | all
+  const mapRef = useRef(null);
+  const leafletInstance = useRef(null);
+  const markersRef = useRef([]);
 
-  const active = FX.couriers.find((c) => c.id === sel) || FX.couriers[0];
+  // Find currently active delivery
+  const activeDeliveries = deliveryOrders.filter((o) => o.col !== 'done');
+  const completedDeliveries = deliveryOrders.filter((o) => o.col === 'done');
+  const displayedOrders = filterMode === 'active' ? activeDeliveries : deliveryOrders;
+
+  const currentOrder = deliveryOrders.find((o) => o.id === selId) || displayedOrders[0] || deliveryOrders[0];
+
+  // Initialize or update Leaflet Map
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.L || !mapRef.current) return;
+
+    if (!leafletInstance.current) {
+      const map = window.L.map(mapRef.current, {
+        center: [41.2995, 69.3000],
+        zoom: 12,
+        zoomControl: true,
+      });
+
+      // Dark Matter CartoDB tiles
+      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // FENIX Restobar Hub Marker
+      const fenixIcon = window.L.divIcon({
+        className: 'fenix-map-pin',
+        html: `
+          <div style="
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, #d3aa63, #b8860b);
+            border: 2px solid #fff; box-shadow: 0 0 16px rgba(211, 170, 99, 0.7);
+            display: flex; align-items: center; justify-content: center; color: #000;
+            font-size: 18px; font-weight: bold; cursor: pointer;
+          ">🔥</div>
+        `,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
+      });
+
+      window.L.marker(TASHKENT_DISTRICT_COORDS.yashnabad, { icon: fenixIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family: sans-serif; color: #111; padding: 4px;">
+            <b style="color: #b8860b;">🔥 FENIX Restobar & Lounge</b><br/>
+            <span>Яшнабадский район, 5-й проезд Хуснобод, 1</span><br/>
+            <small style="color: #666;">Центр отправки заказов</small>
+          </div>
+        `);
+
+      leafletInstance.current = map;
+    }
+
+    const map = leafletInstance.current;
+
+    // Clear old order markers
+    markersRef.current.forEach((m) => map.removeLayer(m));
+    markersRef.current = [];
+
+    // Add marker for each delivery order
+    deliveryOrders.forEach((ord) => {
+      const coords = getCoordsForAddress(ord.addr);
+      const isSel = currentOrder && currentOrder.id === ord.id;
+      const isDone = ord.col === 'done';
+
+      const orderIcon = window.L.divIcon({
+        className: 'order-map-pin',
+        html: `
+          <div style="
+            width: ${isSel ? 36 : 28}px; height: ${isSel ? 36 : 28}px; border-radius: 50%;
+            background: ${isDone ? '#57a877' : isSel ? '#d3aa63' : '#4a7fc1'};
+            border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; color: #fff;
+            font-size: ${isSel ? 13 : 11}px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s ease;
+          ">🛵</div>
+        `,
+        iconSize: [isSel ? 36 : 28, isSel ? 36 : 28],
+        iconAnchor: [isSel ? 18 : 14, isSel ? 18 : 14],
+      });
+
+      const marker = window.L.marker(coords, { icon: orderIcon }).addTo(map);
+
+      marker.bindPopup(`
+        <div style="font-family: sans-serif; color: #111; padding: 4px; min-width: 170px;">
+          <b style="color: #d3aa63;">Заказ #${ord.id}</b><br/>
+          <b>${ord.client || 'Клиент'}</b> · ${ord.phone || '—'}<br/>
+          <span style="font-size: 11px; color: #444;">${ord.addr || 'Адрес доставки'}</span><br/>
+          <b>${summ(ord.total)} сум</b>
+        </div>
+      `);
+
+      marker.on('click', () => setSelId(ord.id));
+      markersRef.current.push(marker);
+    });
+
+    // If current order selected, pan to it
+    if (currentOrder && currentOrder.addr) {
+      const targetCoords = getCoordsForAddress(currentOrder.addr);
+      map.setView(targetCoords, 14, { animate: true });
+    }
+  }, [deliveryOrders, selId, currentOrder]);
+
+  const advanceDeliveryStatus = async (ord, nextCol, nextRu) => {
+    try {
+      await fetch('/api/admin/orders/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: ord.dbId,
+          orderNum: ord.orderNum || parseInt(String(ord.id).replace(/\D/g, '')),
+          status: nextRu,
+        }),
+      });
+      ord.col = nextCol;
+      toast(`Заказ #${ord.id} переведён в статус "${nextRu}"`, 'ok', 'check');
+    } catch (e) {
+      toast('Ошибка обновления статуса: ' + e.message, 'err');
+    }
+  };
+
   return (
     <div className="page">
+      {/* Real KPI Row */}
       <div className="kpis">
         {[
-          { l: 'couriers', v: FX.couriers.length, f: 'Курьерская служба Fenix', icon: 'bike' },
-          { l: 'active_orders', v: deliveringCount, f: 'На доставке прямо сейчас', icon: 'truck' },
-          { l: 'sla_avg', v: '32', f: 'мин · среднее время доставки', icon: 'clock' },
-          { l: 'completed', v: completedDeliveries, f: 'Доставлено заказов', icon: 'check' },
+          { l: 'Всего доставок', v: deliveryOrders.length, f: 'Заказов курьером из базы', icon: 'truck' },
+          { l: 'В пути к клиенту', v: deliveryOrders.filter((o) => o.col === 'way').length, f: 'Передано курьеру', icon: 'bike', warn: true },
+          { l: 'Успешно доставлено', v: completedDeliveries.length, f: 'Выполненные заказы', icon: 'check' },
+          { l: 'База Fenix Hub', v: 'Яшнабад', f: 'ул. Хуснобод 5-й проезд, 1', icon: 'pin' },
         ].map((c) => (
           <div className="card kpi" key={c.l}>
-            <div className="kpi-top"><span className="label">{t(c.l)}</span>
-              <span className="kpi-ico"><Icon name={c.icon} size={14} /></span></div>
+            <div className="kpi-top">
+              <span className="label">{c.l}</span>
+              <span className="kpi-ico" style={c.warn ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
+                <Icon name={c.icon} size={14} />
+              </span>
+            </div>
             <div className="kpi-body"><div className="stat-num">{c.v}</div></div>
             <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 12, marginTop: 13, minHeight: 420 }}>
-        <div className="card" style={{ position: 'relative', overflow: 'hidden', background: 'var(--surface-2)' }}>
-          {/* stylised city map */}
-          <svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0 }}>
-            <rect width="600" height="400" fill="var(--surface-2)" />
-            {[30, 90, 150, 210, 270, 330].map((y) => (
-              <path key={y} d={`M0 ${y} H600`} stroke="var(--line-soft)" strokeWidth="7" />
-            ))}
-            {[70, 170, 260, 350, 450, 540].map((x) => (
-              <path key={x} d={`M${x} 0 V400`} stroke="var(--line-soft)" strokeWidth="7" />
-            ))}
-            {[[20, 20, 120, 60], [200, 100, 90, 90], [340, 40, 150, 110], [430, 200, 120, 70], [80, 300, 140, 60], [300, 290, 100, 80]]
-              .map(([x, y, w, h], i) => (
-                <rect key={i} x={x} y={y} width={w} height={h} fill="var(--surface-3)" opacity=".55" rx="3" />
-              ))}
-            {/* route */}
-            <path d="M204 176 L272 132 L372 120 L426 252" fill="none" stroke="var(--accent)" strokeWidth="2"
-                  strokeDasharray="6 4" opacity=".8" />
-            {/* restaurant */}
-            <g>
-              <circle cx="204" cy="176" r="14" fill="var(--accent-soft)" />
-              <circle cx="204" cy="176" r="6" fill="var(--accent)" />
-              <text x="204" y="156" fill="var(--accent)" fontSize="9" textAnchor="middle" fontWeight="700" fontFamily="var(--f-mono)">FENIX</text>
-            </g>
-          </svg>
-          {FX.couriers.map((c) => (
-            <button key={c.id} onClick={() => setSel(c.id)}
-                    style={{
-                      position: 'absolute', left: c.x + '%', top: c.y + '%', transform: 'translate(-50%,-50%)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                      background: 'none', border: 0, padding: 0, cursor: 'pointer', zIndex: 2,
-                    }}>
-              <span style={{
-                width: sel === c.id ? 34 : 28, height: sel === c.id ? 34 : 28, borderRadius: '50%',
-                display: 'grid', placeItems: 'center',
-                background: c.status === 'free' ? 'var(--ok-soft)' : 'var(--accent-soft)',
-                color: c.status === 'free' ? 'var(--ok)' : 'var(--accent)',
-                boxShadow: `0 0 0 ${sel === c.id ? 3 : 2}px var(--surface-2), 0 0 0 ${sel === c.id ? 4.5 : 3.5}px ${c.status === 'free' ? 'var(--ok)' : 'var(--accent)'}`,
-                transition: 'all .16s var(--ease)',
-              }}>
-                <Icon name="bike" size={sel === c.id ? 17 : 14} stroke={1.8} />
-              </span>
-              <span style={{
-                fontSize: 8.5, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
-                background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--text-2)',
-                whiteSpace: 'nowrap', fontFamily: 'var(--f-mono)',
-              }}>{c.name.split(' ')[1] || c.name}</span>
-            </button>
-          ))}
+      {/* Main Delivery Layout: Interactive Map + Real Orders List */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 370px', gap: 14, marginTop: 14, minHeight: 520 }}>
+        {/* Left: Map of Tashkent */}
+        <div className="card" style={{ position: 'relative', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{
-            position: 'absolute', left: 11, bottom: 11, display: 'flex', gap: 8, padding: '6px 9px',
-            background: 'color-mix(in srgb, var(--surface) 88%, transparent)', borderRadius: 'var(--r-sm)',
-            border: '1px solid var(--line)', fontSize: 9.5,
+            position: 'absolute', top: 12, left: 14, zIndex: 999,
+            background: 'rgba(18, 17, 13, 0.88)', backdropFilter: 'blur(10px)',
+            border: '1px solid var(--line-strong)', borderRadius: '10px',
+            padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10
           }}>
-            <span className="row" style={{ gap: 4 }}><span style={{ width: 7, height: 7, borderRadius: 50, background: 'var(--ok)' }} />{t('free')}</span>
-            <span className="row" style={{ gap: 4 }}><span style={{ width: 7, height: 7, borderRadius: 50, background: 'var(--accent)' }} />{t('busy')}</span>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Ташкент · Карта логистики Fenix</span>
+          </div>
+
+          {/* Leaflet DOM container */}
+          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 480, background: '#0b0a08' }} />
+
+          {/* Legend bar */}
+          <div style={{
+            position: 'absolute', bottom: 12, left: 14, zIndex: 999,
+            background: 'rgba(18, 17, 13, 0.92)', backdropFilter: 'blur(10px)',
+            border: '1px solid var(--line)', borderRadius: '8px',
+            padding: '6px 12px', display: 'flex', gap: 14, fontSize: 11
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#d3aa63' }} /> FENIX Hub
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4a7fc1' }} /> На доставке
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#57a877' }} /> Доставлен
+            </span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 11 }}>
-          {active && (
-            <>
-              <div>
-                <div className="label">{t('courier')}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-                  <span className="avatar" data-tone={active.status === 'free' ? undefined : 'accent'}>{initials(active.name)}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 12.5 }}>{active.name}</div>
-                    <div className="dim" style={{ fontSize: 10 }}>
-                      {active.status === 'free' ? t('free') : `${active.load} ${t('orders')} · ${active.eta}`}
-                    </div>
+        {/* Right: Active Delivery Orders List & Selected Detail */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Filter Bar */}
+          <div className="card" style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="label" style={{ margin: 0 }}>Заказы:</span>
+            <button
+              className="chip"
+              data-on={filterMode === 'active' ? '1' : '0'}
+              onClick={() => setFilterMode('active')}
+            >
+              Активные ({activeDeliveries.length})
+            </button>
+            <button
+              className="chip"
+              data-on={filterMode === 'all' ? '1' : '0'}
+              onClick={() => setFilterMode('all')}
+            >
+              Все ({deliveryOrders.length})
+            </button>
+          </div>
+
+          {/* Selected Order Card */}
+          {currentOrder ? (
+            <div className="card" style={{ padding: 14, border: '1px solid var(--line-strong)', background: 'var(--surface-2)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div>
+                  <div className="label">Выбранный заказ</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--f-mono)', color: 'var(--accent-2)' }}>
+                    #{currentOrder.id}
                   </div>
                 </div>
+                <Pill tone={currentOrder.col === 'done' ? 'ok' : currentOrder.col === 'way' ? 'info' : 'warn'}>
+                  {currentOrder.col === 'done' ? 'Доставлен' : currentOrder.col === 'way' ? 'В пути' : 'Кухня готовит'}
+                </Pill>
               </div>
-              {active.job && (
-                <>
-                  <div className="sect-title" style={{ margin: 0 }}>{t('route')}</div>
-                  <div className="card" style={{ padding: 9, background: 'var(--surface-2)' }}>
-                    <div className="mono" style={{ fontSize: 10.5, fontWeight: 700 }}>#{active.job}</div>
-                    <div className="dim" style={{ fontSize: 10, marginTop: 3 }}>Ниёзбек Йули кўчаси, 1а</div>
-                    <div className="row" style={{ marginTop: 7, gap: 4 }}>
-                      <Pill tone="ok" dot>ETA {active.eta}</Pill>
-                    </div>
-                  </div>
-                  <Btn icon="phone" onClick={() => toast('Звонок курьеру ' + active.name)}>{t('call_client')}</Btn>
-                </>
-              )}
-              <div className="sect-title" style={{ margin: 0 }}>{t('couriers')}</div>
-              <div className="col-flex" style={{ gap: 3 }}>
-                {FX.couriers.map((c) => (
-                  <button key={c.id} onClick={() => setSel(c.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 7, padding: '6px 7px',
-                            borderRadius: 'var(--r-xs)', border: 0, textAlign: 'left',
-                            background: sel === c.id ? 'var(--accent-soft)' : 'transparent',
-                          }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 50, flex: 'none',
-                      background: c.status === 'free' ? 'var(--ok)' : 'var(--accent)' }} />
-                    <span className="grow trunc" style={{ fontSize: 11, fontWeight: 500 }}>{c.name}</span>
-                    <span className="mono dim" style={{ fontSize: 9 }}>{c.load || '—'}</span>
-                  </button>
-                ))}
+
+              <div style={{ fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 }}>
+                <div><b>Клиент:</b> {currentOrder.client}</div>
+                <div><b>Телефон:</b> <a href={`tel:${currentOrder.phone}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>{currentOrder.phone}</a></div>
+                <div style={{ marginTop: 4, padding: '6px 8px', background: 'var(--surface)', borderRadius: '6px', border: '1px solid var(--line)' }}>
+                  <b>Адрес:</b> {currentOrder.addr || 'Ташкент'}
+                </div>
+                <div style={{ marginTop: 6 }}>
+                  <b>Сумма:</b> <span className="mono" style={{ color: 'var(--accent-2)', fontWeight: 700 }}>{summ(currentOrder.total)} сум</span>
+                  <span className="dim" style={{ marginLeft: 8 }}>({currentOrder.pay === 'cash' ? 'Наличными' : 'Картой'})</span>
+                </div>
               </div>
-            </>
-          )}
+
+              {/* Action Buttons for Selected Order */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <a
+                  href={`https://yandex.uz/maps/?text=${encodeURIComponent((currentOrder.addr || 'Ташкент') + ' Ташкент')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-sm"
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--surface-3)' }}
+                >
+                  <Icon name="pin" size={14} /> Открыть в Яндекс Картах
+                </a>
+
+                {currentOrder.col !== 'way' && currentOrder.col !== 'done' && (
+                  <Btn size="sm" variant="accent" icon="bike" onClick={() => advanceDeliveryStatus(currentOrder, 'way', 'в пути')}>
+                    Передать курьеру (В пути)
+                  </Btn>
+                )}
+
+                {currentOrder.col === 'way' && (
+                  <Btn size="sm" variant="accent" icon="check" onClick={() => advanceDeliveryStatus(currentOrder, 'done', 'доставлен')}>
+                    Подтвердить доставку клиенту
+                  </Btn>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Orders Scroll List */}
+          <div className="card" style={{ flex: 1, padding: '10px 12px', overflowY: 'auto', maxHeight: '340px' }}>
+            <div className="label" style={{ marginBottom: 8 }}>Список доставок ({displayedOrders.length})</div>
+            {displayedOrders.length === 0 ? (
+              <div className="empty" style={{ padding: '24px 12px', textAlign: 'center', fontSize: 12, color: 'var(--text-3)' }}>
+                Нет заказов в этой категории
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {displayedOrders.map((o) => {
+                  const isSel = currentOrder && currentOrder.id === o.id;
+                  return (
+                    <button
+                      key={o.id}
+                      onClick={() => setSelId(o.id)}
+                      style={{
+                        padding: '9px 10px', borderRadius: '8px', border: '1px solid ' + (isSel ? 'var(--accent)' : 'var(--line)'),
+                        background: isSel ? 'var(--accent-soft)' : 'var(--surface)', textAlign: 'left',
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="mono" style={{ fontWeight: 700, fontSize: 12, color: isSel ? 'var(--accent-2)' : 'var(--text)' }}>
+                          #{o.id}
+                        </span>
+                        <Pill tone={o.col === 'done' ? 'ok' : o.col === 'way' ? 'info' : 'warn'}>
+                          {o.col === 'done' ? 'Доставлен' : o.col === 'way' ? 'В пути' : 'Кухня'}
+                        </Pill>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--text-2)' }} className="trunc">
+                        {o.client} · {o.addr || 'Адрес доставки'}
+                      </div>
+                      <div className="mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>
+                        {summ(o.total)} сум
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. REAL MENU SCREEN (Aligned Prices · Real Dishes · Stop-List Controls)
+   ───────────────────────────────────────────────────────────────────────────── */
 function MenuScreen({ t, toast }) {
   const [data, setData] = useState(FX.menu);
-  const [openCats, setOpenCats] = useState({ 'Закуски': true, 'Салаты': true, 'Вторые блюда': true });
+  const [openCats, setOpenCats] = useState({});
+  const [search, setSearch] = useState('');
+  const [activeCuisine, setActiveCuisine] = useState('all'); // all | europe | korea | bar
+  const [editDish, setEditDish] = useState(null);
+  const [newPrice, setNewPrice] = useState('');
 
+  // Sync stop-list from SQLite backend
   useEffect(() => {
     fetch('/api/admin/menu/stoplist')
       .then((r) => r.json())
       .then((res) => {
         if (res && res.ok && Array.isArray(res.stopped)) {
-          const stopSet = new Set(res.stopped);
-          setData((d) =>
-            d.map((c) => ({
+          const stopSet = new Set(res.stopped.map((s) => String(s).toLowerCase().trim()));
+          setData((prev) =>
+            prev.map((c) => ({
               ...c,
-              items: c.items.map((it) => (stopSet.has(it.n) ? { ...it, on: false, stop: true } : it)),
+              items: c.items.map((it) => {
+                const isStop = stopSet.has(String(it.n).toLowerCase().trim());
+                return { ...it, on: !isStop, stop: isStop };
+              }),
             }))
           );
         }
@@ -156,158 +376,373 @@ function MenuScreen({ t, toast }) {
       .catch(() => {});
   }, []);
 
-  const toggle = (cat, i) => {
-    let targetDish = null;
+  // Initialize all categories as expanded by default
+  useEffect(() => {
+    const o = {};
+    data.forEach((c) => { o[c.cat] = true; });
+    setOpenCats(o);
+  }, [data.length]);
+
+  const toggleStopList = (catName, dishIndex, dish) => {
+    const willStop = dish.on; // if currently ON, toggling stops it
     setData((d) =>
       d.map((c) => {
-        if (c.cat !== cat) return c;
+        if (c.cat !== catName) return c;
         return {
           ...c,
           items: c.items.map((it, j) => {
-            if (j !== i) return it;
-            targetDish = it;
-            const nextOn = !it.on;
-            return { ...it, on: nextOn, stop: !nextOn };
+            if (j !== dishIndex) return it;
+            return { ...it, on: !willStop, stop: willStop };
           }),
         };
       })
     );
-    if (targetDish) {
-      const willStop = targetDish.on;
-      toast(
-        willStop ? `${targetDish.n} добавлен в стоп-лист` : `${targetDish.n} включён в меню`,
-        willStop ? 'warn' : 'ok'
-      );
-      fetch('/api/admin/menu/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: targetDish.n, stop: willStop }),
-      }).catch(() => {});
-    }
+
+    toast(
+      willStop ? `⛔ "${dish.n}" добавлен в стоп-лист кухни` : `✅ "${dish.n}" снова доступен для заказа`,
+      willStop ? 'warn' : 'ok'
+    );
+
+    fetch('/api/admin/menu/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: dish.n, stop: willStop }),
+    }).catch(() => {});
   };
-  const total = data.flatMap((c) => c.items);
-  const onCount = total.filter((i) => i.on).length;
+
+  const handleSavePrice = () => {
+    if (!editDish || !newPrice) return;
+    const priceNum = parseInt(String(newPrice).replace(/\D/g, ''), 10);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      toast('Введите корректную сумму', 'err');
+      return;
+    }
+
+    setData((d) =>
+      d.map((c) => ({
+        ...c,
+        items: c.items.map((it) => (it.n === editDish.n ? { ...it, p: priceNum } : it)),
+      }))
+    );
+
+    toast(`Цена "${editDish.n}" изменена на ${summ(priceNum)} сум`, 'ok', 'check');
+    setEditDish(null);
+  };
+
+  // Filtered categories and dishes
+  const allDishes = data.flatMap((c) => c.items);
+  const totalCount = allDishes.length;
+  const inStockCount = allDishes.filter((i) => i.on).length;
+  const stoppedCount = totalCount - inStockCount;
+
+  const filteredCategories = data
+    .filter((c) => {
+      if (activeCuisine === 'europe' && c.menuType !== 'europe') return false;
+      if (activeCuisine === 'korea' && c.menuType !== 'korea') return false;
+      if (activeCuisine === 'bar' && c.menuType !== 'bar') return false;
+      return true;
+    })
+    .map((c) => {
+      const q = search.trim().toLowerCase();
+      if (!q) return c;
+      const matched = c.items.filter(
+        (it) =>
+          it.n.toLowerCase().includes(q) ||
+          (it.nUz && it.nUz.toLowerCase().includes(q)) ||
+          (it.nEn && it.nEn.toLowerCase().includes(q))
+      );
+      return { ...c, items: matched };
+    })
+    .filter((c) => c.items.length > 0);
 
   return (
     <div className="page">
+      {/* Real Statistics KPIs */}
       <div className="kpis">
         {[
-          { l: 'menu_items', v: total.length, f: `${data.length} категорий`, icon: 'menuBook' },
-          { l: 'available', v: onCount, f: 'Доступно к заказу', icon: 'check' },
-          { l: 'unavailable', v: total.length - onCount, f: 'В стоп-листе', icon: 'alert', warn: true },
-          { l: 'margin', v: '62%', f: 'Средняя маржа по меню', icon: 'chart' },
+          { l: 'Всего позиций в меню', v: totalCount, f: `${data.length} категорий кухни и бара`, icon: 'menuBook' },
+          { l: 'В наличии на кухне', v: inStockCount, f: 'Доступно к заказу и доставке', icon: 'check' },
+          { l: 'В стоп-листе', v: stoppedCount, f: 'Закончились ингредиенты', icon: 'alert', warn: stoppedCount > 0 },
+          { l: 'Разделы меню', v: '3 кухни', f: 'Европейская · Корейская · Бар', icon: 'layers' },
         ].map((c) => (
           <div className="card kpi" key={c.l}>
-            <div className="kpi-top"><span className="label">{t(c.l)}</span>
+            <div className="kpi-top">
+              <span className="label">{c.l}</span>
               <span className="kpi-ico" style={c.warn ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
-                <Icon name={c.icon} size={14} /></span></div>
+                <Icon name={c.icon} size={14} />
+              </span>
+            </div>
             <div className="kpi-body"><div className="stat-num">{c.v}</div></div>
             <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
           </div>
         ))}
       </div>
 
-      <div className="filters">
-        <span className="label">Прайс-лист · обновлён сегодня 09:41</span>
+      {/* Cuisine Filter & Search Bar */}
+      <div className="filters" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[
+            ['all', `Все разделы (${totalCount})`],
+            ['europe', 'Европейская кухня'],
+            ['korea', 'Корейская кухня'],
+            ['bar', 'Барная карта & Напитки'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              className="chip"
+              data-on={activeCuisine === id ? '1' : '0'}
+              onClick={() => setActiveCuisine(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <span className="grow" />
-        <Btn size="sm" icon="plus" onClick={() => toast('Новая позиция меню', 'ok', 'plus')}>{t('create')}</Btn>
-        <Btn size="sm" variant="accent" icon="check" onClick={() => toast('Изменения сохранены')}>{t('save')}</Btn>
+
+        {/* Real-time Search */}
+        <div style={{ position: 'relative', width: 260 }}>
+          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', display: 'flex' }}>
+            <Icon name="search" size={14} />
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск блюда..."
+            style={{
+              width: '100%', height: 34, paddingLeft: 32, paddingRight: 10,
+              background: 'var(--surface-2)', border: '1px solid var(--line)',
+              borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
       </div>
 
+      {/* Menu Categories & Strictly Aligned Price Table */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        {data.map((cat, ci) => {
-          const open = openCats[cat.cat];
-          return (
-            <div key={cat.cat}>
-              <button onClick={() => setOpenCats((o) => ({ ...o, [cat.cat]: !o[cat.cat] }))}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px',
-                        background: 'var(--surface-2)', border: 0, borderTop: ci ? '1px solid var(--line)' : 0,
-                        borderBottom: open ? '1px solid var(--line-soft)' : 0, textAlign: 'left',
-                      }}>
-                <Icon name={open ? 'chevronD' : 'chevronR'} size={12} style={{ color: 'var(--text-3)' }} />
-                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 'var(--track-label)', textTransform: 'uppercase' }}>{cat.cat}</span>
-                <span className="dim mono" style={{ fontSize: 9.5 }}>{cat.items.length}</span>
-                <span className="grow" />
-                {cat.items.some((i) => !i.on) && <Pill tone="warn">{t('unavailable')}</Pill>}
-              </button>
-              {open && (
-                <table className="tbl">
-                  <thead><tr>
-                    <th style={{ paddingLeft: 34 }}>Наименование</th><th className="tbl-right">{t('price')}</th>
-                    <th className="tbl-right">{t('cost')}</th><th className="tbl-right">{t('margin')}</th>
-                    <th style={{ width: 100 }}>{t('available')}</th><th className="tbl-right" style={{ width: 70 }} />
-                  </tr></thead>
-                  <tbody>
-                    {cat.items.map((it, i) => {
-                      const margin = Math.round((1 - it.cost / it.p) * 100);
-                      return (
-                        <tr key={it.n} style={{ cursor: 'default', opacity: it.on ? 1 : .55 }}>
-                          <td style={{ paddingLeft: 34 }}>
-                            <span className="row" style={{ gap: 6 }}>
-                              <span style={{ fontWeight: 600 }}>{it.n}</span>
-                              {it.star && <Icon name="star" size={10} style={{ color: 'var(--accent)' }} />}
+        {filteredCategories.length === 0 ? (
+          <div className="empty" style={{ padding: 48, textAlign: 'center' }}>
+            <Icon name="search" size={28} />
+            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-2)' }}>По вашему запросу ничего не найдено</div>
+          </div>
+        ) : (
+          filteredCategories.map((cat, ci) => {
+            const open = openCats[cat.cat] !== false;
+            return (
+              <div key={cat.cat}>
+                {/* Category Accordion Header */}
+                <button
+                  onClick={() => setOpenCats((o) => ({ ...o, [cat.cat]: !open }))}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                    background: 'var(--surface-2)', border: 0, borderTop: ci ? '1px solid var(--line)' : 0,
+                    borderBottom: open ? '1px solid var(--line-soft)' : 0, textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Icon name={open ? 'chevronD' : 'chevronR'} size={13} style={{ color: 'var(--text-3)' }} />
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 'var(--track-label)', textTransform: 'uppercase', color: 'var(--accent-2)' }}>
+                    {cat.cat}
+                  </span>
+                  <span className="dim mono" style={{ fontSize: 10.5, marginLeft: 4 }}>
+                    {cat.items.length} поз.
+                  </span>
+                  <span className="grow" />
+                  {cat.items.some((i) => !i.on) && (
+                    <Pill tone="warn">Есть позиции в стоп-листе</Pill>
+                  )}
+                </button>
+
+                {open && (
+                  <table
+                    className="tbl"
+                    style={{
+                      tableLayout: 'fixed',
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                    }}
+                  >
+                    <colgroup>
+                      <col style={{ width: '42%' }} />
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '8%' }} />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th style={{ paddingLeft: 34, textAlign: 'left' }}>Наименование блюда</th>
+                        <th style={{ textAlign: 'left' }}>Раздел меню</th>
+                        <th style={{ textAlign: 'right', paddingRight: 24 }}>Цена</th>
+                        <th style={{ textAlign: 'center' }}>Статус</th>
+                        <th style={{ textAlign: 'center' }}>В продаже</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cat.items.map((it, i) => (
+                        <tr
+                          key={it.n}
+                          style={{
+                            cursor: 'default',
+                            opacity: it.on ? 1 : 0.55,
+                            background: it.on ? 'transparent' : 'rgba(213, 97, 79, 0.05)',
+                          }}
+                        >
+                          {/* Dish Name */}
+                          <td style={{ paddingLeft: 34, textAlign: 'left' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <span style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--text)' }}>
+                                {it.n}
+                              </span>
+                              {it.nUz && (
+                                <span style={{ fontSize: 10, color: 'var(--text-3)' }}>
+                                  uz: {it.nUz}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Cuisine / Section */}
+                          <td style={{ textAlign: 'left' }}>
+                            <span className="dim" style={{ fontSize: 11 }}>
+                              {it.section || cat.section || 'Кухня'}
                             </span>
                           </td>
-                          <td className="tbl-right mono" style={{ fontWeight: 600 }}>{summ(it.p)}</td>
-                          <td className="tbl-right mono dim">{summ(it.cost)}</td>
-                          <td className="tbl-right">
-                            <span className="mono" style={{ fontSize: 10.5, color: margin > 55 ? 'var(--ok)' : margin > 40 ? 'var(--warn)' : 'var(--danger)', fontWeight: 600 }}>{margin}%</span>
+
+                          {/* Price: Perfectly Right-Aligned With Tabular Figures */}
+                          <td
+                            style={{
+                              textAlign: 'right',
+                              paddingRight: 24,
+                              fontFamily: 'var(--f-mono)',
+                              fontVariantNumeric: 'tabular-nums',
+                              fontWeight: 700,
+                              fontSize: 12.5,
+                              color: 'var(--accent-2)',
+                            }}
+                          >
+                            <span
+                              onClick={() => { setEditDish(it); setNewPrice(it.p); }}
+                              title="Нажмите, чтобы изменить цену"
+                              style={{ cursor: 'pointer', borderBottom: '1px dashed var(--line-strong)' }}
+                            >
+                              {summ(it.p)} сум
+                            </span>
                           </td>
-                          <td>
-                            <button onClick={() => toggle(cat.cat, i)}
-                                    role="switch" aria-checked={it.on}
-                                    style={{
-                                      width: 32, height: 18, borderRadius: 99, border: 0, padding: 2,
-                                      background: it.on ? 'var(--ok)' : 'var(--surface-hi)',
-                                      display: 'flex', justifyContent: it.on ? 'flex-end' : 'flex-start',
-                                      transition: 'all .18s var(--ease)',
-                                    }}>
-                              <span style={{ width: 14, height: 14, borderRadius: 50, background: it.on ? '#fff' : 'var(--text-3)', display: 'block' }} />
-                            </button>
+
+                          {/* Status Badge */}
+                          <td style={{ textAlign: 'center' }}>
+                            <Pill tone={it.on ? 'ok' : 'danger'}>
+                              {it.on ? 'В наличии' : 'Стоп-лист'}
+                            </Pill>
                           </td>
-                          <td className="tbl-right">
-                            <Btn size="sm" variant="ghost" className="btn-icon"><Icon name="edit" size={12} /></Btn>
+
+                          {/* Toggle Switch */}
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                              <button
+                                onClick={() => toggleStopList(cat.cat, i, it)}
+                                role="switch"
+                                aria-checked={it.on}
+                                title={it.on ? 'Поместить в стоп-лист' : 'Вернуть в продажу'}
+                                style={{
+                                  width: 34, height: 19, borderRadius: 99, border: 0, padding: 2,
+                                  background: it.on ? 'var(--ok)' : 'var(--surface-hi)',
+                                  display: 'flex', justifyContent: it.on ? 'flex-end' : 'flex-start',
+                                  cursor: 'pointer', transition: 'all .18s var(--ease)',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 15, height: 15, borderRadius: '50%',
+                                    background: it.on ? '#fff' : 'var(--text-3)', display: 'block',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                                  }}
+                                />
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          );
-        })}
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
+
+      {/* Price Edit Modal */}
+      {editDish && (
+        <div className="scrim" onClick={() => setEditDish(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 360, padding: 22, background: 'var(--surface-2)', border: '1px solid var(--line-strong)' }}
+          >
+            <div className="label">Редактирование цены</div>
+            <div style={{ fontSize: 16, fontWeight: 700, margin: '6px 0 16px', color: 'var(--accent-2)' }}>
+              {editDish.n}
+            </div>
+
+            <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>
+              Новая стоимость (в сумах):
+            </label>
+            <input
+              type="number"
+              value={newPrice}
+              onChange={(e) => setNewPrice(e.target.value)}
+              autoFocus
+              style={{
+                width: '100%', height: 42, padding: '0 12px',
+                background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                borderRadius: '8px', color: 'var(--text)', fontSize: 15, fontFamily: 'var(--f-mono)',
+                outline: 'none', boxSizing: 'border-box', marginBottom: 16
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setEditDish(null)}>Отмена</button>
+              <Btn size="sm" variant="accent" icon="check" onClick={handleSavePrice}>Сохранить цену</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. STAFF (Operational Team)
+   ───────────────────────────────────────────────────────────────────────────── */
 function Staff({ t, toast }) {
-  const [tab, setTab] = useState('team');
   const [team, setTeam] = useState(FX.staff);
 
   const fetchStaff = () => {
     fetch('/api/admin/staff')
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.ok && Array.isArray(data.staff) && data.staff.length > 0) {
-          const mapped = data.staff.map(s => {
-            const initials = s.full_name ? s.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '??';
+          const mapped = data.staff.map((s) => {
+            const initials = s.full_name
+              ? s.full_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+              : '??';
             return {
               name: s.full_name,
               role: s.role,
-              shift: '10:00 – 23:00',
+              shift: '11:00 – 23:00',
               status: 'online',
               initials,
-              phone: s.user_name ? '@' + s.user_name : '+998 97 185 00 10',
-              deliver: s.role === 'Курьер' ? 0 : 0
+              phone: s.user_name ? '@' + s.user_name : '+998 90 019 57 65',
             };
           });
           setTeam(mapped);
         }
       })
-      .catch(err => console.error('Staff fetch error:', err));
+      .catch((err) => console.error('Staff fetch error:', err));
   };
 
   useEffect(() => {
@@ -319,82 +754,83 @@ function Staff({ t, toast }) {
     if (!name || !name.trim()) return;
     const role = window.prompt('Должность (Диспетчер, Шеф-повар, Менеджер, Официант, Курьер):', 'Официант');
     if (!role || !role.trim()) return;
+
     fetch('/api/admin/staff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: name.trim(), role: role.trim() })
+      body: JSON.stringify({ full_name: name.trim(), role: role.trim() }),
     })
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.ok) {
           toast(`Сотрудник ${name.trim()} добавлен в смену`, 'ok', 'users');
           fetchStaff();
         }
       })
-      .catch(err => toast('Ошибка добавления: ' + err.message, 'err'));
+      .catch((err) => toast('Ошибка добавления: ' + err.message, 'err'));
   };
 
-  const roles = [
-    { r: 'Диспетчер', p: ['Заказы', 'Брони', 'Курьеры'] },
-    { r: 'Менеджер', p: ['Заказы', 'Брони', 'Банкеты', 'Аналитика', 'Меню'] },
-    { r: 'Шеф-повар', p: ['Кухня', 'Стоп-лист'] },
-    { r: 'Официант', p: ['Зал', 'Брони'] },
-    { r: 'Курьер', p: ['Мои доставки'] },
-  ];
   return (
     <div className="page">
-      <div className="filters" style={{ marginTop: 0 }}>
-        <div className="seg">
-          <button data-on={tab === 'team' ? '1' : '0'} onClick={() => setTab('team')}>{t('on_shift')}</button>
-          <button data-on={tab === 'perm' ? '1' : '0'} onClick={() => setTab('perm')}>{t('permissions')}</button>
-        </div>
-        <span className="grow" />
-        <Btn size="sm" icon="plus" onClick={handleInvite}>{t('invite')}</Btn>
+      <div className="kpis">
+        {[
+          { l: 'Сотрудников на смене', v: team.length, f: 'Персонал Fenix Restobar', icon: 'users' },
+          { l: 'Статус смены', v: '11:00 – 23:00', f: 'Основная смена ресторана', icon: 'clock' },
+          { l: 'Кухня & Сервис', v: 'Активны', f: 'Все цеха работают', icon: 'check' },
+        ].map((c) => (
+          <div className="card kpi" key={c.l}>
+            <div className="kpi-top">
+              <span className="label">{c.l}</span>
+              <span className="kpi-ico"><Icon name={c.icon} size={14} /></span>
+            </div>
+            <div className="kpi-body"><div className="stat-num">{c.v}</div></div>
+            <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
+          </div>
+        ))}
       </div>
 
-      {tab === 'team' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(238px, 1fr))', gap: 11 }}>
-          {team.map((s) => (
-            <div key={s.name} className="card" style={{ padding: 12 }}>
-              <div className="row" style={{ alignItems: 'flex-start' }}>
-                <span className="avatar" style={{ width: 33, height: 33, fontSize: 11 }} data-tone={s.status === 'online' ? 'accent' : undefined}>{s.initials}</span>
-                <div className="grow" style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 12.5, letterSpacing: '-.01em' }}>{s.name}</div>
-                  <div className="dim" style={{ fontSize: 10 }}>{s.role}</div>
-                </div>
-                <span style={{ width: 7, height: 7, borderRadius: 50, marginTop: 5, flex: 'none',
-                  background: s.status === 'online' ? 'var(--ok)' : s.status === 'busy' ? 'var(--warn)' : 'var(--text-3)' }} />
-              </div>
-              <div style={{ display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap' }}>
-                <Pill tone={s.status === 'online' ? 'ok' : s.status === 'busy' ? 'warn' : 'muted'}>{t(s.status)}</Pill>
-                <Pill tone="muted"><Icon name="clock" size={9} /> {s.shift}</Pill>
-              </div>
-              {s.deliver > 0 && (
-                <div className="row" style={{ marginTop: 9, paddingTop: 8, borderTop: '1px solid var(--line-soft)', fontSize: 10, color: 'var(--text-2)' }}>
-                  <Icon name="bike" size={11} /><span>{s.deliver} {t('active_orders').toLowerCase()}</span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <table className="tbl">
-            <thead><tr><th>{t('role')}</th><th>Доступ к разделам</th><th className="tbl-right">{t('access')}</th></tr></thead>
-            <tbody>
-              {roles.map((r) => (
-                <tr key={r.r} style={{ cursor: 'default' }}>
-                  <td style={{ fontWeight: 600 }}>{r.r}</td>
-                  <td><span className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-                    {r.p.map((p) => <Pill key={p} tone="muted">{p}</Pill>)}
-                  </span></td>
-                  <td className="tbl-right"><Btn size="sm" variant="ghost" icon="edit">{t('edit')}</Btn></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="filters">
+        <span className="label">Персонал смены Fenix</span>
+        <span className="grow" />
+        <Btn size="sm" variant="accent" icon="plus" onClick={handleInvite}>Добавить сотрудника</Btn>
+      </div>
+
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            <col style={{ width: '35%' }} />
+            <col style={{ width: '25%' }} />
+            <col style={{ width: '25%' }} />
+            <col style={{ width: '15%' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th style={{ paddingLeft: 24, textAlign: 'left' }}>Сотрудник</th>
+              <th style={{ textAlign: 'left' }}>Должность</th>
+              <th style={{ textAlign: 'left' }}>График / Смена</th>
+              <th style={{ textAlign: 'center' }}>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {team.map((m) => (
+              <tr key={m.name}>
+                <td style={{ paddingLeft: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="avatar" data-tone="accent">{m.initials}</span>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{m.name}</div>
+                      <div className="dim mono" style={{ fontSize: 10.5 }}>{m.phone}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span style={{ fontWeight: 500 }}>{m.role}</span></td>
+                <td><span className="mono dim">{m.shift}</span></td>
+                <td style={{ textAlign: 'center' }}><Pill tone="ok" dot>На смене</Pill></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
