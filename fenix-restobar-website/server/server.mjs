@@ -248,36 +248,89 @@ const server = http.createServer(async (req, res) => {
   // Admin OS & API Authentication Guard
   const ADMIN_USER = process.env.ADMIN_USER || "admin";
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "fenix2026";
-  const isAdminRoute = url.pathname === "/admin" || url.pathname === "/admin.html" || url.pathname.startsWith("/api/admin/");
 
-  if (isAdminRoute) {
+  function isRequestAuthorized(req, url) {
+    // 1. Check Cookie
+    const cookieHeader = req.headers["cookie"] || "";
+    if (cookieHeader) {
+      const match = cookieHeader.match(/(?:^|;\s*)fenix_admin_auth=([^;]+)/);
+      if (match && decodeURIComponent(match[1]) === ADMIN_PASSWORD) {
+        return true;
+      }
+    }
+    // 2. Check X-Admin-Key header or ?key= parameter
+    const keyHeader = req.headers["x-admin-key"] || url.searchParams.get("key");
+    if (keyHeader === ADMIN_PASSWORD) return true;
+
+    // 3. Check Authorization header (Bearer or Basic)
     const authHeader = req.headers["authorization"] || "";
-    let authorized = false;
-
+    if (authHeader.startsWith("Bearer ")) {
+      if (authHeader.slice(7).trim() === ADMIN_PASSWORD) return true;
+    }
     if (authHeader.startsWith("Basic ")) {
       try {
         const credentials = Buffer.from(authHeader.slice(6), "base64").toString("utf-8");
         const [u, p] = credentials.split(":");
-        if ((u === ADMIN_USER || u === "fenix") && p === ADMIN_PASSWORD) {
-          authorized = true;
+        if ((u === ADMIN_USER || u === "fenix" || u === "admin") && p === ADMIN_PASSWORD) {
+          return true;
         }
       } catch (_) {}
     }
+    return false;
+  }
 
-    // Also support X-Admin-Key header or ?key= parameter
-    if (!authorized) {
-      const keyHeader = req.headers["x-admin-key"] || url.searchParams.get("key");
-      if (keyHeader === ADMIN_PASSWORD) {
-        authorized = true;
-      }
-    }
+  // Auth API Endpoints
+  if (req.method === "POST" && url.pathname === "/api/auth/login") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { username, password } = payload;
+    const cleanUser = String(username || "").trim().toLowerCase();
+    const cleanPass = String(password || "").trim();
 
-    if (!authorized) {
-      res.writeHead(401, {
+    if ((cleanUser === ADMIN_USER.toLowerCase() || cleanUser === "admin" || cleanUser === "fenix") && cleanPass === ADMIN_PASSWORD) {
+      res.writeHead(200, {
         "Content-Type": "application/json",
-        "WWW-Authenticate": 'Basic realm="FENIX Admin Dispatch OS"'
+        "Set-Cookie": `fenix_admin_auth=${encodeURIComponent(ADMIN_PASSWORD)}; Path=/; Max-Age=2592000; SameSite=Lax`
       });
-      res.end(JSON.stringify({ ok: false, error: "Unauthorized. Enter Admin credentials." }));
+      res.end(JSON.stringify({
+        ok: true,
+        token: ADMIN_PASSWORD,
+        user: { username: cleanUser, name: "Администратор Fenix", role: "Диспетчер" }
+      }));
+    } else {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Неверный логин или пароль" }));
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/auth/logout") {
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Set-Cookie": "fenix_admin_auth=; Path=/; Max-Age=0; SameSite=Lax"
+    });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/auth/me") {
+    const authed = isRequestAuthorized(req, url);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      authenticated: authed,
+      user: authed ? { username: "admin", name: "Администратор Fenix", role: "Диспетчер" } : null
+    }));
+    return;
+  }
+
+  // Guard /api/admin/* endpoints
+  if (url.pathname.startsWith("/api/admin/")) {
+    if (!isRequestAuthorized(req, url)) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Unauthorized. Please log in." }));
       return;
     }
   }

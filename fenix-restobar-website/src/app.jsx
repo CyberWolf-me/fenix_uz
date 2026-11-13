@@ -94,9 +94,35 @@ function parseOrderItems(raw) {
   return [{ n: 'Заказ по меню', q: 1, p: 0 }];
 }
 
+// Automatic auth interceptor for admin API requests
+if (typeof window !== 'undefined' && !window.__fetchInterceptorInstalled) {
+  window.__fetchInterceptorInstalled = true;
+  const origFetch = window.fetch;
+  window.fetch = function(input, init = {}) {
+    try {
+      const token = localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth');
+      if (token && typeof input === 'string' && input.startsWith('/api/admin/')) {
+        init = Object.assign({}, init);
+        init.headers = Object.assign({}, init.headers || {}, { 'X-Admin-Key': token });
+      }
+    } catch (_) {}
+    return origFetch.call(this, input, init);
+  };
+}
+
 function App() {
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const theme = tw.theme, dir = tw.dir, lang = tw.lang;
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)fenix_admin_auth=([^;]+)/);
+      if (match) return true;
+      return Boolean(localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth'));
+    } catch (_) {
+      return false;
+    }
+  });
 
   const [page, setPage] = useState(() => {
     try { return localStorage.getItem('fx.page') || 'dispatch'; } catch (e) { return 'dispatch'; }
@@ -116,10 +142,41 @@ function App() {
 
   const t = useCallback((k) => (FX_I18N[lang] && FX_I18N[lang][k]) || (FX_I18N.ru[k] || k), [lang]);
 
+  const handleLogout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (_) {}
+    try {
+      localStorage.removeItem('fenix_admin_auth');
+      sessionStorage.removeItem('fenix_admin_auth');
+      document.cookie = 'fenix_admin_auth=; path=/; max-age=0; SameSite=Lax';
+    } catch (_) {}
+    setIsAuthenticated(false);
+    pushToast('Вы успешно вышли из системы', 'info', 'logOut');
+  }, [pushToast]);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.authenticated) {
+          setIsAuthenticated(true);
+        } else {
+          const localToken = localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth');
+          if (!localToken) setIsAuthenticated(false);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Live Sync with Backend Orders
   const syncOrders = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch('/api/admin/orders');
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.orders)) {
@@ -179,6 +236,10 @@ function App() {
   const syncBookingsCount = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/reservations');
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.reservations)) {
@@ -321,14 +382,25 @@ function App() {
                        rail={tw.rail} setRail={(v) => setTweak('rail', v)} />,
   };
 
+  if (!isAuthenticated) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(token, user) => {
+          setIsAuthenticated(true);
+          pushToast(`С возвращением! Добро пожаловать в FENIX OS.`, 'ok', 'check');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app" data-rail={tw.rail ? '1' : '0'}>
-      <Sidebar page={page} setPage={setPage} rail={tw.rail} t={t} counts={counts} />
+      <Sidebar page={page} setPage={setPage} rail={tw.rail} t={t} counts={counts} onLogout={handleLogout} />
       <div className="main">
         <Topbar page={page} t={t} rail={tw.rail} setRail={(v) => setTweak('rail', v)} now={now}
                 onSearch={() => setCmdk(true)} theme={theme} setTheme={(v) => setTweak('theme', v)}
                 lang={lang} setLang={(v) => setTweak('lang', v)} onNew={() => setCreateOpen(true)}
-                toast={pushToast} />
+                toast={pushToast} onLogout={handleLogout} />
         <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {screens[page]}
         </main>

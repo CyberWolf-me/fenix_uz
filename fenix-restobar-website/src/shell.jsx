@@ -29,7 +29,7 @@ const PAGE_META = {
   settings: { eyebrow: 'FENIX · ADMIN', icon: 'gear' },
 };
 
-function Sidebar({ page, setPage, rail, t, counts }) {
+function Sidebar({ page, setPage, rail, t, counts, onLogout }) {
   return (
     <nav className="nav" aria-label="Main">
       <div className="nav-brand">
@@ -61,20 +61,33 @@ function Sidebar({ page, setPage, rail, t, counts }) {
           </div>
         ))}
       </div>
-      <div className="nav-foot">
-        <button className="nav-user">
+      <div className="nav-foot" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button className="nav-user" style={{ flex: 1 }}>
           <span className="avatar" data-tone="accent">АШ</span>
           <span className="nav-user-txt">
             <span className="nav-user-name">Алмасов Ш.</span>
             <span className="nav-user-role">Диспетчер · Смена 1</span>
           </span>
         </button>
+        {onLogout && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={onLogout}
+            title="Выйти из системы"
+            style={{ color: 'var(--text-3)', padding: '8px', cursor: 'pointer' }}
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-3)'}
+          >
+            <Icon name="logOut" size={16} />
+          </button>
+        )}
       </div>
     </nav>
   );
 }
 
-function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast }) {
+function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout }) {
   const hh = new Date(now);
   const clock = [hh.getHours(), hh.getMinutes(), hh.getSeconds()]
     .map((x) => String(x).padStart(2, '0')).join(':');
@@ -122,6 +135,11 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
           <Icon name="bell" size={15} />
         </button>
         <Btn size="sm" variant="accent" icon="plus" onClick={onNew}>{t('create')}</Btn>
+        {onLogout && (
+          <button className="btn btn-ghost btn-icon btn-sm" title="Выйти из системы" onClick={onLogout} style={{ color: 'var(--text-3)' }}>
+            <Icon name="logOut" size={15} />
+          </button>
+        )}
       </div>
     </header>
   );
