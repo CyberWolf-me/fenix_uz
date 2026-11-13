@@ -130,7 +130,19 @@ def dishes_list_keyboard(category_id: str, page: int = 0, page_size: int = 6) ->
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def dish_detail_keyboard(dish_id: str, cat_id: str, page: int, qty: int = 1) -> InlineKeyboardMarkup:
+def dish_detail_keyboard(dish_id: str, cat_id: str, page: int, qty: int = 1, is_stopped: bool = False) -> InlineKeyboardMarkup:
+    if is_stopped:
+        buttons = [
+            [
+                InlineKeyboardButton(text="⛔ В стоп-листе кухни (закончилось)", callback_data="noop")
+            ],
+            [
+                InlineKeyboardButton(text="⬅️ Назад к списку", callback_data=f"cat:{cat_id}:{page}"),
+                InlineKeyboardButton(text="🛒 В корзину", callback_data="open_cart")
+            ]
+        ]
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
+
     buttons = [
         [
             InlineKeyboardButton(text="➖", callback_data=f"qty_dec:{dish_id}:{cat_id}:{page}:{qty}"),

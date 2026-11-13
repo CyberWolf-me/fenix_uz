@@ -33,17 +33,62 @@ function mapOrderType(typeStr, addrStr) {
   return 'delivery';
 }
 
+const KNOWN_ID_MAP = {
+  es_1: { n: 'Селёдка традиционная', p: 85000 },
+  es_2: { n: 'Холодец', p: 75000 },
+  es_3: { n: 'Овощная нарезка', p: 75000 },
+  es_4: { n: 'Маринованное ассорти', p: 75000 },
+  es_5: { n: 'Сельдерей с мясом', p: 185000 },
+  esa_6: { n: 'Греческий салат', p: 89000 },
+  esa_7: { n: 'Хрустящие баклажаны', p: 89000 },
+  esa_8: { n: 'Салат «Закусочный»', p: 85000 },
+  esa_9: { n: 'Итальянский VERDE', p: 89000 },
+  esa_10: { n: 'Цезарь с курицей', p: 85000 },
+  em_1: { n: 'Стейк Медальон', p: 285000 },
+  em_2: { n: 'Стейк Классический', p: 299000 },
+  em_3: { n: 'Стейк Миньон', p: 290000 },
+  em_4: { n: 'Стейк Рибай', p: 375000 },
+  sh_9: { n: 'Форель на гриле', p: 185000 },
+  sh_10: { n: 'Скумбрия на гриле', p: 120000 },
+  sh_11: { n: 'Овощи на мангале', p: 75000 },
+  sh_12: { n: 'Грибы на мангале', p: 99000 },
+  ka_1: { n: 'Ким-паб с сёмгой', p: 79000 },
+  ka_2: { n: 'Ким-паб с мясом', p: 75000 },
+  ka_3: { n: 'Ким-паб с креветками', p: 85000 },
+  ka_4: { n: 'Ким-паб с крабовыми палочками', p: 65000 },
+  ka_5: { n: 'Чапче', p: 75000 },
+  ks_1: { n: 'Косари', p: 119000 },
+  ks_2: { n: 'Мегича', p: 69000 },
+  ks_3: { n: 'Чука салат', p: 99000 },
+  ks_4: { n: 'Ве-ча', p: 69000 },
+  km_1: { n: 'Самгепсаль', p: 200000 },
+  km_2: { n: 'Моксаль', p: 240000 },
+  km_3: { n: 'Тёк-паль', p: 475000 },
+};
+
 function parseOrderItems(raw) {
   if (!raw) return [{ n: 'Специальный заказ', q: 1, p: 0 }];
   if (Array.isArray(raw)) {
-    return raw.map((it) => ({
-      n: it.n || it.name || 'Блюдо',
-      q: it.q || it.quantity || it.count || 1,
-      p: it.p || it.price || 0,
-    }));
+    return raw.map((it) => {
+      const idKey = it.id || it.n;
+      const known = KNOWN_ID_MAP[idKey];
+      return {
+        n: known ? known.n : (it.n || it.name || 'Блюдо'),
+        q: it.q || it.quantity || it.count || 1,
+        p: it.p || it.price || (known ? known.p : 0),
+      };
+    });
   }
   if (typeof raw === 'object') {
-    const list = Object.entries(raw).map(([n, q]) => ({ n, q: typeof q === 'number' ? q : 1, p: 0 }));
+    const list = Object.entries(raw).map(([n, q]) => {
+      const known = KNOWN_ID_MAP[n];
+      const isObj = typeof q === 'object' && q !== null;
+      return {
+        n: known ? known.n : n,
+        q: isObj ? (q.qty || q.count || 1) : (typeof q === 'number' ? q : 1),
+        p: isObj ? (q.price || 0) : (known ? known.p : 0),
+      };
+    });
     if (list.length) return list;
   }
   return [{ n: 'Заказ по меню', q: 1, p: 0 }];
@@ -81,10 +126,11 @@ function App() {
         const mapped = data.orders.map((r) => {
           const type = mapOrderType(r.orderType, r.address);
           const col = mapBackendStatusToCol(r.status);
-          const fee = type === 'delivery' ? 15000 : 0;
           const createdTs = r.createdAt ? new Date(r.createdAt.replace(' ', 'T')).getTime() : Date.now();
           const elapsed = Math.max(1, Math.round((Date.now() - createdTs) / 60000));
           const items = parseOrderItems(r.items);
+          const itemsTotal = items.reduce((sum, it) => sum + (Number(it.p || 0) * Number(it.q || 1)), 0);
+          const fee = type === 'delivery' ? (itemsTotal >= 250000 && itemsTotal > 0 ? 0 : 20000) : 0;
           const id = r.code || `WEB-${r.orderNum || r.id}`;
 
           return {
@@ -103,7 +149,7 @@ function App() {
             note: '',
             items,
             fee,
-            total: r.totalPrice || (fee + 120000),
+            total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 120000),
             createdAt: createdTs,
             isBackend: true,
           };

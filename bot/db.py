@@ -271,5 +271,13 @@ def get_stats():
         "total_events": total_events
     }
 
+def get_stoplist():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS menu_stoplist (name TEXT PRIMARY KEY, stopped INTEGER, updated_at TEXT)")
+    rows = c.execute("SELECT name FROM menu_stoplist WHERE stopped = 1").fetchall()
+    conn.close()
+    return set(r["name"] for r in rows)
+
 # Initialize on import
 init_db()

@@ -18,6 +18,7 @@ loose_dish_pngs/
 *.db-journal
 *.db-wal
 *.db-shm
+*.jsonl
 
 # Python
 __pycache__/

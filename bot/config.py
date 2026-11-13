@@ -26,6 +26,7 @@ BOT_USERNAME = os.getenv("BOT_USERNAME", "FenixRestaurantBot")
 
 # Optional: Admin Chat IDs (comma-separated if multiple)
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_CHAT_ID", "").split(",") if x.strip().isdigit()]
+BOT_ADMIN_PASSWORD = os.getenv("BOT_ADMIN_PASSWORD", "fenix_admin_2026")
 
 # Official Website URL (configurable, for local dev: http://localhost:3000 or production domain)
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://b714-213-230-78-186.ngrok-free.app")

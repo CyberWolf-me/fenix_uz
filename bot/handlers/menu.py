@@ -84,6 +84,10 @@ async def callback_item_detail(callback: CallbackQuery):
         await callback.answer("Блюдо не найдено", show_alert=True)
         return
         
+    stoplist = db.get_stoplist()
+    is_stopped = item["name"] in stoplist
+    stop_note = "\n\n⛔ <b>Внимание: данное блюдо сейчас в стоп-листе кухни (закончилось).</b>" if is_stopped else ""
+
     preorder_note = ""
     if "Предзаказ" in item["name"]:
         preorder_note = "\n\n⚠️ <i>Обратите внимание: это банкетное ассорти готовится по предварительному заказу.</i>"
@@ -93,11 +97,11 @@ async def callback_item_detail(callback: CallbackQuery):
         f"💵 <b>Цена:</b> {format_price(item['price'])}\n"
         f"⚖️ <b>Порция:</b> {item.get('unit', 'порция')}\n\n"
         f"📝 <b>Описание:</b>\n<i>{item.get('desc', 'Традиционное блюдо ресторана Fenix')}</i>"
-        f"{preorder_note}\n\n"
+        f"{preorder_note}{stop_note}\n\n"
         f"Категория: {item.get('category_name', '')}"
     )
     
-    kb = dish_detail_keyboard(dish_id, cat_id, page, qty=1)
+    kb = dish_detail_keyboard(dish_id, cat_id, page, qty=1, is_stopped=is_stopped)
     
     # Check if dish has a photo
     img_rel = item.get("img")
@@ -154,6 +158,10 @@ async def callback_add_to_cart(callback: CallbackQuery):
         await callback.answer("Ошибка: блюдо не найдено", show_alert=True)
         return
         
+    if item["name"] in db.get_stoplist():
+        await callback.answer("⛔ Это блюдо сейчас в стоп-листе кухни и временно недоступно для заказа.", show_alert=True)
+        return
+
     user_id = callback.from_user.id
     cart = db.get_user_cart(user_id)
     cart[dish_id] = cart.get(dish_id, 0) + qty

@@ -3295,22 +3295,28 @@ body {
       const desc = getDishDesc(d);
       const hasPhoto = Boolean(d.img);
       const isPng = d.img && d.img.endsWith('.png');
+      const isStopped = window.STOPPED_SET && (
+        window.STOPPED_SET.has(String(d.nameRu || '').toLowerCase().trim()) ||
+        window.STOPPED_SET.has(String(d.nameUz || '').toLowerCase().trim())
+      );
 
       html += `
-        <article class="dish-card" data-dish-id="${d.id}">
+        <article class="dish-card" data-dish-id="${d.id}" style="${isStopped ? 'opacity:0.65;' : ''}">
           <div class="dish-card-img-wrap" onclick="window.FX_APP.openDishModal('${d.id}')">
             ${hasPhoto ? 
               `<img class="dish-card-img ${isPng ? 'png-dish' : ''}" src="${d.img}" alt="${title}" loading="lazy">` : 
               `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-faint);"><svg style="width:28px;height:28px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
             }
-            ${d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">Предзаказ</span>` : ''}
+            ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">Стоп-лист</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">Предзаказ</span>` : '')}
           </div>
           <div class="dish-card-body">
             <h4 class="dish-card-title serif" onclick="window.FX_APP.openDishModal('${d.id}')">${title}</h4>
             <p class="dish-card-desc">${desc}</p>
             <div class="dish-card-footer">
               <span class="dish-card-price serif">${money(d.price)}</span>
-              ${count === 0 ? `
+              ${isStopped ? `
+                <button type="button" class="dish-add-btn" disabled style="opacity:0.4;cursor:not-allowed;" title="В стоп-листе">✕</button>
+              ` : count === 0 ? `
                 <button type="button" class="dish-add-btn" onclick="window.FX_APP.updateCart('${d.id}', 1)" aria-label="Add to cart">
                   <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"/></svg>
                 </button>
@@ -3333,7 +3339,26 @@ body {
   }
 
   // ── Cart State Management ──
+  window.STOPPED_SET = new Set();
+  fetch('/api/menu/stoplist')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.ok && Array.isArray(data.stopped)) {
+        window.STOPPED_SET = new Set(data.stopped.map(s => String(s).toLowerCase().trim()));
+        renderMenuDishes();
+      }
+    })
+    .catch(() => {});
+
   function updateCart(id, qty) {
+    const d = DISH_BY_ID[id];
+    if (qty > 0 && d && window.STOPPED_SET && (
+      window.STOPPED_SET.has(String(d.nameRu || '').toLowerCase().trim()) ||
+      window.STOPPED_SET.has(String(d.nameUz || '').toLowerCase().trim())
+    )) {
+      alert(currentLang === 'uz' ? 'Bu taom vaqtincha toʻxtatilgan' : 'Это блюдо временно находится в стоп-листе кухни');
+      return;
+    }
     haptic('light');
     if (qty <= 0) {
       delete cart[id];

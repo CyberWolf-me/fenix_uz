@@ -283,6 +283,7 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
         time: bTime,
         guests: Number(bGuests) || 2,
         zone: bZone,
+        hall: bZone,
         comment: 'Бронь из FENIX Terminal'
       };
 

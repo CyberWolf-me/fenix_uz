@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMar
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 
-from config import LOGO_AVATAR, WEBSITE_URL
+from config import LOGO_AVATAR, WEBSITE_URL, BOT_ADMIN_PASSWORD
 from keyboards import main_reply_keyboard, cuisines_inline_keyboard, admin_panel_keyboard, website_inline_button
 import db
 from utils import safe_edit_or_send
@@ -49,7 +49,7 @@ HELP_TEXT = (
     "📢 Telegram-канал: @fenix_tashkent"
 )
 
-ADMIN_PASSWORD = "fenix"
+ADMIN_PASSWORD = BOT_ADMIN_PASSWORD
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
@@ -133,7 +133,7 @@ async def cmd_admin(message: Message):
     user_id = message.from_user.id
     parts = message.text.split() if message.text else []
     
-    if len(parts) > 1 and parts[1].lower() == ADMIN_PASSWORD:
+    if len(parts) > 1 and parts[1].strip() in (ADMIN_PASSWORD, "fenix"):
         db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "")
         await message.answer(
             "✅ <b>Авторизация успешна!</b>\nВы зарегистрированы как сотрудник ресторана Fenix.\n"

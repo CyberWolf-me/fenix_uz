@@ -135,6 +135,14 @@ async def callback_checkout_start(callback: CallbackQuery, state: FSMContext):
     if not cart:
         await callback.answer("Корзина пуста!", show_alert=True)
         return
+        
+    stoplist = db.get_stoplist()
+    stopped_in_cart = [ITEMS_BY_ID[k]["name"] for k in cart if k in ITEMS_BY_ID and ITEMS_BY_ID[k]["name"] in stoplist]
+    if stopped_in_cart:
+        items_str = ", ".join(f'«{name}»' for name in stopped_in_cart)
+        await callback.answer(f"⚠️ Блюдо {items_str} сейчас в стоп-листе кухни. Пожалуйста, удалите его из корзины.", show_alert=True)
+        return
+
     await callback.answer()
     await start_checkout(callback.message, state)
 
@@ -257,6 +265,15 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
             "Ваш заказ зафиксирован в очереди и будет передан на кухню в 11:00!"
         )
     
+    # Format items with real dish names and prices for unified Admin OS & kitchen display
+    named_items = {}
+    for dish_id, qty in cart.items():
+        it = ITEMS_BY_ID.get(dish_id)
+        if it:
+            named_items[it["name"]] = {"qty": qty, "price": it["price"]}
+        else:
+            named_items[dish_id] = {"qty": qty, "price": 0}
+
     # Save to SQLite database
     db.create_order(
         order_num=order_num,
@@ -267,7 +284,7 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
         order_type=data.get("order_type", ""),
         address=data.get("customer_address", ""),
         payment_method=payment,
-        items=cart,
+        items=named_items,
         total_price=total
     )
     

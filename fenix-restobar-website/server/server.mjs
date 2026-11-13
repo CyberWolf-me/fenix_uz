@@ -132,7 +132,13 @@ function getStaffChatIds() {
     try {
       const rows = db.prepare("SELECT user_id FROM staff").all();
       for (const r of rows) {
-        if (r && r.user_id) ids.add(String(r.user_id));
+        if (r && r.user_id) {
+          const num = Number(r.user_id);
+          // Only notify valid Telegram IDs (skip dummy/seeded IDs 101-107)
+          if (!isNaN(num) && Math.abs(num) > 100000) {
+            ids.add(String(r.user_id));
+          }
+        }
       }
     } catch (err) {
       console.warn("[DB] Could not query staff IDs:", err.message);
@@ -153,8 +159,17 @@ function isRateLimited(ip) {
 }
 
 function validateUzPhone(phone) {
-  const cleaned = String(phone || "").replace(/[\s\-()]/g, "");
+  let cleaned = String(phone || "").replace(/[\s\-()]/g, "");
+  if (/^\d{9}$/.test(cleaned)) cleaned = "+998" + cleaned;
+  if (/^998\d{9}$/.test(cleaned)) cleaned = "+" + cleaned;
   return /^\+998\d{9}$/.test(cleaned);
+}
+
+function normalizeUzPhone(phone) {
+  let cleaned = String(phone || "").replace(/[\s\-()]/g, "");
+  if (/^\d{9}$/.test(cleaned)) cleaned = "+998" + cleaned;
+  if (/^998\d{9}$/.test(cleaned)) cleaned = "+" + cleaned;
+  return cleaned;
 }
 
 function formatPrice(num) {
@@ -228,6 +243,43 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(204);
     res.end();
     return;
+  }
+
+  // Admin OS & API Authentication Guard
+  const ADMIN_USER = process.env.ADMIN_USER || "admin";
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "fenix2026";
+  const isAdminRoute = url.pathname === "/admin" || url.pathname === "/admin.html" || url.pathname.startsWith("/api/admin/");
+
+  if (isAdminRoute) {
+    const authHeader = req.headers["authorization"] || "";
+    let authorized = false;
+
+    if (authHeader.startsWith("Basic ")) {
+      try {
+        const credentials = Buffer.from(authHeader.slice(6), "base64").toString("utf-8");
+        const [u, p] = credentials.split(":");
+        if ((u === ADMIN_USER || u === "fenix") && p === ADMIN_PASSWORD) {
+          authorized = true;
+        }
+      } catch (_) {}
+    }
+
+    // Also support X-Admin-Key header or ?key= parameter
+    if (!authorized) {
+      const keyHeader = req.headers["x-admin-key"] || url.searchParams.get("key");
+      if (keyHeader === ADMIN_PASSWORD) {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) {
+      res.writeHead(401, {
+        "Content-Type": "application/json",
+        "WWW-Authenticate": 'Basic realm="FENIX Admin Dispatch OS"'
+      });
+      res.end(JSON.stringify({ ok: false, error: "Unauthorized. Enter Admin credentials." }));
+      return;
+    }
   }
 
   // Healthcheck & Bot Integration Status endpoint
@@ -624,8 +676,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 8. Admin Menu Stop-List
-  if (req.method === "GET" && url.pathname === "/api/admin/menu/stoplist") {
+  // 8. Public & Admin Menu Stop-List
+  if (req.method === "GET" && (url.pathname === "/api/admin/menu/stoplist" || url.pathname === "/api/menu/stoplist")) {
     let stopped = [];
     if (db) {
       try {
@@ -641,22 +693,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "POST" && url.pathname === "/api/admin/menu/toggle") {
+  if (req.method === "POST" && (url.pathname === "/api/admin/menu/toggle" || url.pathname === "/api/admin/stoplist")) {
     let rawBody = "";
     for await (const chunk of req) rawBody += chunk;
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
-    const { name, stop } = payload;
-    if (db && name) {
+    const itemName = payload.name || payload.itemId;
+    const isStop = payload.stop !== undefined ? Boolean(payload.stop) : (payload.stopped !== undefined ? Boolean(payload.stopped) : true);
+    if (db && itemName) {
       try {
         db.exec("CREATE TABLE IF NOT EXISTS menu_stoplist (name TEXT PRIMARY KEY, stopped INTEGER, updated_at TEXT)");
-        db.prepare("INSERT OR REPLACE INTO menu_stoplist (name, stopped, updated_at) VALUES (?, ?, datetime('now', 'localtime'))").run(name, stop ? 1 : 0);
+        db.prepare("INSERT OR REPLACE INTO menu_stoplist (name, stopped, updated_at) VALUES (?, ?, datetime('now', 'localtime'))").run(itemName, isStop ? 1 : 0);
       } catch (e) {
         console.error("[Stoplist Toggle Error]:", e.message);
       }
     }
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, name, stop }));
+    res.end(JSON.stringify({ ok: true, name: itemName, stop: isStop }));
     return;
   }
 
@@ -745,7 +798,14 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (!data.name || !validateUzPhone(data.phone)) {
+    const name = (data.name || data.customerName || "").trim();
+    const phone = normalizeUzPhone(data.phone || data.customerPhone || "");
+    data.name = name;
+    data.customerName = name;
+    data.phone = phone;
+    data.customerPhone = phone;
+
+    if (!name || !validateUzPhone(phone)) {
       res.writeHead(422, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Invalid name or +998 phone" }));
       return;
@@ -765,6 +825,7 @@ const server = http.createServer(async (req, res) => {
     // Route specific endpoints
     if (endpoint === "reservations") {
       const code = Math.floor(1000 + Math.random() * 9000);
+      const zone = data.zone || data.hall || "Основной зал";
 
       // Save to SQLite reservations table
       if (db) {
@@ -781,7 +842,7 @@ const server = http.createServer(async (req, res) => {
             data.date || "",
             data.time || "",
             String(data.guests || ""),
-            data.hall || "Основной зал",
+            zone,
             "ожидает подтверждения (с сайта)"
           );
           console.log(`[DB] Saved reservation #${code} to fenix_restaurant.db`);
@@ -795,6 +856,7 @@ const server = http.createServer(async (req, res) => {
       msg += `▫️ Код брони: <code>#WEB-${code}</code>\n`;
       msg += `▫️ Гость: <b>${data.name}</b>\n`;
       msg += `▫️ Телефон: <b>${data.phone}</b>\n`;
+      msg += `▫️ Зал/Зона: <b>${zone}</b>\n`;
       msg += `▫️ Дата визита: <b>${data.date}</b>\n`;
       msg += `▫️ Время: <b>${data.time || "Не указано"}</b>\n`;
       msg += `▫️ Гостей: <b>${data.guests} чел.</b>\n`;
@@ -803,25 +865,73 @@ const server = http.createServer(async (req, res) => {
 
       await sendTelegramNotification(msg);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, id: `WEB-${code}`, code }));
+      res.end(JSON.stringify({ ok: true, id: `WEB-${code}`, code, codeFormatted: `WEB-${code}` }));
       return;
     }
 
     if (endpoint === "orders") {
       const orderNum = Math.floor(1000 + Math.random() * 9000);
-      let totalPrice = 0;
+      let calculatedItemsTotal = 0;
       const itemsObj = {};
       const itemsLines = [];
 
       if (Array.isArray(data.items)) {
         for (const item of data.items) {
-          const qty = Number(item.qty || 1);
+          const qty = Number(item.qty || item.count || 1);
           const price = Number(item.price || 0);
-          totalPrice += price * qty;
-          itemsObj[item.name?.ru || item.name || item.id] = qty;
-          itemsLines.push(`▫️ ${item.name?.ru || item.name || item.id} × ${qty} = ${formatPrice(price * qty)}`);
+          calculatedItemsTotal += price * qty;
+          const dishName = item.name?.ru || item.name || item.id || "Позиция";
+          itemsObj[dishName] = qty;
+          itemsLines.push(`▫️ ${dishName} × ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
+        }
+      } else if (data.items && typeof data.items === "object") {
+        for (const [dishName, val] of Object.entries(data.items)) {
+          const qty = typeof val === "object" ? Number(val.qty || val.count || 1) : Number(val || 1);
+          const price = typeof val === "object" ? Number(val.price || 0) : 0;
+          if (price > 0) calculatedItemsTotal += price * qty;
+          itemsObj[dishName] = qty;
+          itemsLines.push(`▫️ ${dishName} × ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
         }
       }
+
+      // Check menu stop-list
+      if (db) {
+        try {
+          const stopRows = db.prepare("SELECT name FROM menu_stoplist WHERE stopped = 1").all();
+          const stopSet = new Set(stopRows.map(r => String(r.name).toLowerCase().trim()));
+          for (const dishName of Object.keys(itemsObj)) {
+            if (stopSet.has(String(dishName).toLowerCase().trim())) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ ok: false, error: `Блюдо "${dishName}" временно находится в стоп-листе кухни.` }));
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Determine order type & delivery fee
+      const rawType = String(data.orderType || data.mode || data.type || "delivery").toLowerCase();
+      let orderType = "Доставка курьером (сайт)";
+      let isDelivery = false;
+      if (rawType.includes("самовывоз") || rawType.includes("pickup")) {
+        orderType = "Самовывоз (сайт)";
+      } else if (rawType.includes("зал") || rawType.includes("hall") || rawType.includes("стол")) {
+        orderType = "Заказ в зале";
+      } else {
+        isDelivery = true;
+      }
+
+      let deliveryFee = 0;
+      if (isDelivery) {
+        deliveryFee = calculatedItemsTotal >= 250000 ? 0 : 20000;
+      }
+
+      // Final total price (respect explicit total if provided, e.g. from Admin manual creation)
+      let finalTotal = Number(data.total) > 0 ? Number(data.total) : (calculatedItemsTotal + deliveryFee);
+      if (finalTotal === 0 && calculatedItemsTotal > 0) finalTotal = calculatedItemsTotal + deliveryFee;
+
+      const address = data.address || (isDelivery ? "Уточняется" : orderType === "Заказ в зале" ? "В зале" : "Самовывоз");
+      const paymentMethod = data.paymentMethod || (data.payment === "cash" ? "Наличными" : "Онлайн / Карта");
 
       // Save to SQLite orders table
       if (db) {
@@ -835,11 +945,11 @@ const server = http.createServer(async (req, res) => {
             data.telegramUsername || "Website",
             data.name,
             data.phone,
-            data.mode === "delivery" ? "Доставка курьером (сайт)" : "Самовывоз (сайт)",
-            data.address || (data.mode === "delivery" ? "Уточняется" : "Самовывоз"),
-            data.payment === "cash" ? "Наличными" : "Онлайн / Карта",
+            orderType,
+            address,
+            paymentMethod,
             JSON.stringify(itemsObj),
-            totalPrice,
+            finalTotal,
             "новый (с сайта)"
           );
           console.log(`[DB] Saved order #${orderNum} to fenix_restaurant.db`);
@@ -853,16 +963,17 @@ const server = http.createServer(async (req, res) => {
       msg += `▫️ Заказ №: <code>#WEB-${orderNum}</code>\n`;
       msg += `▫️ Клиент: <b>${data.name}</b>\n`;
       msg += `▫️ Телефон: <b>${data.phone}</b>\n`;
-      msg += `▫️ Способ: <b>${data.mode === "delivery" ? "🛵 Доставка" : "🛍 Самовывоз"}</b>\n`;
-      if (data.mode === "delivery") msg += `▫️ Адрес: <b>${data.address || "Не указан"}</b>\n`;
-      msg += `▫️ Оплата: <b>${data.payment === "cash" ? "Наличные" : "Карта / Онлайн"}</b>\n\n`;
+      msg += `▫️ Способ: <b>${isDelivery ? "🛵 Доставка" : orderType === "Заказ в зале" ? "🍽 В зале" : "🛍 Самовывоз"}</b>\n`;
+      if (isDelivery) msg += `▫️ Адрес: <b>${address}</b>\n`;
+      msg += `▫️ Оплата: <b>${paymentMethod}</b>\n\n`;
       msg += `📋 <b>Состав заказа:</b>\n`;
       msg += itemsLines.join("\n") || "▫️ Позиции уточняются";
-      msg += `\n\n💰 <b>ИТОГО К ОПЛАТЕ: ${formatPrice(totalPrice)}</b>`;
+      if (deliveryFee > 0) msg += `\n▫️ Доставка: <b>${formatPrice(deliveryFee)}</b>`;
+      msg += `\n\n💰 <b>ИТОГО К ОПЛАТЕ: ${formatPrice(finalTotal)}</b>`;
 
       await sendTelegramNotification(msg);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, id: `WEB-${orderNum}`, orderNum, total: totalPrice }));
+      res.end(JSON.stringify({ ok: true, id: `WEB-${orderNum}`, orderNum, total: finalTotal }));
       return;
     }
 

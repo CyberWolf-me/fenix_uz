@@ -2,6 +2,30 @@
 
 const BOOK_TONE = { pending: 'warn', confirmed: 'ok', seated: 'info', cancelled: 'muted' };
 
+function isTodayDate(dStr) {
+  if (!dStr) return false;
+  if (dStr === 'today') return true;
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const iso = `${yyyy}-${mm}-${dd}`;
+  const ru = `${dd}.${mm}.${yyyy}`;
+  return String(dStr).includes(iso) || String(dStr).includes(ru);
+}
+
+function isTomorrowDate(dStr) {
+  if (!dStr) return false;
+  if (dStr === 'tomorrow') return true;
+  const tom = new Date(Date.now() + 86400000);
+  const yyyy = tom.getFullYear();
+  const mm = String(tom.getMonth() + 1).padStart(2, '0');
+  const dd = String(tom.getDate()).padStart(2, '0');
+  const iso = `${yyyy}-${mm}-${dd}`;
+  const ru = `${dd}.${mm}.${yyyy}`;
+  return String(dStr).includes(iso) || String(dStr).includes(ru);
+}
+
 function Bookings({ t, toast }) {
   const [date, setDate] = useState('today');
   const [zone, setZone] = useState('all');
@@ -48,8 +72,15 @@ function Bookings({ t, toast }) {
     return () => { active = false; clearInterval(iv); };
   }, []);
 
-  const list = rows.filter((b) => (date === 'all' || b.date === date) && (zone === 'all' || b.zone === zone));
+  const matchesDate = (b) => {
+    if (date === 'all') return true;
+    if (date === 'today') return isTodayDate(b.date);
+    if (date === 'tomorrow') return isTomorrowDate(b.date);
+    return b.date === date;
+  };
+  const list = rows.filter((b) => matchesDate(b) && (zone === 'all' || b.zone === zone));
   const pending = rows.filter((b) => b.status === 'pending').length;
+  const bookingsTodayCount = rows.filter((b) => isTodayDate(b.date)).length;
 
   const act = async (id, status) => {
     setRows((r) => r.map((b) => (b.id === id ? { ...b, status } : b)));
@@ -80,7 +111,7 @@ function Bookings({ t, toast }) {
     <div className="page">
       <div className="kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {[
-          { l: 'bookings_today', v: rows.filter((b) => b.date === 'today').length, f: 'Основной зал · VIP · Банкетный' },
+          { l: 'bookings_today', v: bookingsTodayCount, f: 'Основной зал · VIP · Банкетный' },
           { l: 'pending', v: pending, f: 'Требуют ответа сейчас', warn: true },
           { l: 'guests', v: rows.reduce((s, b) => s + b.guests, 0), f: 'Суммарно по всем броням' },
           { l: 'confirmed', v: rows.filter((b) => b.status === 'confirmed').length, f: 'Подтверждено менеджером' },

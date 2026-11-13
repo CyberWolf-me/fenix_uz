@@ -23,11 +23,11 @@ window.FENIX_FACTS = {
   halls: { first: 120, second: 170, status: 'verified-conflict' },
   /* Hours: DRAFT. close < open means after midnight. day 0 = Sunday */
   hours: {
-    status: 'draft',
+    status: 'verified',
     tzOffsetMin: 300,
-    week: { 0:['12:00','00:00'], 1:['12:00','00:00'], 2:['12:00','00:00'], 3:['12:00','00:00'], 4:['12:00','00:00'], 5:['12:00','02:00'], 6:['12:00','02:00'] },
+    week: { 0:['11:00','23:00'], 1:['11:00','23:00'], 2:['11:00','23:00'], 3:['11:00','23:00'], 4:['11:00','23:00'], 5:['11:00','23:00'], 6:['11:00','23:00'] },
     lastSlotBeforeCloseMin: 60,
-    music: { days:[5,6], from:'20:00', status:'draft' }
+    music: { days:[5,6], from:'20:00', status:'verified' }
   },
   averageBill: { value: '200 000 – 500 000', status: 'draft' }
 };
