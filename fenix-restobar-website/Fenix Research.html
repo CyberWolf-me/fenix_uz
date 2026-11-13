@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fenix — Research & UX recommendations</title>
+<link rel="stylesheet" href="css/tokens.css">
+<style>
+body{margin:0;background:var(--bg);color:var(--ink);font:300 16px/1.75 var(--font-body);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)} a:hover{color:var(--accent-hi)}
+.w{max-width:1040px;margin:0 auto;padding:72px 32px 120px}
+.k{font:400 12px/1.4 var(--font-body);letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);display:flex;gap:12px;align-items:center}
+.k::before{content:"";width:34px;height:1px;background:var(--line-strong)}
+h1{font:300 clamp(44px,6vw,80px)/1.02 var(--font-display);margin:20px 0 18px}
+h2{font:300 40px/1.1 var(--font-display);margin:0 0 20px}
+h3{font:300 26px/1.2 var(--font-display);margin:0 0 8px}
+p{margin:0 0 14px;color:var(--text-dim);text-wrap:pretty;max-width:72ch}
+.lede{font-size:18px;color:rgba(240,231,214,.86)}
+section{padding:64px 0;border-top:1px solid var(--line)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.card{border-top:1px solid var(--line-strong);padding-top:18px}
+.card p{font-size:15px}
+.src{font-size:13px;color:var(--text-faint)}
+.src a{color:var(--text-dim)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font:400 12px/1.4 var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--line-strong)}
+td{padding:14px 12px 14px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text-dim)}
+td:first-child{color:var(--ink)}
+.y{color:var(--success)} .n{color:var(--danger)} .m{color:var(--accent)}
+ol.big{counter-reset:c;list-style:none;padding:0;margin:0;display:grid;gap:0}
+ol.big li{counter-increment:c;display:grid;grid-template-columns:56px 1fr;gap:16px;padding:20px 0;border-bottom:1px solid var(--line)}
+ol.big li::before{content:counter(c,decimal-leading-zero);font:400 12px/2.4 var(--font-body);letter-spacing:.14em;color:var(--accent)}
+ol.big b{font-weight:400;color:var(--ink)}
+.pill{display:inline-block;font:400 11px/1 var(--font-body);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border:1px solid var(--line-strong);color:var(--text-dim);margin-right:6px}
+.pill.a{border-color:rgba(192,138,62,.6);color:var(--accent)}
+.cta{display:inline-flex;gap:14px;align-items:center;background:var(--ink);color:#14110A;padding:14px 22px;font:400 13px/1 var(--font-body);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;margin-top:12px}
+.cta:hover{background:var(--accent);color:#14110A}
+.ph{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 32px;font-size:15px;color:var(--text-dim);padding:0;list-style:none}
+.ph li::before{content:"◇ ";color:#F0C987}
+@media(max-width:800px){.g2,.g3{grid-template-columns:1fr}.ph{grid-template-columns:1fr}table{font-size:14px}}
+</style>
+</head>
+<body>
+<div class="w">
+  <p class="k">Fenix Restobar · research · 13 Nov 2026</p>
+  <h1>What a Tashkent restaurant site has to do — and what Fenix's should do.</h1>
+  <p class="lede">A scan of how people in Tashkent find, book and order from restaurants, what the best restaurant sites worldwide do differently, and the decisions that follow for Fenix. The prototype built from these findings is linked at the end.</p>
+  <a class="cta" href="Fenix%20Website.html">Open the prototype →</a>
+
+  <section>
+    <h2>1 · How Tashkent actually chooses a restaurant</h2>
+    <div class="g3">
+      <div class="card"><h3>Maps first</h3><p>Discovery starts on Yandex Maps (ratings, photos, hours, phone) and Tripadvisor for visitors. Name, address and phone on the site must match those listings exactly or search ranking suffers.</p><p class="src"><a href="https://yandex.ru/maps/10335/tashkent/category/restaurant/184106394/">Yandex Maps · Tashkent restaurants</a> · <a href="https://www.tripadvisor.ru/Restaurants-g293968-Tashkent_Tashkent_Province.html">Tripadvisor</a></p></div>
+      <div class="card"><h3>Telegram is the CRM</h3><p>Telegram has 24M+ users in Uzbekistan, more than Instagram (vendor figure). Uzum Tezkor's own research says over a third of Tashkent residents have ordered food from a restaurant directly through Telegram.</p><p class="src"><a href="https://zoomda.uz/en/knowledge-base/telegram-bot-prodazhi">Zoomda</a> · <a href="https://alipos.uz/en/blog/dostavka-cherez-kurerskuyu-sluzhbu-iz-telegram-shema-i-raschyot-ceny">AliPos</a></p></div>
+      <div class="card"><h3>Phone still closes the deal</h3><p>Even top venues (Caravan, the places Afisha lists) take bookings by phone. Every Fenix post ends with two phone numbers. The site should make calling one tap, not swap it for a form.</p><p class="src"><a href="https://www.afisha.uz/ru/restaurants/2020/02/10/romantic">Afisha.uz</a> · <a href="https://www.instagram.com/caravan_rest/">Caravan</a></p></div>
+      <div class="card"><h3>Delivery = two platforms</h3><p>Yandex Eats and Uzum Tezkor dominate. Wolt left on 5 March 2026 and Uzum Tezkor took on its couriers. Commission runs 15–35% per order.</p><p class="src"><a href="https://kun.uz/en/news/2025/04/02/uzum-tezkor-named-dominant-digital-platform-in-delivery-market">Kun.uz</a> · <a href="https://www.delever.uz/en/blog/own-delivery-vs-aggregators">Delever</a></p></div>
+      <div class="card"><h3>New: couriers without the marketplace</h3><p>Since 14 Sept 2026 Uzum Tezkor delivers orders a restaurant takes on its own channels (site, Telegram, phone). Fenix keeps its menu, prices and customer, and the platform only supplies the courier. That makes Phase 2 ordering realistic.</p><p class="src"><a href="https://alipos.uz/en/blog/dostavka-cherez-kurerskuyu-sluzhbu-iz-telegram-shema-i-raschyot-ceny">AliPos, Sept 2026</a></p></div>
+      <div class="card"><h3>Booking apps exist, but are thin</h3><p>Arbuz (arb.uz) offers 360° tours, menus and booking. Yandex booking requires a Yandex ID. Neither replaces a direct channel for banquets, where most of the money is.</p><p class="src"><a href="https://arb.uz/">arb.uz</a> · <a href="https://uznews.uz/ru/news/52269">UzNews</a></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · What local restaurant sites offer (the baseline)</h2>
+    <p>Tashkent studios sell close to the same package to every restaurant, so this is what guests already expect:</p>
+    <table>
+      <tr><th>Feature</th><th>Local standard</th><th>Fenix prototype</th></tr>
+      <tr><td>RU / UZ / EN</td><td>Standard, no extra charge</td><td class="y">Built — switcher, remembered, &lt;html lang&gt;</td></tr>
+      <tr><td>Menu with prices</td><td>Photo/PDF on many sites, HTML on better ones</td><td class="y">HTML: 211 items, searchable, deep-linkable categories</td></tr>
+      <tr><td>Table booking form</td><td>Date, time, guests</td><td class="y">Built with 30-min slots, after-midnight hours, +998 mask, all states</td></tr>
+      <tr><td>Telegram notification to staff</td><td>Standard</td><td class="m">Back end needed — owner picks the chat</td></tr>
+      <tr><td>Online order + Click/Payme</td><td>Common</td><td class="m">Phase 2 preview (cart → checkout → status)</td></tr>
+      <tr><td>QR menu at the table</td><td>Common</td><td class="m">Use the menu page's URLs. No separate build needed.</td></tr>
+      <tr><td>Admin to edit menu/stop-list</td><td>Common</td><td class="n">Later phase. Menu is one data file for now.</td></tr>
+      <tr><td>Events / banquet page</td><td>Rare</td><td class="y">Built — Fenix's 120 + 170 halls are its edge</td></tr>
+    </table>
+    <p class="src" style="margin-top:14px"><a href="https://www.katov.uz/ru/services/restoran-sayti">katov.uz package</a> (from $600, 7–14 days) · <a href="https://webnum.uz/ru/industries/restaurants">webnum.uz</a> · <a href="https://smartmenu.uz/">SmartMenu</a></p>
+  </section>
+
+  <section>
+    <h2>3 · What the world's best restaurant sites do</h2>
+    <div class="g2">
+      <div class="card"><h3>Noma · Eleven Madison Park</h3><p>Editorial restraint. The interface gets out of the way, and photography and a strict palette carry the brand. Noma shows live Copenhagen weather in the header, a small detail that places it in its city.</p><p><span class="pill a">Take</span>a quiet frame, little chrome, one accent colour</p></div>
+      <div class="card"><h3>Dishoom</h3><p>Builds a world around the venue: every location has its own story, and the menu reads like print, not a list of cards.</p><p><span class="pill a">Take</span>a printed-menu feel and a strong story for the room</p></div>
+      <div class="card"><h3>Momofuku</h3><p>Sends each guest to the right booking channel for that location and that need. Its story paragraphs have small photos set inside the sentences.</p><p><span class="pill a">Take</span>a different path for each job: table, banquet, delivery</p></div>
+      <div class="card"><h3>Chipotle · Sweetgreen</h3><p>The ordering flow is the product. Repeat orders get the top spot, and there's a sticky mobile button and a live status tracker.</p><p><span class="pill a">Take</span>a bottom action bar on phones and a status screen for Phase 2</p></div>
+    </div>
+    <p style="margin-top:28px">Across sources, the pattern is the same: <b style="color:var(--ink);font-weight:400">the mobile site is the real homepage</b>, the reservation step must stay visible, larger parties need their own path, and speed builds trust. Toast reports 86% of diners check a restaurant's website before a first visit.</p>
+    <p class="src"><a href="https://toimi.pro/blog/best-restaurant-website-designs/">Toimi — Top 10 restaurant sites 2026</a> · <a href="https://wibhospitality.com/blog/best-restaurant-website-designs-2026">Wib Hospitality 2026</a> · <a href="https://sevenrooms.com/blog/restaurant-website-design-tips-that-convert/">SevenRooms</a></p>
+  </section>
+
+  <section>
+    <h2>4 · Recommendations for Fenix</h2>
+    <ol class="big">
+      <li><div><b>Make the site work like an app on phones.</b> Add a fixed bottom bar with Call · Menu · Reserve. Call is first because guests here call first. The hero shows open/closed status, computed on Tashkent time.</div></li>
+      <li><div><b>Sell the halls, not just dinner.</b> Two halls for 120 and 170 guests, with weddings and corporate events, are what set Fenix apart. Events get their own page and form, and parties of 13+ are sent there from the booking form. A Tweak lets the owner try an "events-first" homepage (brief §13.1).</div></li>
+      <li><div><b>Put the menu in HTML.</b> The owner's PDF and the Telegram bar card become 211 searchable items in three tabs (Europe / Korea / Bar), with sticky category chips and deep links that also work as QR codes on the tables.</div></li>
+      <li><div><b>Use real photos, not AI images.</b> The concept's AI renders show a room that doesn't exist. The prototype uses stills from Fenix's own Telegram video: the real timber, red chairs, bar, stage and DJ. Book a proper photo shoot before launch.</div></li>
+      <li><div><b>Make Telegram the back end.</b> Booking and event requests go to a staff Telegram chat (cheapest, and staff already use it). The success screen says "this is a request, not a confirmation".</div></li>
+      <li><div><b>Phase 2: own ordering, aggregator couriers.</b> Cart → Payme / Click / Uzum / cash → status tracker, with delivery through Uzum Tezkor's new courier service. Every order needs a fiscal receipt. Card-to-card transfers without a receipt break tax law.</div></li>
+      <li><div><b>Keep it fast.</b> No framework: about 40 KB of JS plus data, WebP stills of 20–60 KB each, self-hosted subset fonts, lazy-loaded images, and a pre-loaded hero.</div></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>5 · What's in the prototype</h2>
+    <div class="g2">
+      <div><h3>Pages</h3><p>Home · Menu (Europe / Korea / Bar) · Events · Gallery with keyboard lightbox · Contact · Reserve · Privacy. Russian is the default; Uzbek and English switch live.</p>
+      <h3 style="margin-top:22px">Tweaks</h3><p>Hero (triptych / single / type only) · wordmark (real logo / serif) · homepage order (dining / events first) · accent colour · Phase 2 ordering on/off · owner markers · frame · grain.</p></div>
+      <div><h3>Accessibility</h3><p>Skip link, visible focus ring, real labels, text error messages with aria-describedby, 44px tap targets, focus-trapped drawer, lightbox and order sheet, Esc to close, reduced-motion support, no zoom lock. The "faint" text colour was raised to pass contrast.</p>
+      <h3 style="margin-top:22px">Data sources</h3><p>Menu from <i>menu_text.txt</i> (189 items) plus the Telegram bar card (coffee, 10 lemonade flavours, snacks). Facts are marked verified, draft or owner-to-confirm.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Still needed from the owner</h2>
+    <p>Each of these shows as a ◇ marker in the prototype. You can hide the markers with Tweaks.</p>
+    <ul class="ph">
+      <li>Official name: "FENIX Restobar" or "Fenix Restaurant & Bar"</li>
+      <li>Hours confirmed, last seating, holiday closures</li>
+      <li>Hall capacity confirmed (Telegram says 120 / 170; concept says 100)</li>
+      <li>Reply time promised on the success screen</li>
+      <li>Event packages, minimum guests, deposit</li>
+      <li>Yandex Maps and Google Business organisation links</li>
+      <li>DJ / live music schedule</li>
+      <li>Six signature dishes (current picks are mine)</li>
+      <li>Price confirmation for all 211 items</li>
+      <li>Who receives requests: Telegram chat, email, or both</li>
+      <li>Legal entity name and privacy policy text</li>
+      <li>Where personal data is stored (§7.7 — needs a lawyer)</li>
+      <li>Delivery: own couriers or Uzum Tezkor, zones, minimum order</li>
+      <li>Original photos and video, or a photo shoot date</li>
+    </ul>
+    <p class="src" style="margin-top:20px">Instagram could not be read by our tools. Telegram facts come from <a href="https://t.me/s/fenix_tashkent">t.me/s/fenix_tashkent</a> (posts from Mar–Oct 2026).</p>
+  </section>
+</div>
+</body>
+</html>

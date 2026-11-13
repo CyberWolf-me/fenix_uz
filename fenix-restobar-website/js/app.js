@@ -1,784 +1,277 @@
-/* ==========================================================================
-   FENIX RESTOBAR — SHARED CLIENT RUNTIME (Sections 6, 7, 8)
-   Handles:
-   - RU / UZ / EN i18n dictionary switching, <html lang>, localStorage & fallback log
-   - Asia/Tashkent (UTC+5) "Open now" live computation
-   - 30-minute reservation time slots (handling Fri/Sat 02:00 next-day closing)
-   - Reservation & Event inquiry forms (validation, >12 guests routing, honeypot, rate limit, states)
-   - Pickup & Delivery Order Bag Drawer (Phase 2 scaffold with [[OWNER: ...]] placeholders)
-   - Keyboard-accessible Gallery/Dish Lightbox (Esc, ArrowLeft, ArrowRight, focus return)
-   - Analytics event dispatcher (window.fenixTrack)
-   ========================================================================== */
+/* Fenix prototype — router, chrome behaviour, menu interactions, cart sheet, lightbox, tweaks. */
 (function () {
-  "use strict";
+  const S = window.FX, F = window.FENIX_FACTS, t = S.t, e = S.esc, I = S.icon;
+  const $ = s => document.querySelector(s);
+  const ROUTES = ['home', 'menu', 'events', 'gallery', 'contact', 'reserve', 'privacy'];
+  let route = 'home', params = [];
 
-  const I18N = window.FENIX_I18N || {};
-  const MENU = window.FENIX_MENU || { categories: {}, dishes: [] };
-  const FACTS = window.FENIX_FACTS || {};
-
-  let currentLang = localStorage.getItem("fenix_lang") || "ru";
-  if (!I18N[currentLang]) currentLang = "ru";
-
-  let cart = [];
-  try {
-    cart = JSON.parse(localStorage.getItem("fenix_cart") || "[]");
-  } catch (e) {
-    cart = [];
+  function parse() {
+    const h = location.hash.replace(/^#\/?/, '');
+    const parts = h.split('/').filter(Boolean);
+    route = ROUTES.includes(parts[0]) ? parts[0] : 'home';
+    params = parts.slice(1);
   }
 
-  // Section 7.7: Analytics Event Tracker (ready for Yandex Metrica / GA4)
-  window.fenixTrack = function (eventName, payload) {
-    const detail = Object.assign({ event: eventName, lang: currentLang, ts: new Date().toISOString() }, payload || {});
-    if (typeof window.ym === "function" && window.FENIX_YM_ID) {
-      window.ym(window.FENIX_YM_ID, "reachGoal", eventName, detail);
-    }
-    if (typeof window.gtag === "function") {
-      window.gtag("event", eventName, detail);
-    }
-    console.info("[fenixTrack]", detail);
-  };
-
-  // Translation helper with Russian fallback + console logging (Section 7.4)
-  function t(key) {
-    if (I18N[currentLang] && I18N[currentLang][key] !== undefined) {
-      return I18N[currentLang][key];
-    }
-    if (I18N.ru && I18N.ru[key] !== undefined) {
-      console.warn(`[i18n fallback -> ru] Missing "${key}" in "${currentLang}"`);
-      return I18N.ru[key];
-    }
-    console.warn(`[i18n missing] Key "${key}" not found`);
-    return key;
+  function applyBody() {
+    const tw = S.tweaks;
+    document.body.dataset.frame = tw.frame ? 'on' : 'off';
+    document.body.dataset.grain = tw.grain ? 'on' : 'off';
+    document.body.dataset.markers = tw.markers ? 'on' : 'off';
+    document.documentElement.style.setProperty('--accent', tw.accent || '#C08A3E');
+    document.documentElement.style.setProperty('--accent-hi', tw.accentHi || '#D9A75B');
   }
 
-  // Format price in so'm with thin space for thousands (Section 7.3)
-  function formatSom(numOrDish) {
-    if (typeof numOrDish === "object" && numOrDish !== null) {
-      if (numOrDish.priceDisplay) return numOrDish.priceDisplay;
-      numOrDish = numOrDish.price;
-    }
-    if (typeof numOrDish === "string") return numOrDish;
-    if (typeof numOrDish !== "number") return "[[OWNER: price]]";
-    return numOrDish.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u2009") + " so'm";
+  function renderChrome() {
+    document.documentElement.lang = S.lang;
+    document.title = (route === 'home' ? '' : t('nav.' + (route === 'reserve' ? 'reserve' : route === 'privacy' ? 'privacy' : route)) + ' · ') + t('meta.title');
+    $('#skip').textContent = t('a11y.skip');
+    $('#hdr').innerHTML = S.renderHeader(route);
+    $('#drawer').innerHTML = S.renderDrawer(route);
+    $('#actbar').innerHTML = S.renderActbar();
+    $('#ftr').innerHTML = S.renderFooter();
+    renderFab();
+  }
+  function renderFab() {
+    const n = S.cartCount(), fab = $('#fab');
+    if (S.tweaks.ordering && n && route === 'menu') { fab.hidden = false; fab.innerHTML = `${I('bag')}<span>${n} · ${S.money(S.cartTotal())}</span>`; fab.querySelector('svg').style.width = '18px'; }
+    else fab.hidden = true;
   }
 
-  // Apply language across all [data-i18n] and [data-i18n-placeholder] nodes
-  function applyLanguage(lang) {
-    currentLang = I18N[lang] ? lang : "ru";
-    localStorage.setItem("fenix_lang", currentLang);
-    document.documentElement.lang = currentLang;
-
-    document.querySelectorAll(".lang-btn").forEach((btn) => {
-      const active = btn.dataset.lang === currentLang;
-      btn.classList.toggle("active", active);
-      btn.setAttribute("aria-pressed", active ? "true" : "false");
-    });
-
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      const key = el.getAttribute("data-i18n");
-      el.textContent = t(key);
-    });
-
-    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-      const key = el.getAttribute("data-i18n-placeholder");
-      el.setAttribute("placeholder", t(key));
-    });
-
-    updateTashkentOpenStatus();
-    renderFeaturedDishes();
-    renderFullMenu();
-    renderGallery();
-    renderCart();
+  function render(scrollTop = true) {
+    parse();
+    renderChrome();
+    const main = $('#main');
+    main.innerHTML = `<div class="page">${S.pages[route](params)}</div>`;
+    S.mountForms();
+    if (route === 'menu') initMenu();
+    onScroll();
+    if (route === 'menu' && params[1]) {
+      requestAnimationFrame(() => { const el = document.getElementById(`m-${params[0]}-${params[1]}`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - 130, behavior: 'auto' }); });
+    } else if (route === 'reserve') {
+      window.scrollTo(0, 0);
+    } else if (scrollTop) window.scrollTo(0, 0);
+    S.track('view', route);
+    localStorage.setItem('fx.route', location.hash);
   }
 
-  // Section 7.5: Compute "Open now" in Asia/Tashkent (UTC+5, no DST)
-  function getTashkentNow() {
-    const now = new Date();
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-    return new Date(utcMs + 5 * 3600000);
+  /* ── header scroll state ── */
+  function onScroll() {
+    const solid = route !== 'home' || scrollY > (window.innerHeight * 0.55);
+    $('#hdr').classList.toggle('solid', solid);
+    if (route === 'menu') spy();
   }
+  addEventListener('scroll', onScroll, { passive: true });
 
-  function updateTashkentOpenStatus() {
-    const tk = getTashkentNow();
-    const day = tk.getDay(); // 0=Sun ... 5=Fri, 6=Sat
-    const hour = tk.getHours();
-    const mins = tk.getMinutes();
-
-    // Fri (5) & Sat (6) stay open until 02:00 next morning (so Sat 00:00-01:59 & Sun 00:00-01:59 are open)
-    const isWeekendLateNight = (day === 6 || day === 0) && hour < 2;
-    const isDayOpen = hour >= 12;
-    const isOpen = isWeekendLateNight || isDayOpen;
-
-    const hhmm = `${String(hour).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-    document.querySelectorAll("[data-open-status]").forEach((badge) => {
-      badge.textContent = `${isOpen ? t("status_open_now") : t("status_closed_now")} (${hhmm} ${t("status_tashkent_tz")})`;
-      badge.className = "fact-value " + (isOpen ? "status-open" : "status-closed");
-    });
+  /* ── menu ── */
+  let secs = [];
+  function initMenu() {
+    secs = [...document.querySelectorAll('.mcat')];
+    const q = $('#menu-q');
+    q && q.addEventListener('input', () => { $('#menu-list').innerHTML = S.menuList($('#menu-list').dataset.menu, q.value); secs = [...document.querySelectorAll('.mcat')]; spy(); });
+    spy();
   }
-
-  // Populate 30-min reservation time slots (12:00 up to 1h before closing; Fri/Sat up to 01:00 next day)
-  function populateTimeSlots(selectEl, dateStr) {
-    if (!selectEl) return;
-    let dow = new Date().getDay();
-    if (dateStr) {
-      const parts = dateStr.split("-").map(Number);
-      if (parts.length === 3) {
-        dow = new Date(parts[0], parts[1] - 1, parts[2]).getDay();
+  function spy() {
+    if (!secs.length) return;
+    let cur = secs[0].dataset.sec;
+    for (const s of secs) if (s.getBoundingClientRect().top < 170) cur = s.dataset.sec;
+    document.querySelectorAll('[data-chip]').forEach(c => {
+      const on = c.dataset.chip === cur;
+      if (on && c.getAttribute('aria-current') !== 'true') {
+        const bar = c.parentElement; bar.scrollTo({ left: c.offsetLeft - bar.clientWidth / 2 + c.clientWidth / 2, behavior: 'smooth' });
       }
-    }
-    const isFriOrSat = dow === 5 || dow === 6;
-    const slots = [];
-    for (let h = 12; h <= 23; h++) {
-      slots.push(`${String(h).padStart(2, "0")}:00`);
-      if (h < 23 || isFriOrSat) {
-        slots.push(`${String(h).padStart(2, "0")}:30`);
-      }
-    }
-    if (isFriOrSat) {
-      slots.push("00:00", "00:30", "01:00");
-    }
-    const prev = selectEl.value;
-    selectEl.innerHTML = slots
-      .map((s) => `<option value="${s}" ${s === (prev || "19:00") ? "selected" : ""}>${s}</option>`)
-      .join("");
-  }
-
-  // Render Featured Signature Dishes on Home Page
-  function renderFeaturedDishes() {
-    const root = document.getElementById("featured-dishes-grid");
-    if (!root) return;
-    const featured = MENU.dishes.filter((d) => d.featured && d.available).slice(0, 6);
-    root.innerHTML = featured.map((d) => renderDishCardHtml(d)).join("");
-    bindDishCardEvents(root);
-  }
-
-  function renderDishCardHtml(dish) {
-    const title = dish.name[currentLang] || dish.name.ru;
-    const desc = dish.description[currentLang] || dish.description.ru;
-    const priceStr = formatSom(dish);
-    const catLabel = (MENU.categories[dish.category] && MENU.categories[dish.category][currentLang]) || "";
-    const tagsHtml = (dish.tags || []).map((tg) => `<span class="dish-tag">${tg}</span>`).join("");
-
-    // Rule 7.3: No empty photo boxes. A dish without a photo simply has no photo.
-    const photoHtml = dish.photo
-      ? `<button type="button" class="dish-thumb-btn" data-lb-src="${dish.photo}" data-lb-title="${escapeHtml(title)}" data-lb-price="${escapeHtml(priceStr)}" data-lb-cat="${escapeHtml(catLabel)}" aria-label="${escapeHtml(t("enlarge_photo"))}: ${escapeHtml(title)}">
-           <img src="${dish.photo}" alt="${escapeHtml(title)}" width="84" height="84" loading="lazy" />
-         </button>`
-      : "";
-
-    return `
-      <article class="dish-card">
-        <div class="dish-body">
-          <h3>${escapeHtml(title)}${tagsHtml}</h3>
-          ${desc ? `<p class="dish-desc">${escapeHtml(desc)}</p>` : ""}
-          <div class="dish-footer">
-            <span class="dish-price">${escapeHtml(priceStr)}</span>
-            <button type="button" class="btn btn-outline btn-sm" data-add-dish="${dish.id}">${escapeHtml(t("add_to_order"))}</button>
-          </div>
-        </div>
-        ${photoHtml}
-      </article>
-    `;
-  }
-
-  function bindDishCardEvents(container) {
-    container.querySelectorAll("[data-lb-src]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        openLightbox({
-          src: btn.dataset.lbSrc,
-          title: btn.dataset.lbTitle,
-          price: btn.dataset.lbPrice,
-          cat: btn.dataset.lbCat
-        });
-      });
-    });
-
-    container.querySelectorAll("[data-add-dish]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        addToCart(btn.dataset.addDish);
-      });
+      c.setAttribute('aria-current', on);
     });
   }
 
-  // Full Menu Page Filtering & Rendering
-  let menuSectionFilter = "all";
-  let menuCategoryFilter = "all";
-  let menuSearchTerm = "";
-
-  function renderFullMenu() {
-    const root = document.getElementById("full-menu-root");
-    const chipBar = document.getElementById("menu-cat-chips");
-    if (!root || !chipBar) return;
-
-    // Render Category Chips
-    const catEntries = Object.entries(MENU.categories).filter(
-      ([_, meta]) => menuSectionFilter === "all" || meta.section === menuSectionFilter
-    );
-    let chipsHtml = `<button type="button" class="cat-chip ${menuCategoryFilter === "all" ? "active" : ""}" data-cat="all">${escapeHtml(t("cat_all"))}</button>`;
-    catEntries.forEach(([key, meta]) => {
-      const label = meta[currentLang] || meta.ru;
-      chipsHtml += `<button type="button" class="cat-chip ${menuCategoryFilter === key ? "active" : ""}" data-cat="${key}">${escapeHtml(label)}</button>`;
-    });
-    chipBar.innerHTML = chipsHtml;
-
-    chipBar.querySelectorAll(".cat-chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        menuCategoryFilter = chip.dataset.cat;
-        if (menuCategoryFilter !== "all") {
-          window.location.hash = `cat-${menuCategoryFilter}`;
-        }
-        renderFullMenu();
-      });
-    });
-
-    // Filter Dishes
-    const q = menuSearchTerm.trim().toLowerCase();
-    const filtered = MENU.dishes.filter((d) => {
-      if (!d.available) return false;
-      if (menuSectionFilter !== "all" && d.section !== menuSectionFilter) return false;
-      if (menuCategoryFilter !== "all" && d.category !== menuCategoryFilter) return false;
-      if (q) {
-        const hay = `${d.name.ru} ${d.name.uz} ${d.name.en} ${d.description.ru} ${d.description.en}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    if (filtered.length === 0) {
-      root.innerHTML = `<p>${escapeHtml(t("no_results"))}</p>`;
+  /* ── delegated clicks ── */
+  document.addEventListener('click', ev => {
+    const a = ev.target.closest('a,button'); if (!a) return;
+    if (a.dataset.lang) { S.lang = a.dataset.lang; localStorage.setItem('fx.lang', S.lang); S.track('lang', S.lang); render(false); return; }
+    if (a.dataset.drawer === 'open') return openDrawer();
+    if (a.dataset.drawer === 'close') return closeDrawer();
+    if (a.closest('#drawer') && a.tagName === 'A') closeDrawer();
+    if (a.dataset.menuTab) { location.hash = '#/menu/' + a.dataset.menuTab; return; }
+    if (a.dataset.chip) {
+      ev.preventDefault();
+      const el = document.getElementById(`m-${$('#menu-list').dataset.menu}-${a.dataset.chip}`);
+      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - 128, behavior: 'smooth' });
+      history.replaceState(null, '', a.getAttribute('href'));
       return;
     }
-
-    const grouped = {};
-    filtered.forEach((d) => {
-      if (!grouped[d.category]) grouped[d.category] = [];
-      grouped[d.category].push(d);
-    });
-
-    root.innerHTML = Object.entries(grouped)
-      .map(([catKey, list]) => {
-        const catTitle = (MENU.categories[catKey] && MENU.categories[catKey][currentLang]) || catKey;
-        return `
-          <section class="menu-cat-section" id="cat-${catKey}">
-            <div class="menu-cat-header">
-              <h2>${escapeHtml(catTitle)}</h2>
-              <span class="label-eyebrow">${list.length}</span>
-            </div>
-            <div class="dish-grid">
-              ${list.map((d) => renderDishCardHtml(d)).join("")}
-            </div>
-          </section>
-        `;
-      })
-      .join("");
-
-    bindDishCardEvents(root);
-  }
-
-  // Gallery Page Rendering
-  let galleryFilter = "all";
-  function renderGallery() {
-    const root = document.getElementById("gallery-grid-root");
-    if (!root) return;
-
-    const dishPhotos = MENU.dishes
-      .filter((d) => d.photo)
-      .map((d) => ({
-        type: "dishes",
-        src: d.photo,
-        title: d.name[currentLang] || d.name.ru,
-        price: formatSom(d),
-        cat: (MENU.categories[d.category] && MENU.categories[d.category][currentLang]) || ""
-      }));
-
-    const roomPlaceholders = [
-      {
-        type: "rooms",
-        src: "assets/img/room-hero.webp",
-        title: `${t("room1_title")} [[PLACEHOLDER]]`,
-        price: t("room1_tag"),
-        cat: t("gal_rooms")
-      },
-      {
-        type: "events",
-        src: "assets/img/dish-galbi.webp",
-        title: `${t("room2_title")} [[PLACEHOLDER]]`,
-        price: t("room2_tag"),
-        cat: t("gal_events")
-      }
-    ];
-
-    const allItems = [...dishPhotos, ...roomPlaceholders].filter(
-      (item) => galleryFilter === "all" || item.type === galleryFilter
-    );
-
-    root.innerHTML = allItems
-      .map(
-        (item) => `
-        <button type="button" class="gallery-item" data-lb-src="${item.src}" data-lb-title="${escapeHtml(item.title)}" data-lb-price="${escapeHtml(item.price)}" data-lb-cat="${escapeHtml(item.cat)}">
-          <img src="${item.src}" alt="${escapeHtml(item.title)}" width="240" height="160" loading="lazy" />
-          <span class="label-eyebrow">${escapeHtml(item.cat)}</span>
-          <h3 style="margin-top:4px;">${escapeHtml(item.title)}</h3>
-        </button>
-      `
-      )
-      .join("");
-
-    bindDishCardEvents(root);
-  }
-
-  // Component 7: Keyboard-Accessible Lightbox
-  let lastFocused = null;
-  function openLightbox(item) {
-    const lb = document.getElementById("fenix-lightbox");
-    if (!lb) return;
-    lastFocused = document.activeElement;
-    document.getElementById("lb-img").src = item.src;
-    document.getElementById("lb-img").alt = item.title;
-    document.getElementById("lb-title").textContent = item.title;
-    document.getElementById("lb-price").textContent = item.price || "";
-    document.getElementById("lb-cat").textContent = item.cat || "";
-    lb.classList.add("open");
-    document.getElementById("lb-close-btn").focus();
-  }
-
-  function closeLightbox() {
-    const lb = document.getElementById("fenix-lightbox");
-    if (!lb) return;
-    lb.classList.remove("open");
-    if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
-  }
-
-  // Component 9: Pickup & Delivery Order Cart Drawer (Phase 2 Scaffold)
-  function saveCart() {
-    localStorage.setItem("fenix_cart", JSON.stringify(cart));
-    renderCart();
-  }
-
-  function addToCart(dishId) {
-    const dish = MENU.dishes.find((d) => d.id === dishId);
-    if (!dish) return;
-    const existing = cart.find((c) => c.id === dishId);
-    if (existing) {
-      existing.qty += 1;
-    } else {
-      cart.push({ id: dishId, qty: 1 });
-    }
-    window.fenixTrack("order_add", { dishId: dishId });
-    saveCart();
-    openCartDrawer();
-  }
-
-  function updateCartQty(dishId, delta) {
-    const idx = cart.findIndex((c) => c.id === dishId);
-    if (idx === -1) return;
-    cart[idx].qty += delta;
-    if (cart[idx].qty <= 0) cart.splice(idx, 1);
-    saveCart();
-  }
-
-  function openCartDrawer() {
-    const modal = document.getElementById("fenix-cart-modal");
-    if (!modal) return;
-    lastFocused = document.activeElement;
-    modal.classList.add("open");
-    const closeBtn = document.getElementById("cart-close-btn");
-    if (closeBtn) closeBtn.focus();
-  }
-
-  function closeCartDrawer() {
-    const modal = document.getElementById("fenix-cart-modal");
-    if (!modal) return;
-    modal.classList.remove("open");
-    if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
-  }
-
-  function renderCart() {
-    const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
-    document.querySelectorAll("[data-cart-count]").forEach((el) => {
-      el.textContent = String(totalItems);
-    });
-
-    const listEl = document.getElementById("cart-items-list");
-    const totalEl = document.getElementById("cart-subtotal");
-    if (!listEl || !totalEl) return;
-
-    if (cart.length === 0) {
-      listEl.innerHTML = `<p>${escapeHtml(t("bag_empty"))}</p>`;
-      totalEl.textContent = "0 so'm";
+    if (a.dataset.qty) {
+      const id = a.dataset.qty, before = S.cart[id] || 0;
+      S.setQty(id, before + (+a.dataset.d));
+      if (!before) S.toast(t('order.added') + ': ' + S.iName(S.byId[id]));
       return;
     }
-
-    let subtotal = 0;
-    listEl.innerHTML = cart
-      .map((entry) => {
-        const dish = MENU.dishes.find((d) => d.id === entry.id);
-        if (!dish) return "";
-        const lineSum = (typeof dish.price === "number" ? dish.price : 0) * entry.qty;
-        subtotal += lineSum;
-        const title = dish.name[currentLang] || dish.name.ru;
-        return `
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line);">
-            <div>
-              <strong>${escapeHtml(title)}</strong><br>
-              <span style="color:var(--accent);">${formatSom(lineSum)}</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <button type="button" class="btn btn-outline btn-sm" data-qty-minus="${dish.id}" aria-label="Decrease quantity">−</button>
-              <span>${entry.qty}</span>
-              <button type="button" class="btn btn-outline btn-sm" data-qty-plus="${dish.id}" aria-label="Increase quantity">+</button>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    totalEl.textContent = formatSom(subtotal);
-
-    listEl.querySelectorAll("[data-qty-minus]").forEach((b) =>
-      b.addEventListener("click", () => updateCartQty(b.dataset.qtyMinus, -1))
-    );
-    listEl.querySelectorAll("[data-qty-plus]").forEach((b) =>
-      b.addEventListener("click", () => updateCartQty(b.dataset.qtyPlus, 1))
-    );
+    if (a.hasAttribute('data-open-cart') || a.id === 'fab') return openSheet();
+    if (a.dataset.track) S.track(a.dataset.track);
+    if (a.dataset.lb != null) return openLb(+a.dataset.lb, a);
+    if (a.dataset.dish) { S.galKeys = [...S.DISH_PHOTOS].map(id => 'dish/' + id); return openLb(S.galKeys.indexOf('dish/' + a.dataset.dish), a); }
+  });
+  function sig(row) {
+    const ph = document.getElementById('sig-photo'); if (!ph || !row) return;
+    document.querySelectorAll('.sig-row').forEach(r => r.classList.toggle('on', r === row));
+    const id = row.dataset.sig, im = ph.querySelector('img');
+    if (im.getAttribute('src').includes(id)) return;
+    im.style.opacity = 0;
+    setTimeout(() => { im.src = 'img/dish/' + id + '.webp'; im.alt = S.iName(S.byId[id]); document.getElementById('sig-cap').textContent = S.iName(S.byId[id]); document.getElementById('sig-n').textContent = row.dataset.n; im.onload = () => { im.style.opacity = 1; }; }, 180);
   }
+  document.addEventListener('mouseover', ev => { const r = ev.target.closest('.sig-row'); if (r) sig(r); });
+  document.addEventListener('focusin', ev => { const r = ev.target.closest('.sig-row'); if (r) sig(r); });
+  addEventListener('hashchange', () => { closeDrawer(); render(); });
 
-  // Form Submission Helper (POSTs to /api/... with local queue & tap-to-call fallback)
-  let lastSubmitTs = 0;
-  async function submitToBackend(endpoint, payload, statusBanner, submitBtn, successText) {
-    // Rate limit: 1 submission per 8 seconds
-    const now = Date.now();
-    if (now - lastSubmitTs < 8000) return;
-    lastSubmitTs = now;
-
-    if (submitBtn) submitBtn.disabled = true;
-    statusBanner.className = "form-banner loading";
-    statusBanner.textContent = t("state_loading");
-
-    // Save locally first so a submission is never lost silently (Section 8)
-    try {
-      const queue = JSON.parse(localStorage.getItem("fenix_submissions_backup") || "[]");
-      queue.push({ endpoint, payload, createdAt: new Date().toISOString() });
-      localStorage.setItem("fenix_submissions_backup", JSON.stringify(queue));
-    } catch (e) {}
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      statusBanner.className = "form-banner success";
-      statusBanner.textContent = successText;
-      window.fenixTrack("form_submit_success", { endpoint });
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
-      }
-    } catch (err) {
-      // Static prototype / offline mode: if running via file:// or without backend, show prototype confirmation OR failure notice
-      if (window.location.protocol === "file:" || err.message.includes("Failed to fetch")) {
-        statusBanner.className = "form-banner success";
-        statusBanner.textContent = successText + " [Prototype Mode — Local Queue Saved]";
-        window.fenixTrack("form_submit_prototype", { endpoint });
-      } else {
-        statusBanner.className = "form-banner error";
-        statusBanner.textContent = t("form_fail_fallback");
-        window.fenixTrack("form_submit_error", { endpoint });
-      }
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
+  /* ── drawer (focus-trapped, Esc) ── */
+  let lastFocus = null;
+  function openDrawer() { lastFocus = document.activeElement; const d = $('#drawer'); d.classList.add('open'); d.removeAttribute('inert'); document.body.style.overflow = 'hidden'; setTimeout(() => d.querySelector('button,a').focus(), 50); }
+  function closeDrawer() { const d = $('#drawer'); if (!d.classList.contains('open')) return; d.classList.remove('open'); d.setAttribute('inert', ''); document.body.style.overflow = ''; lastFocus && lastFocus.focus && lastFocus.focus(); }
+  function trap(container, ev) {
+    const f = [...container.querySelectorAll('a[href],button:not([disabled]),input,select,textarea')].filter(x => x.offsetParent !== null);
+    if (!f.length) return; const first = f[0], last = f[f.length - 1];
+    if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+    else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
   }
-
-  function validateUzPhone(raw) {
-    const cleaned = (raw || "").replace(/[\s\-()]/g, "");
-    return /^\+998\d{9}$/.test(cleaned);
-  }
-
-  function wireForms() {
-    // Set min/max dates (today to +60 days per Section 7.1)
-    const tk = getTashkentNow();
-    const minIso = tk.toISOString().split("T")[0];
-    const maxDate = new Date(tk.getTime() + 60 * 86400000);
-    const maxIso = maxDate.toISOString().split("T")[0];
-
-    const resDateInput = document.getElementById("res-date");
-    const resTimeSelect = document.getElementById("res-time");
-    if (resDateInput) {
-      resDateInput.value = minIso;
-      resDateInput.min = minIso;
-      resDateInput.max = maxIso;
-      populateTimeSlots(resTimeSelect, minIso);
-      resDateInput.addEventListener("change", () => populateTimeSlots(resTimeSelect, resDateInput.value));
-    }
-
-    const evtDateInput = document.getElementById("evt-date");
-    if (evtDateInput) {
-      evtDateInput.min = minIso;
-    }
-
-    // 7.1 Reservation Request Form
-    const resForm = document.getElementById("reservation-form");
-    if (resForm) {
-      resForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        resForm.querySelectorAll(".error-msg").forEach((el) => el.classList.remove("visible"));
-        resForm.querySelectorAll(".form-control").forEach((el) => el.removeAttribute("aria-invalid"));
-
-        // Honeypot check
-        const hp = resForm.querySelector("[name='company_hp']");
-        if (hp && hp.value) return;
-
-        const dateVal = document.getElementById("res-date").value;
-        const timeVal = document.getElementById("res-time").value;
-        const guestsVal = parseInt(document.getElementById("res-guests").value, 10);
-        const nameVal = document.getElementById("res-name").value.trim();
-        const phoneVal = document.getElementById("res-phone").value.trim();
-        const commentVal = document.getElementById("res-comment").value.trim();
-        const consentChecked = document.getElementById("res-consent").checked;
-
-        let valid = true;
-        if (!dateVal || dateVal < minIso || dateVal > maxIso) {
-          showFieldErr("res-date", "err-res-date");
-          valid = false;
-        }
-        if (guestsVal > 12) {
-          showFieldErr("res-guests", "err-res-guests");
-          const evtGuests = document.getElementById("evt-guests");
-          if (evtGuests) evtGuests.value = guestsVal;
-          const evtSection = document.getElementById("event-inquiry-card");
-          if (evtSection) evtSection.scrollIntoView({ behavior: "smooth" });
-          return;
-        }
-        if (!nameVal) {
-          showFieldErr("res-name", "err-res-name");
-          valid = false;
-        }
-        if (!validateUzPhone(phoneVal)) {
-          showFieldErr("res-phone", "err-res-phone");
-          valid = false;
-        }
-        if (!consentChecked) {
-          document.getElementById("err-res-consent").classList.add("visible");
-          valid = false;
-        }
-        if (!valid) return;
-
-        submitToBackend(
-          "/api/reservations",
-          { date: dateVal, time: timeVal, guests: guestsVal, name: nameVal, phone: phoneVal, comment: commentVal, lang: currentLang },
-          document.getElementById("res-status-banner"),
-          resForm.querySelector("button[type='submit']"),
-          t("res_success")
-        );
-      });
-    }
-
-    // 7.2 Event Inquiry Form
-    const evtForm = document.getElementById("event-form");
-    if (evtForm) {
-      evtForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        evtForm.querySelectorAll(".error-msg").forEach((el) => el.classList.remove("visible"));
-        evtForm.querySelectorAll(".form-control").forEach((el) => el.removeAttribute("aria-invalid"));
-
-        const hp = evtForm.querySelector("[name='company_hp']");
-        if (hp && hp.value) return;
-
-        const typeVal = document.getElementById("evt-type").value;
-        const hallVal = document.getElementById("evt-hall").value;
-        const guestsVal = parseInt(document.getElementById("evt-guests").value, 10);
-        const dateVal = document.getElementById("evt-date").value;
-        const nameVal = document.getElementById("evt-name").value.trim();
-        const phoneVal = document.getElementById("evt-phone").value.trim();
-        const commentVal = document.getElementById("evt-comment").value.trim();
-        const consentChecked = document.getElementById("evt-consent").checked;
-
-        let valid = true;
-        if (!nameVal) {
-          showFieldErr("evt-name", "err-evt-name");
-          valid = false;
-        }
-        if (!validateUzPhone(phoneVal)) {
-          showFieldErr("evt-phone", "err-evt-phone");
-          valid = false;
-        }
-        if (!consentChecked) {
-          document.getElementById("err-evt-consent").classList.add("visible");
-          valid = false;
-        }
-        if (!valid) return;
-
-        submitToBackend(
-          "/api/events",
-          { eventType: typeVal, hall: hallVal, guests: guestsVal, date: dateVal, name: nameVal, phone: phoneVal, comment: commentVal, lang: currentLang },
-          document.getElementById("evt-status-banner"),
-          evtForm.querySelector("button[type='submit']"),
-          t("evt_success")
-        );
-      });
-    }
-
-    // Pickup & Delivery Checkout Form (Phase 2 Scaffold)
-    const orderForm = document.getElementById("delivery-order-form");
-    if (orderForm) {
-      const modeSelect = document.getElementById("ord-mode");
-      const addrGroup = document.getElementById("ord-address-group");
-      if (modeSelect && addrGroup) {
-        modeSelect.addEventListener("change", () => {
-          addrGroup.style.display = modeSelect.value === "delivery" ? "block" : "none";
-        });
-      }
-
-      orderForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (cart.length === 0) return;
-        const nameVal = document.getElementById("ord-name").value.trim();
-        const phoneVal = document.getElementById("ord-phone").value.trim();
-        const modeVal = document.getElementById("ord-mode").value;
-        const addrVal = document.getElementById("ord-address").value.trim();
-        const payVal = document.getElementById("ord-payment").value;
-
-        if (!nameVal || !validateUzPhone(phoneVal)) {
-          const banner = document.getElementById("ord-status-banner");
-          banner.className = "form-banner error";
-          banner.textContent = t("err_phone");
-          return;
-        }
-
-        submitToBackend(
-          "/api/orders",
-          { items: cart, mode: modeVal, address: addrVal, payment: payVal, name: nameVal, phone: phoneVal, lang: currentLang },
-          document.getElementById("ord-status-banner"),
-          orderForm.querySelector("button[type='submit']"),
-          t("bag_success")
-        );
-      });
-    }
-  }
-
-  function showFieldErr(inputId, errId) {
-    const inp = document.getElementById(inputId);
-    const err = document.getElementById(errId);
-    if (inp) inp.setAttribute("aria-invalid", "true");
-    if (err) err.classList.add("visible");
-  }
-
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  // Initialize on DOMContentLoaded
-  document.addEventListener("DOMContentLoaded", () => {
-    // Language Switcher
-    document.querySelectorAll(".lang-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        window.fenixTrack("language_change", { to: btn.dataset.lang });
-        applyLanguage(btn.dataset.lang);
-      });
-    });
-
-    // Hero Photo vs Type-Only Toggle (Component 2)
-    const heroToggleBtn = document.getElementById("hero-mode-toggle");
-    const heroSection = document.getElementById("home-hero");
-    if (heroToggleBtn && heroSection) {
-      heroToggleBtn.addEventListener("click", () => {
-        const isTypeOnly = heroSection.classList.toggle("type-only");
-        heroToggleBtn.setAttribute("data-i18n", isTypeOnly ? "hero_toggle_type" : "hero_toggle_photo");
-        heroToggleBtn.textContent = t(isTypeOnly ? "hero_toggle_type" : "hero_toggle_photo");
-      });
-    }
-
-    // Menu Section Filters & Search
-    document.querySelectorAll("[data-menu-sec]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll("[data-menu-sec]").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        menuSectionFilter = btn.dataset.menuSec;
-        menuCategoryFilter = "all";
-        renderFullMenu();
-      });
-    });
-
-    const searchInput = document.getElementById("menu-search-input");
-    if (searchInput) {
-      searchInput.addEventListener("input", (e) => {
-        menuSearchTerm = e.target.value;
-        renderFullMenu();
-      });
-    }
-
-    // Gallery Filters
-    document.querySelectorAll("[data-gal-filter]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll("[data-gal-filter]").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        galleryFilter = btn.dataset.galFilter;
-        renderGallery();
-      });
-    });
-
-    // Lightbox Close
-    const lb = document.getElementById("fenix-lightbox");
-    const lbClose = document.getElementById("lb-close-btn");
-    if (lbClose) lbClose.addEventListener("click", closeLightbox);
-    if (lb) lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
-
-    // Cart Drawer Open/Close
-    document.querySelectorAll("[data-open-cart]").forEach((btn) => btn.addEventListener("click", openCartDrawer));
-    const cartModal = document.getElementById("fenix-cart-modal");
-    const cartClose = document.getElementById("cart-close-btn");
-    if (cartClose) cartClose.addEventListener("click", closeCartDrawer);
-    if (cartModal) cartModal.addEventListener("click", (e) => { if (e.target === cartModal) closeCartDrawer(); });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        closeLightbox();
-        closeCartDrawer();
-      }
-    });
-
-    // Analytics on Call & Map links
-    document.querySelectorAll("a[href^='tel:']").forEach((a) =>
-      a.addEventListener("click", () => window.fenixTrack("call_tap", { href: a.getAttribute("href") }))
-    );
-    document.querySelectorAll("[data-map-link]").forEach((a) =>
-      a.addEventListener("click", () => window.fenixTrack("directions_tap", { provider: a.dataset.mapLink }))
-    );
-
-    wireForms();
-    applyLanguage(currentLang);
-    initTelegramWebApp();
+  document.addEventListener('keydown', ev => {
+    const d = $('#drawer'), lb = $('#lb'), sh = $('#sheet');
+    if (ev.key === 'Escape') { closeDrawer(); closeLb(); closeSheet(); }
+    if (ev.key === 'Tab') { if (d.classList.contains('open')) trap(d, ev); else if (!lb.hidden) trap(lb, ev); else if (sh.classList.contains('open')) trap(sh, ev); }
+    if (!lb.hidden && ev.key === 'ArrowRight') stepLb(1);
+    if (!lb.hidden && ev.key === 'ArrowLeft') stepLb(-1);
   });
 
-  // Telegram WebApp Integration
-  function initTelegramWebApp() {
-    const tg = window.Telegram?.WebApp;
-    if (!tg) return;
-
-    try {
-      tg.ready();
-      tg.expand();
-
-      const user = tg.initDataUnsafe?.user;
-      if (user) {
-        const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ");
-        if (fullName) {
-          const resName = document.getElementById("res-name");
-          const evtName = document.getElementById("evt-name");
-          const ordName = document.getElementById("ord-name");
-          if (resName && !resName.value) resName.value = fullName;
-          if (evtName && !evtName.value) evtName.value = fullName;
-          if (ordName && !ordName.value) ordName.value = fullName;
-        }
-      }
-    } catch (e) {
-      console.warn("[Telegram WebApp] Init note:", e.message);
-    }
+  /* ── lightbox ── */
+  let lbI = 0, lbTrigger = null;
+  function openLb(i, trig) { lbI = i; lbTrigger = trig; const lb = $('#lb'); lb.hidden = false; drawLb(); document.body.style.overflow = 'hidden'; lb.querySelector('[data-lbx]').focus(); }
+  function drawLb() {
+    const k = S.galKeys[lbI], lb = $('#lb');
+    lb.innerHTML = `<div class="lb-top"><span aria-live="polite">${lbI + 1} ${e(t('gallery.of'))} ${S.galKeys.length} · ${e(S.IMG[k][S.lang])}</span><button type="button" data-lbx aria-label="${e(t('a11y.close'))}">${I('close').replace('<svg', '<svg width="20"')}</button></div>
+      <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp" alt="${e(S.IMG[k][S.lang])}"></div>
+      <div class="lb-nav"><button type="button" data-lbp aria-label="${e(t('a11y.prev'))}">${I('left')}</button><button type="button" data-lbn aria-label="${e(t('a11y.next'))}">${I('right')}</button></div>`;
+    lb.querySelector('[data-lbx]').onclick = closeLb;
+    lb.querySelector('[data-lbp]').onclick = () => stepLb(-1);
+    lb.querySelector('[data-lbn]').onclick = () => stepLb(1);
   }
+  function stepLb(d) { lbI = (lbI + d + S.galKeys.length) % S.galKeys.length; const foc = document.activeElement && document.activeElement.hasAttribute('data-lbn') ? '[data-lbn]' : document.activeElement && document.activeElement.hasAttribute('data-lbp') ? '[data-lbp]' : '[data-lbx]'; drawLb(); $('#lb').querySelector(foc).focus(); }
+  function closeLb() { const lb = $('#lb'); if (lb.hidden) return; lb.hidden = true; document.body.style.overflow = ''; lbTrigger && lbTrigger.focus(); }
+
+  /* ── order sheet (Phase 2 preview) ── */
+  let sheetMode = 'pickup', sheetStep = 'cart';
+  function openSheet() { lastFocus = document.activeElement; sheetStep = 'cart'; drawSheet(); $('#sheet').classList.add('open'); $('#sheet').removeAttribute('inert'); $('#sheet-bg').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => $('#sheet').querySelector('button').focus(), 60); }
+  function closeSheet() { const s = $('#sheet'); if (!s.classList.contains('open')) return; s.classList.remove('open'); s.setAttribute('inert', ''); $('#sheet-bg').classList.remove('open'); document.body.style.overflow = ''; lastFocus && lastFocus.focus && lastFocus.focus(); }
+  $('#sheet-bg').addEventListener('click', closeSheet);
+  function drawSheet() {
+    const items = Object.entries(S.cart).filter(([id]) => S.byId[id]);
+    const head = `<div class="sheet-h"><div><h2 class="h3">${e(t('order.title'))}</h2><span class="phase">${e(t('order.phase'))}</span></div><button class="icon-btn" type="button" data-sheet-close aria-label="${e(t('a11y.close'))}">${I('close')}</button></div>`;
+    let body = '', foot = '';
+    if (sheetStep === 'status') {
+      body = `<div class="notice ok" style="margin-top:20px"><span class="ic">${I('check')}</span><h3>№ FX-0427</h3><p class="body">${e(t('order.note'))}</p></div>
+        <p class="label" style="margin-top:28px">${e(t('order.statusT'))}</p>
+        <ol class="track"><li class="done"><span></span><span>${e(t('order.s1'))}</span></li><li class="now"><span></span><span>${e(t('order.s2'))}</span></li><li><span></span><span>${e(t('order.s3'))}</span></li><li><span></span><span>${e(t('order.s4'))}</span></li></ol>`;
+      foot = `<button class="btn btn-line btn-block" type="button" data-sheet-close>${e(t('order.back'))}${I('arrow')}</button>`;
+    } else if (!items.length) {
+      body = `<p class="body" style="padding:32px 0">${e(t('order.empty'))}</p>`;
+      foot = `<a class="btn btn-solid btn-block" href="#/menu" data-sheet-close>${e(t('order.toMenu'))}${I('arrow')}</a>`;
+    } else {
+      body = `<ul>${items.map(([id, q]) => { const it = S.byId[id]; return `<li class="ci"><div><p class="n">${e(S.iName(it))}</p><p class="price">${S.money(it.price)}</p></div><span class="qty"><button type="button" data-sq="${id}" data-d="-1" aria-label="−1">−</button><span>${q}</span><button type="button" data-sq="${id}" data-d="1" aria-label="+1">+</button></span></li>`; }).join('')}</ul>
+        <div style="margin-top:24px;display:grid;gap:12px">
+          <p class="label">${e(t('order.mode'))}</p>
+          <div class="seg" role="group"><button type="button" data-mode="pickup" aria-pressed="${sheetMode === 'pickup'}">${e(t('order.pickup'))}</button><button type="button" data-mode="delivery" aria-pressed="${sheetMode === 'delivery'}">${e(t('order.deliveryMode'))}</button></div>
+          ${sheetMode === 'delivery' ? `<div class="field"><label for="o-addr">${e(t('order.addr'))}</label><input id="o-addr" autocomplete="street-address"></div>` : ''}
+          <p class="label" style="margin-top:8px">${e(t('order.pay'))}</p>
+          <div class="pay">${['Payme', 'Click', 'Uzum', t('order.cash')].map((p, i) => `<label><input type="radio" name="pay" ${i === 0 ? 'checked' : ''}>${e(p)}</label>`).join('')}</div>
+          <p class="form-note">${e(t('order.note'))}</p>
+        </div>`;
+      const sub = S.cartTotal();
+      foot = `<div class="sumrow"><span>${e(t('order.subtotal'))}</span><span>${S.money(sub)}</span></div>
+        
+        <div class="sumrow tot"><span>${e(t('order.total'))}</span><span>${S.money(sub)}</span></div>
+        <button class="btn btn-accent btn-block" type="button" data-checkout>${e(t('order.checkout'))}${I('arrow')}</button>
+        <a class="small" style="text-align:center" href="${F.phones[0].href}">${e(t('order.apps'))}: ${F.phones[0].display}</a>`;
+    }
+    $('#sheet').innerHTML = head + `<div class="sheet-b">${body}</div><div class="sheet-f">${foot}</div>`;
+  }
+  $('#sheet').addEventListener('click', ev => {
+    const b = ev.target.closest('button,a'); if (!b) return;
+    if (b.hasAttribute('data-sheet-close')) { closeSheet(); if (sheetStep === 'status') { S.cart = {}; S.setQty('_', 0); } return; }
+    if (b.dataset.sq) { S.setQty(b.dataset.sq, (S.cart[b.dataset.sq] || 0) + (+b.dataset.d)); drawSheet(); return; }
+    if (b.dataset.mode) { sheetMode = b.dataset.mode; drawSheet(); return; }
+    if (b.hasAttribute('data-checkout')) {
+      b.disabled = true;
+      b.innerHTML = `<span>${e(t('order.placing'))}</span><span class="spinner"></span>`;
+      const items = Object.entries(S.cart).map(([id, q]) => ({
+        id,
+        name: S.byId[id]?.name,
+        price: S.byId[id]?.price,
+        qty: q
+      }));
+      const payload = {
+        items,
+        mode: sheetMode,
+        address: $('#o-addr') ? $('#o-addr').value : (sheetMode === 'delivery' ? 'Уточняется' : 'Самовывоз'),
+        payment: $('input[name="pay"]:checked') ? $('input[name="pay"]:checked').parentElement.textContent.trim() : 'Payme',
+        name: 'Гость с веб-сайта',
+        phone: '+998971850010',
+        lang: S.lang
+      };
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(err => {
+        console.warn('[Fenix API] Order error:', err);
+      }).finally(() => {
+        sheetStep = 'status';
+        drawSheet();
+      });
+    }
+  });
+  document.addEventListener('fx:cart', () => {
+    if (route === 'menu') { const list = $('#menu-list'); const y = scrollY; list.innerHTML = S.menuList(list.dataset.menu, ($('#menu-q') || {}).value); secs = [...document.querySelectorAll('.mcat')]; window.scrollTo(0, y); }
+    const hdr = $('#hdr'); const foc = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.qty;
+    hdr.innerHTML = S.renderHeader(route); renderFab();
+  });
+
+  /* ── open-now refresh ── */
+  setInterval(() => document.querySelectorAll('.status').forEach(s => { s.outerHTML = S.statusHTML(); }), 60000);
+
+  /* ── tweaks (host protocol) ── */
+  function tweaksPanel() {
+    const tw = S.tweaks, p = $('#tw');
+    const seg = (key, opts) => `<div class="tw-seg">${opts.map(([v, l]) => `<button type="button" data-tw="${key}" data-v="${v}" aria-pressed="${String(tw[key]) === String(v)}">${l}</button>`).join('')}</div>`;
+    p.innerHTML = `<div class="tw-h"><span>Tweaks</span><button type="button" data-twclose aria-label="Close" style="color:var(--text-dim)">${I('close').replace('<svg', '<svg width="16"')}</button></div>
+    <div class="tw-b">
+      <div class="tw-g"><span>Hero</span>${seg('hero', [['triptych', 'Triptych'], ['single', 'Single'], ['type', 'Type only']])}</div>
+      <div class="tw-g"><span>Hero wordmark</span>${seg('wordmark', [['logo', 'Real logo'], ['serif', 'Serif FENIX']])}</div>
+      <div class="tw-g"><span>Homepage priority (brief §13.1)</span>${seg('homeOrder', [['dining', 'Dining first'], ['events', 'Events first']])}</div>
+      <div class="tw-g"><span>Accent</span><div class="tw-sw">${[['#C08A3E', '#D9A75B'], ['#C9A15A', '#E0BD7A'], ['#B8694A', '#D08667'], ['#8FA36A', '#A9BC84']].map(([a, h]) => `<button type="button" data-tw-accent="${a}" data-hi="${h}" style="background:${a}" aria-pressed="${tw.accent === a}" aria-label="${a}"></button>`).join('')}</div></div>
+      <div class="tw-g"><span>Phase 2 ordering preview</span>${seg('ordering', [[true, 'On'], [false, 'Off']])}</div>
+      <div class="tw-g"><span>Owner/draft markers</span>${seg('markers', [[true, 'Show'], [false, 'Hide']])}</div>
+      <div class="tw-g"><span>Printed frame</span>${seg('frame', [[true, 'On'], [false, 'Off']])}</div>
+      <div class="tw-g"><span>Film grain</span>${seg('grain', [[true, 'On'], [false, 'Off']])}</div>
+    </div>`;
+  }
+  function setTweak(k, v) {
+    S.tweaks[k] = v;
+    try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*'); } catch (_) {}
+    applyBody(); render(false); tweaksPanel();
+  }
+  $('#tw').addEventListener('click', ev => {
+    const b = ev.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-twclose')) { $('#tw').hidden = true; try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch (_) {} return; }
+    if (b.dataset.tw) { let v = b.dataset.v; if (v === 'true') v = true; else if (v === 'false') v = false; setTweak(b.dataset.tw, v); }
+    if (b.dataset.twAccent) { S.tweaks.accentHi = b.dataset.hi; try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { accentHi: b.dataset.hi } }, '*'); } catch (_) {} setTweak('accent', b.dataset.twAccent); }
+  });
+  addEventListener('message', ev => {
+    const d = ev.data || {};
+    if (d.type === '__activate_edit_mode') { tweaksPanel(); $('#tw').hidden = false; }
+    if (d.type === '__deactivate_edit_mode') $('#tw').hidden = true;
+  });
+  try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch (_) {}
+
+  /* ── boot ── */
+  S.loadLogos().then(() => {
+    if (!location.hash && localStorage.getItem('fx.route')) history.replaceState(null, '', localStorage.getItem('fx.route'));
+    applyBody(); render(false);
+    if (S.missing.size) console.info('[i18n] fell back to ru for', S.missing.size, 'strings');
+  });
 })();

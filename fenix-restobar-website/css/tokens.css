@@ -1,109 +1,58 @@
-/* ==========================================================================
-   SELF-HOSTED SUBSETTED FONTS (Cyrillic & Latin WOFF2 — Section 8 & 9)
-   ========================================================================== */
-@font-face {
-  font-family: 'Cormorant';
-  src: url('../assets/fonts/CormorantGaramond-300-cyrillic.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Cormorant';
-  src: url('../assets/fonts/CormorantGaramond-300-latin.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Cormorant';
-  src: url('../assets/fonts/CormorantGaramond-400i-cyrillic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Cormorant';
-  src: url('../assets/fonts/CormorantGaramond-400i-latin.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-300-cyrillic.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-300-latin.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-400-cyrillic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-400-latin.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-500-cyrillic.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Jost';
-  src: url('../assets/fonts/Jost-500-latin.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* ==========================================================================
-   FENIX RESTOBAR — DESIGN SYSTEM TOKENS (Section 6 of Build Brief v0.1)
-   WCAG 2.2 Level AA Verified
-   ========================================================================== */
+/* ============================================================
+   Fenix — design tokens (Direction A "Ember", brief §6, with a11y fixes)
+   Single source of truth. Contrast measured on --bg #0B0906.
+   ============================================================ */
 :root {
-  /* Core Palette (Section 6) */
-  --bg: #0B0906;
-  --bg-raised: #14110A;
-  --ink: #F0E7D6;                         /* Main text: 16.0:1 contrast on --bg (AAA) */
-  --text-dim: rgba(240, 231, 214, .56);   /* Secondary text: ~5.4:1 contrast on --bg (AA) */
-  --accent: #C08A3E;                      /* Buttons, prices, links: 6.6:1 contrast on --bg (AA) */
-  --on-accent: #0B0906;                   /* Dark text on --accent fill: 6.6:1 (AA) */
-  --ember: #7E3A18;                       /* Decoration & borders only */
-  --line: rgba(240, 231, 214, .15);       /* Borders/dividers only — NEVER used for text */
+  --bg:#0B0906; --bg-raised:#14110A; --bg-plate:#16120C;
+  --ink:#F0E7D6;          /* 16.0:1 */
+  --text-dim:#A9A091;     /* 5.4:1 body */
+  --text-faint:#8C8474;   /* 4.6:1 — raised from concept's 3.6 so labels pass AA */
+  --accent:#C08A3E;       /* 6.6:1 */
+  --accent-hi:#D9A75B;
+  --on-accent:#0B0906;
+  --ember:#7E3A18;        /* decoration only */
+  --line:rgba(240,231,214,.15);
+  --line-strong:rgba(240,231,214,.28);
+  --danger:#E8866A;       /* 6.0:1 */
+  --success:#9DB878;
 
-  /* Justified Semantic Status Tokens (Rule 3: required for WCAG 2.2 AA form states) */
-  --status-ok: #7BC47F;                   /* 8.9:1 on --bg — "Open now" & form success text */
-  --status-err: #F08080;                  /* 7.1:1 on --bg — Form error text (not color alone) */
+  --font-display:'Cormorant', Georgia, 'Times New Roman', serif;
+  --font-body:'Jost', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Typography (Section 6) */
-  --font-display: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
-  --font-body: 'Jost', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --fs-display:clamp(76px, 17vw, 236px);
+  --fs-h1:clamp(44px, 7vw, 96px);
+  --fs-h2:clamp(34px, 5.2vw, 62px);
+  --fs-h3:clamp(24px, 2.6vw, 32px);
+  --fs-menu:clamp(20px, 1.6vw, 22px);
+  --fs-lead:17px; --fs-body:16px; --fs-small:14px; --fs-label:12px;
 
-  /* Spacing: 8px scale (Section 6) */
-  --s1: 4px;
-  --s2: 8px;
-  --s3: 16px;
-  --s4: 24px;
-  --s5: 40px;
-  --s6: 64px;
+  --lh-display:.84; --lh-tight:1.06; --lh-body:1.75;
+  --ls-eyebrow:.16em; --ls-label:.08em; --ls-display:.045em;
 
-  /* Layout */
-  --max-width: 1200px;
-  --tap-min: 44px;
+  --s1:4px; --s2:8px; --s3:16px; --s4:24px; --s5:40px; --s6:64px;
+  --s7:clamp(72px, 9vw, 120px);
+  --gutter:clamp(20px, 4vw, 56px);
+  --content-max:1200px;
+  --frame-inset:clamp(10px, 1.8vw, 26px);
+  --header-h:72px;
+
+  --ease-out:cubic-bezier(.16,.84,.28,1);
+  --dur-fast:.3s; --dur-slow:1.2s;
+  --radius:0; --tap-min:44px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+
+@font-face{font-family:'Cormorant';font-style:normal;font-weight:300;font-display:swap;src:url(../fonts/CormorantGaramond-300-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Cormorant';font-style:normal;font-weight:300;font-display:swap;src:url(../fonts/CormorantGaramond-300-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Cormorant';font-style:italic;font-weight:400;font-display:swap;src:url(../fonts/CormorantGaramond-400i-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Cormorant';font-style:italic;font-weight:400;font-display:swap;src:url(../fonts/CormorantGaramond-400i-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Jost';font-style:normal;font-weight:300;font-display:swap;src:url(../fonts/Jost-300-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Jost';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/Jost-400-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Jost';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/Jost-500-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Jost';font-style:normal;font-weight:300;font-display:swap;src:url(../fonts/Jost-300-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Jost';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/Jost-400-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Jost';font-style:normal;font-weight:500;font-display:swap;src:url(../fonts/Jost-500-cyrillic.woff2) format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}

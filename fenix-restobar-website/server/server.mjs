@@ -194,7 +194,10 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
   ".xml": "application/xml; charset=utf-8",
-  ".txt": "text/plain; charset=utf-8"
+  ".txt": "text/plain; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png"
 };
 
 const server = http.createServer(async (req, res) => {
@@ -436,7 +439,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Static file serving
-  let reqPath = url.pathname === "/" ? "/index.html" : url.pathname;
+  let reqPath = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, "");
   const filePath = path.join(PUBLIC_DIR, safePath);
 

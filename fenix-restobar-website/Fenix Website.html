@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fenix — ресторан и бар в Ташкенте · европейская и корейская кухня</title>
+<meta name="description" content="Fenix Restaurant & Bar, Ташкент (Яшнабад): европейская и корейская кухня, коктейли, живая музыка, два зала на 120 и 170 гостей. Бронирование: +998 97 185 00 10.">
+<meta name="theme-color" content="#0B0906">
+<link rel="icon" href="img/fenix-mark.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/CormorantGaramond-300-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Jost-300-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="img/sign-hall.webp" as="image" fetchpriority="high">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/site.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Restaurant","name":"Fenix Restaurant & Bar","servesCuisine":["European","Korean"],"priceRange":"$$",
+ "address":{"@type":"PostalAddress","streetAddress":"Husnobod 5-tor ko‘chasi, 1","addressLocality":"Tashkent","addressRegion":"Yashnobod","addressCountry":"UZ"},
+ "telephone":["+998971850010","+998971850020"],"acceptsReservations":"True","hasMenu":"#/menu",
+ "openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Sunday"],"opens":"12:00","closes":"00:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Friday","Saturday"],"opens":"12:00","closes":"02:00"}],
+ "sameAs":["https://t.me/fenix_tashkent","https://www.instagram.com/fenix.tashkent"]}
+</script>
+<script>
+/* Tweak defaults — host rewrites this block on disk */
+window.FX_TWEAKS = /*EDITMODE-BEGIN*/{
+  "hero": "triptych",
+  "wordmark": "logo",
+  "homeOrder": "dining",
+  "accent": "#C08A3E",
+  "accentHi": "#D9A75B",
+  "ordering": true,
+  "markers": false,
+  "frame": true,
+  "grain": true
+}/*EDITMODE-END*/;
+</script>
+</head>
+<body>
+  <a class="skip" id="skip" href="#main">Перейти к содержимому</a>
+  <div class="frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="hdr" id="hdr"></header>
+  <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Menu" inert></div>
+
+  <main id="main" tabindex="-1"></main>
+
+  <footer class="ftr" id="ftr"></footer>
+  <nav class="actbar" id="actbar" aria-label="Quick actions"></nav>
+
+  <button class="fab" id="fab" type="button" hidden></button>
+  <div class="sheet-bg" id="sheet-bg"></div>
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Order" inert></aside>
+  <div class="lightbox" id="lb" role="dialog" aria-modal="true" aria-label="Gallery" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="tw" id="tw" hidden></div>
+
+  <script src="data/facts.js"></script>
+  <script src="data/i18n.js"></script>
+  <script src="data/menu-data.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/forms.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

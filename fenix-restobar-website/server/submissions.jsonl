@@ -1,1 +1,2 @@
 {"id":"FX-1794576064302","type":"reservations","receivedAt":"2026-11-13T13:21:04.303Z","data":{"name":"Тестовый Гость","phone":"+998901234567","date":"2026-11-20","time":"19:00","guests":"4","comment":"Тестовое бронирование"}}
+{"id":"FX-1794577661369","type":"reservations","receivedAt":"2026-11-13T13:47:41.369Z","data":{"name":"Redesign Guest","phone":"+998901234567","date":"2026-11-20","time":"19:30","guests":4,"comment":"Quiet table near window"}}
