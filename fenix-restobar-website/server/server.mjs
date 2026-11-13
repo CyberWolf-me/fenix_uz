@@ -24,6 +24,9 @@ const BOT_USERNAME = process.env.BOT_USERNAME || "FenixRestaurantBot";
 
 // Locate fenix_restaurant.db from Telegram Bot project
 const DB_CANDIDATES = [
+  path.resolve(__dirname, "../../bot/fenix_restaurant.db"),
+  path.resolve(__dirname, "../bot/fenix_restaurant.db"),
+  path.resolve(process.cwd(), "bot/fenix_restaurant.db"),
   path.resolve(__dirname, "../../Fenix меню и визитка/fenix_restaurant.db"),
   path.resolve(__dirname, "../Fenix меню и визитка/fenix_restaurant.db"),
   path.resolve(process.cwd(), "Fenix меню и визитка/fenix_restaurant.db"),
