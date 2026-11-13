@@ -13,6 +13,14 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/site.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+if ((window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || 
+    window.location.search.includes('app=1') || 
+    window.location.hash.startsWith('#/app') || 
+    window.location.hash.startsWith('#/miniapp')) {
+  window.location.replace('/app.html' + window.location.search + window.location.hash);
+}
+</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Restaurant","name":"Fenix Restaurant & Bar","servesCuisine":["European","Korean"],"priceRange":"$$",
  "address":{"@type":"PostalAddress","streetAddress":"Husnobod 5-tor ko‘chasi, 1","addressLocality":"Tashkent","addressRegion":"Yashnobod","addressCountry":"UZ"},

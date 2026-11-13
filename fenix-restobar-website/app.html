@@ -1,0 +1,3262 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>FENIX — Меню, Заказ & Бронирование</title>
+<meta name="theme-color" content="#0B0906">
+<link rel="icon" href="img/fenix-mark.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/CormorantGaramond-300-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/Jost-300-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/tokens.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="data/menu-data.js"></script>
+<style>
+/* ── FENIX MINI APP DEDICATED STYLES ── */
+:root {
+  --bg-dark: #0A0907;
+  --bg-card: #13110D;
+  --bg-card-hover: #191612;
+  --bg-surface: #1B1813;
+  --gold: #C08A3E;
+  --gold-hi: #DFB16C;
+  --gold-dim: rgba(192, 138, 62, 0.2);
+  --gold-glow: rgba(192, 138, 62, 0.15);
+  --text-main: #F3EDE2;
+  --text-muted: #9E9688;
+  --text-faint: #6A6458;
+  --line-subtle: rgba(192, 138, 62, 0.14);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text-main);
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  padding-bottom: calc(76px + var(--safe-bottom));
+}
+
+/* ── Typography & Display ── */
+.serif {
+  font-family: 'Cormorant', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ── Top Header ── */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 9, 7, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--line-subtle);
+  padding: calc(10px + var(--safe-top)) 14px 10px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--text-main);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.brand-sub {
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-switch {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line-subtle);
+  border-radius: 20px;
+  padding: 2px;
+}
+
+.lang-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn.active {
+  background: var(--gold);
+  color: #0A0907;
+  font-weight: 600;
+}
+
+/* ── Context & Mode Bar ── */
+.context-bar {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mode-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  background: var(--bg-surface);
+  color: var(--gold-hi);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(192, 138, 62, 0.25);
+}
+
+.mode-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.address-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(19, 17, 13, 0.8);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.address-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.address-pill-left svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  stroke: var(--gold);
+}
+
+.address-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-main);
+  font-size: 12px;
+}
+
+.address-action {
+  font-size: 11px;
+  color: var(--gold);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* ── Search Bar ── */
+.search-wrap {
+  padding: 10px 14px 4px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  transition: border-color 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: var(--gold);
+}
+
+.search-box svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.search-box input::placeholder {
+  color: var(--text-faint);
+}
+
+.search-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: none;
+  padding: 2px;
+}
+
+.search-clear.visible {
+  display: block;
+}
+
+/* ── Cuisines & Categories Pills ── */
+.pills-scroll-wrap {
+  position: sticky;
+  top: 134px;
+  z-index: 40;
+  background: rgba(10, 9, 7, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line-subtle);
+  padding: 8px 14px 10px;
+}
+
+.cuisines-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cuisines-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.cuisine-chip {
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.cuisine-chip.active {
+  background: var(--gold);
+  color: #0A0907;
+  font-weight: 600;
+  border-color: var(--gold);
+}
+
+.subcat-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 8px;
+}
+
+.subcat-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.subcat-chip {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-faint);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.subcat-chip.active {
+  color: var(--gold-hi);
+  border-color: var(--gold);
+  background: rgba(192, 138, 62, 0.1);
+}
+
+/* ── Content View Panels ── */
+.tab-view {
+  display: none;
+  padding: 12px 14px;
+}
+
+.tab-view.active {
+  display: block;
+}
+
+/* ── Menu Grid (2-columns) ── */
+.menu-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 18px 0 10px;
+}
+
+.menu-section-head:first-child {
+  margin-top: 4px;
+}
+
+.menu-section-title {
+  font-size: 20px;
+  color: var(--text-main);
+  letter-spacing: 0.02em;
+}
+
+.menu-section-count {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.dishes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.dish-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.dish-card:active {
+  transform: scale(0.985);
+}
+
+.dish-card-img-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #0E0D0A;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dish-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.dish-card-img.png-dish {
+  object-fit: contain;
+  padding: 6px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+.dish-card-tag {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(10, 9, 7, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(192, 138, 62, 0.3);
+  color: var(--gold);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dish-card-body {
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dish-card-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+  line-height: 1.25;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dish-card-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.dish-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dish-card-price {
+  font-size: 15px;
+  color: var(--gold-hi);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dish-add-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.dish-add-btn:active {
+  transform: scale(0.9);
+  background: var(--gold);
+  color: #0A0907;
+}
+
+.dish-add-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.dish-qty-stepper {
+  display: flex;
+  align-items: center;
+  background: var(--gold);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.dish-qty-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #0A0907;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dish-qty-btn:active {
+  opacity: 0.6;
+}
+
+.dish-qty-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0A0907;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* ── Floating Cart Bar (on menu tab) ── */
+.floating-cart-bar {
+  position: fixed;
+  bottom: calc(70px + var(--safe-bottom));
+  left: 14px;
+  right: 14px;
+  z-index: 45;
+  background: linear-gradient(135deg, #DFB16C, #C08A3E);
+  color: #0A0907;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(192, 138, 62, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.floating-cart-bar.hidden {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.floating-cart-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.floating-cart-badge {
+  background: #0A0907;
+  color: var(--gold-hi);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.floating-cart-sum {
+  font-size: 15px;
+}
+
+.floating-cart-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.floating-cart-right svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+/* ── Table Reservation Tab ── */
+.card-box {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.card-box-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gold-hi);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-box-title svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold);
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--gold);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.date-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.date-chip {
+  flex: 1;
+  min-width: 72px;
+  text-align: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 7px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.date-chip.active {
+  background: rgba(192, 138, 62, 0.15);
+  border-color: var(--gold);
+  color: var(--gold-hi);
+  font-weight: 600;
+}
+
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.slot-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slot-chip.active {
+  background: var(--gold);
+  color: #0A0907;
+  font-weight: 600;
+  border-color: var(--gold);
+}
+
+.guests-stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  width: fit-content;
+}
+
+.guests-stepper-btn {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: 6px;
+  color: var(--gold);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guests-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  min-width: 60px;
+  text-align: center;
+}
+
+.halls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.hall-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.hall-card.active {
+  border-color: var(--gold);
+  background: rgba(192, 138, 62, 0.1);
+}
+
+.hall-card-info h4 {
+  font-size: 13px;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.hall-card-info p {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.hall-card-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--line-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hall-card.active .hall-card-check {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.hall-card.active .hall-card-check svg {
+  stroke: #0A0907;
+  display: block;
+}
+
+.hall-card-check svg {
+  display: none;
+  width: 10px;
+  height: 10px;
+  stroke-width: 3;
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--gold);
+  color: #0A0907;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 14px rgba(192, 138, 62, 0.25);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  background: var(--gold-hi);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  width: 100%;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:active {
+  background: rgba(192, 138, 62, 0.1);
+}
+
+/* ── Cart Tab ── */
+.cart-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cart-item-row {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cart-item-img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: #0E0D0A;
+  flex-shrink: 0;
+}
+
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-title {
+  font-size: 14px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.cart-item-price {
+  font-size: 13px;
+  color: var(--gold);
+}
+
+.cart-item-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: 20px;
+  padding: 2px 6px;
+}
+
+.cart-item-stepper button {
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item-stepper span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  min-width: 14px;
+  text-align: center;
+}
+
+.cart-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.cart-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  stroke: var(--text-faint);
+}
+
+.cart-empty-title {
+  font-size: 18px;
+  margin-bottom: 6px;
+  color: var(--text-main);
+}
+
+.cart-empty-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 260px;
+  margin: 0 auto 20px;
+}
+
+.order-calc-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 16px;
+  font-size: 13px;
+}
+
+.order-calc-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.order-calc-row.total {
+  border-top: 1px solid var(--line-subtle);
+  padding-top: 8px;
+  margin-top: 4px;
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.order-calc-row.total .val {
+  color: var(--gold-hi);
+}
+
+.payment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.pay-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pay-card.active {
+  border-color: var(--gold);
+  color: var(--gold-hi);
+  background: rgba(192, 138, 62, 0.1);
+  font-weight: 500;
+}
+
+.pay-card input {
+  display: none;
+}
+
+/* ── Status Tab ── */
+.status-search-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.status-lookup-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.status-lookup-btn {
+  background: var(--gold);
+  color: #0A0907;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.recent-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.recent-item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.recent-item-card:active {
+  transform: scale(0.99);
+  border-color: var(--gold);
+}
+
+.recent-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.recent-item-code {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.recent-item-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.recent-item-summary {
+  font-size: 12px;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.recent-item-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+/* ── Live Tracking Card ── */
+.tracking-card {
+  background: var(--bg-card);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.tracking-id {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gold-hi);
+}
+
+.tracking-type {
+  font-size: 11px;
+  background: rgba(192, 138, 62, 0.15);
+  color: var(--gold);
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Stepper Visual Timeline */
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  margin: 16px 0;
+  padding-left: 28px;
+}
+
+.stepper::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 9px;
+  width: 2px;
+  background: var(--line-subtle);
+}
+
+.step-item {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.step-item:last-child {
+  padding-bottom: 0;
+}
+
+.step-dot {
+  position: absolute;
+  left: -28px;
+  top: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2px solid var(--text-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.step-dot svg {
+  width: 10px;
+  height: 10px;
+  stroke: transparent;
+  stroke-width: 2.5;
+}
+
+.step-item.done .step-dot {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.step-item.done .step-dot svg {
+  stroke: #0A0907;
+}
+
+.step-item.active .step-dot {
+  background: #0A0907;
+  border-color: var(--gold-hi);
+  box-shadow: 0 0 0 3px rgba(192, 138, 62, 0.25);
+}
+
+.step-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.step-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.step-item.active .step-title {
+  color: var(--gold-hi);
+  font-weight: 600;
+}
+
+.details-table {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.details-row strong {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+/* ── Dish Detail Modal (Bottom Sheet) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  background: var(--bg-card);
+  border-top: 1px solid var(--line-subtle);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 0 16px calc(16px + var(--safe-bottom));
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.8);
+}
+
+.modal-sheet.open {
+  transform: translateY(0);
+}
+
+.sheet-grabber {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 10px auto 14px;
+}
+
+.sheet-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #0E0D0A;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.sheet-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sheet-img.png-dish {
+  object-fit: contain;
+  padding: 12px;
+}
+
+.sheet-title {
+  font-size: 22px;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.sheet-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.sheet-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.sheet-price {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--gold-hi);
+}
+
+.sheet-actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── Fixed Bottom Navigation Bar (Persistent Dock) ── */
+.bottom-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(10, 9, 7, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line-subtle);
+  padding: 6px 12px calc(6px + var(--safe-bottom));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.dock-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 10px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.dock-btn:active {
+  transform: scale(0.92);
+}
+
+.dock-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  transition: stroke 0.2s ease;
+}
+
+.dock-btn.active {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.dock-btn.active svg {
+  stroke: var(--gold);
+}
+
+.dock-badge {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  background: var(--gold);
+  color: #0A0907;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  text-align: center;
+  padding: 0 4px;
+  display: none;
+}
+
+.dock-badge.visible {
+  display: block;
+}
+
+/* ── Success Card View ── */
+.success-card {
+  text-align: center;
+  padding: 30px 16px;
+}
+
+.success-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(192, 138, 62, 0.15);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.success-icon-wrap svg {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+.success-code {
+  display: inline-block;
+  background: var(--bg-surface);
+  border: 1px dashed var(--gold);
+  color: var(--gold-hi);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  margin: 12px 0 16px;
+}
+
+.success-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto 24px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <a class="brand-wrap" href="#menu">
+        <img class="brand-logo" src="img/fenix-mark.svg" alt="Fenix">
+        <div class="brand-text">
+          <span class="brand-title">FENIX</span>
+          <span class="brand-sub">Restaurant & Bar</span>
+        </div>
+      </a>
+      <div class="header-right">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" class="lang-btn active" data-lang="ru">RU</button>
+          <button type="button" class="lang-btn" data-lang="uz">UZ</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode Selector & Location Indicator -->
+    <div class="context-bar">
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn active" id="btn-mode-delivery" data-mode="delivery">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 17h-2v-11a1 1 0 0 1 1 -1h9v12m-8 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0m6 0a2 2 0 1 0 4 0m-4 0a2 2 0 1 1 4 0m-10 -7h6m2 0l3 3v4h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="txt-mode-delivery">Доставка</span>
+        </button>
+        <button type="button" class="mode-btn" id="btn-mode-pickup" data-mode="pickup">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="txt-mode-pickup">Самовывоз</span>
+        </button>
+      </div>
+      <div class="address-pill" id="address-pill">
+        <div class="address-pill-left">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="10" r="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="address-text" id="address-banner-text">г. Ташкент (укажите адрес)</span>
+        </div>
+        <span class="address-action" id="address-banner-action">Изменить</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Menu Search & Filter Header (visible only on Menu tab) -->
+  <div id="menu-controls-header">
+    <div class="search-wrap">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input type="text" id="dish-search-input" placeholder="Поиск блюд (рибай, кимпаб, шашлык...)" autocomplete="off">
+        <button type="button" class="search-clear" id="search-clear-btn" aria-label="Clear">✕</button>
+      </div>
+    </div>
+
+    <div class="pills-scroll-wrap">
+      <div class="cuisines-bar" id="cuisines-bar">
+        <button type="button" class="cuisine-chip active" data-cuisine="all">Все блюда</button>
+        <button type="button" class="cuisine-chip" data-cuisine="europe">Европейская</button>
+        <button type="button" class="cuisine-chip" data-cuisine="korea">Корейская</button>
+        <button type="button" class="cuisine-chip" data-cuisine="grill">Мангал & Шашлыки</button>
+        <button type="button" class="cuisine-chip" data-cuisine="bar">Барная карта</button>
+      </div>
+      <div class="subcat-bar" id="subcat-bar"></div>
+    </div>
+  </div>
+
+  <!-- MAIN TAB 1: MENU & ORDERING -->
+  <main class="tab-view active" id="tab-menu">
+    <div id="dishes-container"></div>
+  </main>
+
+  <!-- MAIN TAB 2: TABLE RESERVATION -->
+  <section class="tab-view" id="tab-reserve">
+    <div class="card-box">
+      <h2 class="card-box-title">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="txt-res-title">Бронирование столика</span>
+      </h2>
+
+      <div id="reserve-form-container">
+        <div class="form-grid">
+          <!-- Date -->
+          <div>
+            <label class="form-label" id="lbl-res-date">Дата визита</label>
+            <div class="date-chips" id="res-date-chips">
+              <button type="button" class="date-chip active" data-day="0">Сегодня</button>
+              <button type="button" class="date-chip" data-day="1">Завтра</button>
+              <button type="button" class="date-chip" data-day="2">Послезавтра</button>
+            </div>
+            <input type="date" class="form-input" id="res-date-input">
+          </div>
+
+          <!-- Time Slot -->
+          <div>
+            <label class="form-label" id="lbl-res-time">Время визита</label>
+            <div class="slots-grid" id="res-time-slots">
+              <button type="button" class="slot-chip" data-time="12:00">12:00</button>
+              <button type="button" class="slot-chip" data-time="13:30">13:30</button>
+              <button type="button" class="slot-chip" data-time="15:00">15:00</button>
+              <button type="button" class="slot-chip" data-time="17:00">17:00</button>
+              <button type="button" class="slot-chip active" data-time="18:30">18:30</button>
+              <button type="button" class="slot-chip" data-time="19:30">19:30</button>
+              <button type="button" class="slot-chip" data-time="20:30">20:30</button>
+              <button type="button" class="slot-chip" data-time="21:30">21:30</button>
+            </div>
+          </div>
+
+          <!-- Guests -->
+          <div>
+            <label class="form-label" id="lbl-res-guests">Количество персон</label>
+            <div class="guests-stepper">
+              <button type="button" class="guests-stepper-btn" id="btn-guests-minus">−</button>
+              <span class="guests-count" id="val-guests">2 персоны</span>
+              <button type="button" class="guests-stepper-btn" id="btn-guests-plus">+</button>
+            </div>
+          </div>
+
+          <!-- Hall / Area -->
+          <div>
+            <label class="form-label" id="lbl-res-hall">Выбор зала</label>
+            <div class="halls-grid">
+              <div class="hall-card active" data-hall="Основной зал (1 этаж)">
+                <div class="hall-card-info">
+                  <h4>Основной зал (1-й этаж)</h4>
+                  <p>Уютная атмосфера, сцена, живой звук</p>
+                </div>
+                <div class="hall-card-check">
+                  <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </div>
+
+              <div class="hall-card" data-hall="Банкетный зал (2 этаж)">
+                <div class="hall-card-info">
+                  <h4>Банкетный зал (2-й этаж)</h4>
+                  <p>Просторное пространство для торжеств до 170 гостей</p>
+                </div>
+                <div class="hall-card-check">
+                  <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </div>
+
+              <div class="hall-card" data-hall="VIP-кабина">
+                <div class="hall-card-info">
+                  <h4>VIP-кабина</h4>
+                  <p>Приватный зал, мягкие диваны, караоке</p>
+                </div>
+                <div class="hall-card-check">
+                  <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact details -->
+          <div>
+            <label class="form-label" id="lbl-res-name">Ваше имя</label>
+            <input type="text" class="form-input" id="res-name-input" placeholder="Имя">
+          </div>
+
+          <div>
+            <label class="form-label" id="lbl-res-phone">Номер телефона</label>
+            <input type="tel" class="form-input" id="res-phone-input" placeholder="+998 90 123 45 67">
+          </div>
+
+          <div>
+            <label class="form-label" id="lbl-res-comment">Пожелания к брони (необязательно)</label>
+            <textarea class="form-textarea" id="res-comment-input" placeholder="Повод, тихий столик, детский стульчик..."></textarea>
+          </div>
+
+          <button type="button" class="btn-primary" id="btn-submit-reservation">
+            <span id="txt-btn-submit-res">Забронировать столик</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Reservation Success Box -->
+      <div id="reserve-success-container" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- MAIN TAB 3: CART & CHECKOUT -->
+  <section class="tab-view" id="tab-cart">
+    <div id="cart-content">
+      <!-- Items list or empty state inserted via JS -->
+    </div>
+  </section>
+
+  <!-- MAIN TAB 4: STATUS & TRACKING -->
+  <section class="tab-view" id="tab-status">
+    <div class="status-search-card">
+      <h2 class="card-box-title">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/><polyline points="12 6 12 12 16 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="txt-status-title">Проверить статус</span>
+      </h2>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Введите номер заказа/брони (например WEB-1268) или телефон:</p>
+      <div class="status-lookup-row">
+        <input type="text" class="form-input" id="status-query-input" placeholder="WEB-XXXX или +998...">
+        <button type="button" class="status-lookup-btn" id="btn-lookup-status">Найти</button>
+      </div>
+    </div>
+
+    <!-- Active Searched Card -->
+    <div id="tracking-result-container"></div>
+
+    <!-- User's Recent Submissions -->
+    <div id="recent-submissions-section">
+      <h3 style="font-size:14px;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;letter-spacing:0.06em;">Мои недавние заказы и брони</h3>
+      <div class="recent-cards-list" id="recent-cards-list"></div>
+    </div>
+  </section>
+
+  <!-- Floating Sticky Cart Banner (Shown on Menu Tab) -->
+  <div class="floating-cart-bar hidden" id="floating-cart-bar">
+    <div class="floating-cart-left">
+      <span class="floating-cart-badge" id="fc-count">0</span>
+      <span class="floating-cart-sum" id="fc-total">0 сум</span>
+    </div>
+    <div class="floating-cart-right">
+      <span id="fc-action-text">В корзину</span>
+      <svg viewBox="0 0 24 24" fill="none"><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round" stroke-linejoin="round"/><polyline points="12 5 19 12 12 19" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+
+  <!-- Dish Detail Sheet / Modal -->
+  <div class="modal-overlay" id="dish-modal-overlay"></div>
+  <div class="modal-sheet" id="dish-modal-sheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-img-wrap" id="modal-img-wrap">
+      <img class="sheet-img" id="modal-dish-img" src="" alt="">
+    </div>
+    <h3 class="sheet-title serif" id="modal-dish-title"></h3>
+    <p class="sheet-desc" id="modal-dish-desc"></p>
+    <div class="sheet-price-row">
+      <span class="sheet-price serif" id="modal-dish-price"></span>
+      <div class="dish-qty-stepper" id="modal-stepper">
+        <button type="button" class="dish-qty-btn" id="modal-qty-minus">−</button>
+        <span class="dish-qty-val" id="modal-qty-val">1</span>
+        <button type="button" class="dish-qty-btn" id="modal-qty-plus">+</button>
+      </div>
+    </div>
+    <div class="sheet-actions-row">
+      <button type="button" class="btn-primary" id="modal-btn-add">
+        <span id="modal-btn-add-text">В корзину</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Persistent Bottom Navigation Dock -->
+  <nav class="bottom-dock" aria-label="Main navigation">
+    <button type="button" class="dock-btn active" data-tab="tab-menu" id="dock-menu">
+      <svg viewBox="0 0 24 24" fill="none"><line x1="3" y1="12" x2="21" y2="12" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="6" x2="21" y2="6" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="18" x2="21" y2="18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="nav-lbl-menu">Меню</span>
+    </button>
+    <button type="button" class="dock-btn" data-tab="tab-reserve" id="dock-reserve">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round" stroke-linejoin="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="nav-lbl-reserve">Бронь</span>
+    </button>
+    <button type="button" class="dock-btn" data-tab="tab-cart" id="dock-cart">
+      <span class="dock-badge" id="dock-cart-badge">0</span>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="nav-lbl-cart">Корзина</span>
+    </button>
+    <button type="button" class="dock-btn" data-tab="tab-status" id="dock-status">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/><polyline points="12 6 12 12 16 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="nav-lbl-status">Статус</span>
+    </button>
+  </nav>
+
+<script>
+/* ── FENIX TELEGRAM MINI APP CONTROLLER ── */
+(function() {
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (tg) {
+    try {
+      tg.ready();
+      tg.expand();
+      if (tg.setHeaderColor) tg.setHeaderColor('#0B0906');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#0B0906');
+    } catch (_) {}
+  }
+
+  function haptic(type = 'light') {
+    if (tg && tg.HapticFeedback) {
+      try {
+        if (type === 'success' || type === 'error' || type === 'warning') {
+          tg.HapticFeedback.notificationOccurred(type);
+        } else {
+          tg.HapticFeedback.impactOccurred(type);
+        }
+      } catch (_) {}
+    }
+  }
+
+  // State
+  let currentLang = localStorage.getItem('fx.lang') || 'ru';
+  let currentTab = 'tab-menu';
+  let orderMode = localStorage.getItem('fx.mode') || 'delivery';
+  let userAddress = localStorage.getItem('fx.addr') || '';
+  let selectedCuisine = 'all';
+  let selectedSubcat = 'all';
+  let searchQuery = '';
+  let cart = JSON.parse(localStorage.getItem('fx.cart') || '{}');
+  let recentHistory = JSON.parse(localStorage.getItem('fenix_user_history') || '[]');
+  let activeModalDish = null;
+  let modalQty = 1;
+
+  // Pre-fill user data if available from Telegram
+  let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+  let userName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : (localStorage.getItem('fx.name') || '');
+  let userPhone = localStorage.getItem('fx.phone') || '';
+
+  // Dish Images Map
+  const DISH_PHOTO_MAP = {
+    "europe-001": "img/dish/1.png",
+    "europe-002": "img/dish/2.png",
+    "europe-003": "img/dish/3.png",
+    "europe-004": "img/dish/4.png",
+    "europe-005": "img/dish/europe-005.webp",
+    "europe-006": "img/dish/europe-006.webp",
+    "europe-010": "img/dish/europe-010.webp",
+    "europe-012": "img/dish/europe-012.webp",
+    "europe-013": "img/dish/europe-013.webp",
+    "europe-015": "img/dish/europe-015.webp",
+    "europe-017": "img/dish/europe-017.webp",
+    "europe-018": "img/dish/europe-018.webp",
+    "europe-020": "img/dish/6.png",
+    "europe-021": "img/dish/europe-021.webp",
+    "europe-022": "img/dish/8.png",
+    "europe-023": "img/dish/9.png",
+    "europe-024": "img/dish/10.png",
+    "europe-025": "img/dish/europe-025.webp",
+    "europe-040": "img/dish/europe-040.webp",
+    "europe-041": "img/dish/12.png",
+    "europe-042": "img/dish/13.png",
+    "europe-043": "img/dish/europe-043.webp",
+    "europe-045": "img/dish/europe-045.webp",
+    "europe-051": "img/dish/europe-051.webp",
+    "europe-052": "img/dish/europe-052.webp",
+    "europe-057": "img/dish/europe-057.webp",
+    "europe-059": "img/dish/europe-059.webp",
+    "europe-067": "img/dish/europe-067.webp",
+    "europe-068": "img/dish/16.png",
+    "europe-069": "img/dish/17.png",
+    "europe-070": "img/dish/18.png",
+    "korea-090": "img/dish/19.png",
+    "korea-091": "img/dish/20.png",
+    "korea-092": "img/dish/21.png",
+    "korea-093": "img/dish/22.png",
+    "korea-094": "img/dish/23.png",
+    "korea-095": "img/dish/korea-095.webp",
+    "korea-106": "img/dish/korea-106.webp",
+    "korea-107": "img/dish/25.png",
+    "korea-108": "img/dish/26.png",
+    "korea-109": "img/dish/27.png",
+    "korea-117": "img/dish/korea-117.webp",
+    "korea-119": "img/dish/korea-119.webp",
+    "korea-129": "img/dish/korea-129.webp",
+    "korea-139": "img/dish/korea-139.webp",
+    "korea-142": "img/dish/korea-142.webp",
+    "korea-143": "img/dish/29.png",
+    "korea-144": "img/dish/30.png",
+    "korea-146": "img/dish/korea-146.webp"
+  };
+
+  function getDishPhoto(id) {
+    return DISH_PHOTO_MAP[id] || null;
+  }
+
+  // Format price helper
+  function money(val) {
+    return Number(val || 0).toLocaleString('ru-RU') + ' сум';
+  }
+
+  // Menu items processed
+  const RAW_ITEMS = (window.FENIX_MENU && window.FENIX_MENU.items) || [];
+  const RAW_SECTIONS = (window.FENIX_MENU && window.FENIX_MENU.sections) || {};
+
+  const ALL_DISHES = RAW_ITEMS.map(r => ({
+    id: r[0],
+    menu: r[1],
+    section: r[2],
+    nameRu: r[3],
+    nameUz: r[4],
+    nameEn: r[5],
+    price: r[6],
+    priceAlt: r[7],
+    size: r[8],
+    noteRu: r[9],
+    noteUz: r[10],
+    noteEn: r[11],
+    tags: r[12] || [],
+    img: getDishPhoto(r[0])
+  }));
+
+  const DISH_BY_ID = {};
+  ALL_DISHES.forEach(d => { DISH_BY_ID[d.id] = d; });
+
+  function getDishName(d) {
+    if (!d) return '';
+    return currentLang === 'uz' ? (d.nameUz || d.nameRu) : currentLang === 'en' ? (d.nameEn || d.nameRu) : d.nameRu;
+  }
+
+  function getDishDesc(d) {
+    if (!d) return '';
+    const note = currentLang === 'uz' ? (d.noteUz || d.noteRu) : currentLang === 'en' ? (d.noteEn || d.noteRu) : d.noteRu;
+    return note || (d.size ? `Порция: ${d.size}` : '');
+  }
+
+  // Dictionary for UI strings
+  const I18N = {
+    ru: {
+      delivery: 'Доставка',
+      pickup: 'Самовывоз',
+      addressDefault: 'г. Ташкент (укажите адрес)',
+      pickupAddress: 'ул. Хуснабад, 5-й проезд, 1а (Ресторан Fenix)',
+      change: 'Изменить',
+      searchPlaceholder: 'Поиск блюд (рибай, кимпаб, шашлык...)',
+      allDishes: 'Все блюда',
+      europe: 'Европейская',
+      korea: 'Корейская',
+      grill: 'Мангал & Шашлыки',
+      bar: 'Барная карта',
+      navMenu: 'Меню',
+      navReserve: 'Бронь',
+      navCart: 'Корзина',
+      navStatus: 'Статус',
+      addToCart: 'В корзину',
+      cartTitle: 'Ваш заказ',
+      cartEmpty: 'Ваша корзина пуста',
+      cartEmptyDesc: 'Выберите изысканные блюда восточной, европейской кухни и бара в нашем меню',
+      goToMenu: 'Перейти в меню',
+      subtotal: 'Сумма блюд',
+      deliveryFee: 'Доставка',
+      free: 'Бесплатно',
+      total: 'Итого к оплате',
+      checkoutBtn: 'Оформить заказ',
+      orderPlacedOk: 'Заказ успешно оформлен!',
+      orderCodeTxt: 'Номер вашего заказа:',
+      orderTrackHint: 'Мы уже передали заказ на кухню. Вы можете отслеживать его статус онлайн или дождаться звонка оператора.',
+      trackStatusBtn: 'Отследить статус',
+      resTitle: 'Бронирование столика',
+      resDate: 'Дата визита',
+      resTime: 'Время визита',
+      resGuests: 'Количество персон',
+      resHall: 'Выбор зала',
+      resName: 'Ваше имя',
+      resPhone: 'Номер телефона',
+      resComment: 'Пожелания к брони (необязательно)',
+      resSubmit: 'Забронировать столик',
+      resSuccess: 'Столик успешно забронирован!',
+      resCodeTxt: 'Код вашей брони:',
+      resTrackHint: 'Администратор ресторана Fenix свяжется с вами для подтверждения бронирования.',
+      statusTitle: 'Проверка статуса',
+      statusLookupPlaceholder: 'WEB-XXXX или +998...',
+      findBtn: 'Найти',
+      myRecent: 'Мои недавние заказы и брони',
+      statusNotFound: 'Заказ или бронь по данному запросу не найдены. Проверьте номер или телефон.',
+      callRestaurant: 'Позвонить в ресторан'
+    },
+    uz: {
+      delivery: 'Yetkazib berish',
+      pickup: 'Olib ketish',
+      addressDefault: 'Toshkent sh. (manzilni kiriting)',
+      pickupAddress: 'Husnobod 5-tor ko‘chasi, 1a (Fenix restorani)',
+      change: 'O‘zgartirish',
+      searchPlaceholder: 'Taomlarni qidirish (steyk, kimbap, shashlik...)',
+      allDishes: 'Barcha taomlar',
+      europe: 'Yevropa',
+      korea: 'Koreya',
+      grill: 'Mangal & Shashlik',
+      bar: 'Bar kartasi',
+      navMenu: 'Menyu',
+      navReserve: 'Band qilish',
+      navCart: 'Savat',
+      navStatus: 'Holat',
+      addToCart: 'Savatga',
+      cartTitle: 'Sizning buyurtmangiz',
+      cartEmpty: 'Savatingiz bo‘sh',
+      cartEmptyDesc: 'Menyudan mazali taomlar va ichimliklarni tanlang',
+      goToMenu: 'Menyuga o‘tish',
+      subtotal: 'Taomlar summasi',
+      deliveryFee: 'Yetkazib berish',
+      free: 'Bepul',
+      total: 'Jami to‘lov',
+      checkoutBtn: 'Buyurtmani tasdiqlash',
+      orderPlacedOk: 'Buyurtma muvaffaqiyatli qabul qilindi!',
+      orderCodeTxt: 'Buyurtma kodi:',
+      orderTrackHint: 'Buyurtma oshxonaga uzatildi. Holatini onlayn kuzatishingiz mumkin.',
+      trackStatusBtn: 'Holatni tekshirish',
+      resTitle: 'Stol band qilish',
+      resDate: 'Tashrif sanasi',
+      resTime: 'Tashrif vaqti',
+      resGuests: 'Mehmonlar soni',
+      resHall: 'Zalni tanlash',
+      resName: 'Ismingiz',
+      resPhone: 'Telefon raqamingiz',
+      resComment: 'Qo‘shimcha istaklar (ixtiyoriy)',
+      resSubmit: 'Stolni band qilish',
+      resSuccess: 'Stol muvaffaqiyatli band qilindi!',
+      resCodeTxt: 'Band qilish kodi:',
+      resTrackHint: 'Fenix restorani administratori tez orada siz bilan bog‘lanadi.',
+      statusTitle: 'Holatni tekshirish',
+      statusLookupPlaceholder: 'WEB-XXXX yoki +998...',
+      findBtn: 'Izlash',
+      myRecent: 'Oxirgi buyurtma va bandliklar',
+      statusNotFound: 'Ushbu kod yoki telefon bo‘yicha buyurtma topilmadi.',
+      callRestaurant: 'Restoranga qo‘ng‘iroq'
+    },
+    en: {
+      delivery: 'Delivery',
+      pickup: 'Takeaway',
+      addressDefault: 'Tashkent (enter address)',
+      pickupAddress: 'Husnobod 5th passage, 1a (Fenix Restaurant)',
+      change: 'Change',
+      searchPlaceholder: 'Search dishes (ribeye, kimbap, grill...)',
+      allDishes: 'All dishes',
+      europe: 'European',
+      korea: 'Korean',
+      grill: 'Grill & BBQ',
+      bar: 'Bar & Drinks',
+      navMenu: 'Menu',
+      navReserve: 'Reserve',
+      navCart: 'Cart',
+      navStatus: 'Status',
+      addToCart: 'Add to cart',
+      cartTitle: 'Your Order',
+      cartEmpty: 'Your cart is empty',
+      cartEmptyDesc: 'Discover dishes from our European, Korean and grill menus',
+      goToMenu: 'Browse Menu',
+      subtotal: 'Dishes total',
+      deliveryFee: 'Delivery',
+      free: 'Free',
+      total: 'Total amount',
+      checkoutBtn: 'Place Order',
+      orderPlacedOk: 'Order confirmed successfully!',
+      orderCodeTxt: 'Your order number:',
+      orderTrackHint: 'Your order was sent directly to our kitchen. You can track its live status online.',
+      trackStatusBtn: 'Track Status',
+      resTitle: 'Table Reservation',
+      resDate: 'Visit date',
+      resTime: 'Visit time',
+      resGuests: 'Number of guests',
+      resHall: 'Select Hall',
+      resName: 'Your name',
+      resPhone: 'Phone number',
+      resComment: 'Special requests (optional)',
+      resSubmit: 'Reserve a Table',
+      resSuccess: 'Table reserved successfully!',
+      resCodeTxt: 'Reservation Code:',
+      resTrackHint: 'Our manager will contact you shortly to confirm your booking.',
+      statusTitle: 'Check Status',
+      statusLookupPlaceholder: 'WEB-XXXX or +998...',
+      findBtn: 'Search',
+      myRecent: 'My recent orders & bookings',
+      statusNotFound: 'No order or booking found for this code or phone number.',
+      callRestaurant: 'Call Restaurant'
+    }
+  };
+
+  function t(k) {
+    return (I18N[currentLang] && I18N[currentLang][k]) || (I18N.ru && I18N.ru[k]) || k;
+  }
+
+  // ── Render Category Sub-Chips ──
+  function renderSubcategories() {
+    const wrap = document.getElementById('subcat-bar');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    let subcats = [];
+    if (selectedCuisine === 'europe') {
+      subcats = [
+        { id: 'all', ru: 'Все', uz: 'Barchasi', en: 'All' },
+        { id: 'starters', ru: 'Закуски', uz: 'Salqin taomlar', en: 'Starters' },
+        { id: 'salads', ru: 'Салаты', uz: 'Salatlar', en: 'Salads' },
+        { id: 'soups', ru: 'Супы', uz: 'Sho‘rvalar', en: 'Soups' },
+        { id: 'mains', ru: 'Стейки & Мясо', uz: 'Asosiy taomlar', en: 'Steaks & Mains' },
+        { id: 'sides', ru: 'Гарниры', uz: 'Garnirlar', en: 'Sides' }
+      ];
+    } else if (selectedCuisine === 'korea') {
+      subcats = [
+        { id: 'all', ru: 'Все', uz: 'Barchasi', en: 'All' },
+        { id: 'starters', ru: 'Ким-паб & Закуски', uz: 'Kimbap & Gazaklar', en: 'Kimbap & Starters' },
+        { id: 'salads', ru: 'Корейские салаты', uz: 'Koreys salatlar', en: 'Salads' },
+        { id: 'soups', ru: 'Супы & Рамён', uz: 'Sho‘rvalar & Ramyon', en: 'Soups & Ramyeon' },
+        { id: 'mains', ru: 'Самгепсаль & Горячее', uz: 'Asosiy taomlar', en: 'Mains & BBQ' }
+      ];
+    } else if (selectedCuisine === 'grill') {
+      subcats = [
+        { id: 'all', ru: 'Все на мангале', uz: 'Barchasi', en: 'All Grill' },
+        { id: 'kebabs', ru: 'Кавказские шашлыки', uz: 'Shashliklar', en: 'Kebabs' },
+        { id: 'mini-kebabs', ru: 'Мини-шашлыки', uz: 'Kichik shashliklar', en: 'Mini kebabs' },
+        { id: 'fish', ru: 'Рыба на решетке', uz: 'Baliq', en: 'Grilled fish' },
+        { id: 'grilled-veg', ru: 'Овощи & Грибы', uz: 'Sabzavotlar', en: 'Grilled veg' }
+      ];
+    } else if (selectedCuisine === 'bar') {
+      subcats = [
+        { id: 'all', ru: 'Вся карта', uz: 'Barchasi', en: 'All Drinks' },
+        { id: 'cocktails', ru: 'Коктейли', uz: 'Kokteyllar', en: 'Cocktails' },
+        { id: 'lemonades', ru: 'Лимонады', uz: 'Limonadlar', en: 'Lemonades' },
+        { id: 'coffee', ru: 'Кофе & Чай', uz: 'Qahva & Choy', en: 'Coffee & Tea' },
+        { id: 'whisky', ru: 'Крепкий алкоголь', uz: 'Kuchli ichimliklar', en: 'Spirits' },
+        { id: 'wine', ru: 'Вино & Пиво', uz: 'Vino & Pivo', en: 'Wine & Beer' },
+        { id: 'snacks', ru: 'Снеки', uz: 'Gazaklar', en: 'Snacks' }
+      ];
+    }
+
+    if (subcats.length <= 1) {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    wrap.style.display = 'flex';
+    subcats.forEach(sc => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'subcat-chip' + (selectedSubcat === sc.id ? ' active' : '');
+      btn.textContent = currentLang === 'uz' ? sc.uz : currentLang === 'en' ? sc.en : sc.ru;
+      btn.dataset.subcat = sc.id;
+      btn.onclick = () => {
+        haptic('light');
+        selectedSubcat = sc.id;
+        renderSubcategories();
+        renderMenuDishes();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  // ── Render Menu Dishes Grid (Photo-first sorting) ──
+  function renderMenuDishes() {
+    const container = document.getElementById('dishes-container');
+    if (!container) return;
+
+    let filtered = ALL_DISHES;
+
+    // Filter by cuisine
+    if (selectedCuisine === 'europe') {
+      filtered = filtered.filter(d => d.menu === 'europe' && !['kebabs', 'mini-kebabs', 'fish', 'grilled-veg'].includes(d.section));
+    } else if (selectedCuisine === 'korea') {
+      filtered = filtered.filter(d => d.menu === 'korea');
+    } else if (selectedCuisine === 'grill') {
+      filtered = filtered.filter(d => ['kebabs', 'mini-kebabs', 'fish', 'grilled-veg'].includes(d.section));
+    } else if (selectedCuisine === 'bar') {
+      filtered = filtered.filter(d => d.menu === 'bar');
+    }
+
+    // Filter by subcategory
+    if (selectedSubcat !== 'all') {
+      filtered = filtered.filter(d => d.section === selectedSubcat);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(d => 
+        (d.nameRu && d.nameRu.toLowerCase().includes(q)) ||
+        (d.nameUz && d.nameUz.toLowerCase().includes(q)) ||
+        (d.nameEn && d.nameEn.toLowerCase().includes(q)) ||
+        (d.noteRu && d.noteRu.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:48px 16px;color:var(--text-muted);">
+          <svg style="width:40px;height:40px;stroke:var(--text-faint);margin-bottom:12px;" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p style="font-size:15px;margin-bottom:4px;">Ничего не найдено</p>
+          <p style="font-size:12px;color:var(--text-faint);">Попробуйте изменить поисковый запрос или фильтр</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Sort: Photo first!
+    const sorted = [...filtered].sort((a, b) => {
+      const aPhoto = a.img ? 1 : 0;
+      const bPhoto = b.img ? 1 : 0;
+      return bPhoto - aPhoto;
+    });
+
+    let html = `
+      <div class="menu-section-head">
+        <h3 class="menu-section-title serif">${selectedCuisine === 'all' ? t('allDishes') : t(selectedCuisine)}</h3>
+        <span class="menu-section-count">${sorted.length} позиций</span>
+      </div>
+      <div class="dishes-grid">
+    `;
+
+    sorted.forEach(d => {
+      const count = cart[d.id] || 0;
+      const title = getDishName(d);
+      const desc = getDishDesc(d);
+      const hasPhoto = Boolean(d.img);
+      const isPng = d.img && d.img.endsWith('.png');
+
+      html += `
+        <article class="dish-card" data-dish-id="${d.id}">
+          <div class="dish-card-img-wrap" onclick="window.FX_APP.openDishModal('${d.id}')">
+            ${hasPhoto ? 
+              `<img class="dish-card-img ${isPng ? 'png-dish' : ''}" src="${d.img}" alt="${title}" loading="lazy">` : 
+              `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-faint);"><svg style="width:28px;height:28px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
+            }
+            ${d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">Предзаказ</span>` : ''}
+          </div>
+          <div class="dish-card-body">
+            <h4 class="dish-card-title serif" onclick="window.FX_APP.openDishModal('${d.id}')">${title}</h4>
+            <p class="dish-card-desc">${desc}</p>
+            <div class="dish-card-footer">
+              <span class="dish-card-price serif">${money(d.price)}</span>
+              ${count === 0 ? `
+                <button type="button" class="dish-add-btn" onclick="window.FX_APP.updateCart('${d.id}', 1)" aria-label="Add to cart">
+                  <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"/></svg>
+                </button>
+              ` : `
+                <div class="dish-qty-stepper">
+                  <button type="button" class="dish-qty-btn" onclick="window.FX_APP.updateCart('${d.id}', ${count - 1})">−</button>
+                  <span class="dish-qty-val">${count}</span>
+                  <button type="button" class="dish-qty-btn" onclick="window.FX_APP.updateCart('${d.id}', ${count + 1})">+</button>
+                </div>
+              `}
+            </div>
+          </div>
+        </article>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+    updateFloatingCartBar();
+  }
+
+  // ── Cart State Management ──
+  function updateCart(id, qty) {
+    haptic('light');
+    if (qty <= 0) {
+      delete cart[id];
+    } else {
+      cart[id] = qty;
+    }
+    localStorage.setItem('fx.cart', JSON.stringify(cart));
+    updateFloatingCartBar();
+    renderMenuDishes();
+    if (currentTab === 'tab-cart') renderCartView();
+  }
+
+  function getCartSummary() {
+    let count = 0;
+    let total = 0;
+    for (const [id, qty] of Object.entries(cart)) {
+      const d = DISH_BY_ID[id];
+      if (d) {
+        count += qty;
+        total += (d.price || 0) * qty;
+      }
+    }
+    return { count, total };
+  }
+
+  function updateFloatingCartBar() {
+    const { count, total } = getCartSummary();
+    const bar = document.getElementById('floating-cart-bar');
+    const badge = document.getElementById('dock-cart-badge');
+    const countSpan = document.getElementById('fc-count');
+    const sumSpan = document.getElementById('fc-total');
+
+    if (badge) {
+      badge.textContent = count;
+      badge.classList.toggle('visible', count > 0);
+    }
+
+    if (!bar) return;
+    if (count > 0 && currentTab === 'tab-menu') {
+      countSpan.textContent = `${count} ${count === 1 ? 'блюдо' : count < 5 ? 'блюда' : 'блюд'}`;
+      sumSpan.textContent = money(total);
+      bar.classList.remove('hidden');
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  // ── Render Cart View ──
+  function renderCartView() {
+    const container = document.getElementById('cart-content');
+    if (!container) return;
+
+    const { count, total } = getCartSummary();
+
+    if (count === 0) {
+      container.innerHTML = `
+        <div class="cart-empty-state">
+          <svg class="cart-empty-icon" viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3 class="cart-empty-title serif">${t('cartEmpty')}</h3>
+          <p class="cart-empty-desc">${t('cartEmptyDesc')}</p>
+          <button type="button" class="btn-primary" style="max-width:220px;margin:0 auto;" onclick="window.FX_APP.switchTab('tab-menu')">${t('goToMenu')}</button>
+        </div>
+      `;
+      return;
+    }
+
+    const deliveryFee = orderMode === 'delivery' ? (total >= 250000 ? 0 : 20000) : 0;
+    const grandTotal = total + deliveryFee;
+
+    let itemsHtml = `<div class="cart-items-list">`;
+    for (const [id, qty] of Object.entries(cart)) {
+      const d = DISH_BY_ID[id];
+      if (!d) continue;
+      const title = getDishName(d);
+      itemsHtml += `
+        <div class="cart-item-row">
+          <img class="cart-item-img" src="${d.img || 'img/fenix-mark.svg'}" alt="${title}">
+          <div class="cart-item-info">
+            <h4 class="cart-item-title">${title}</h4>
+            <div class="cart-item-price">${money(d.price)}</div>
+          </div>
+          <div class="cart-item-stepper">
+            <button type="button" onclick="window.FX_APP.updateCart('${id}', ${qty - 1})">−</button>
+            <span>${qty}</span>
+            <button type="button" onclick="window.FX_APP.updateCart('${id}', ${qty + 1})">+</button>
+          </div>
+        </div>
+      `;
+    }
+    itemsHtml += `</div>`;
+
+    container.innerHTML = `
+      <div class="card-box" style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 class="card-box-title" style="margin:0;">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>${t('cartTitle')} (${count})</span>
+          </h2>
+          <button type="button" style="background:transparent;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;" onclick="window.FX_APP.clearCart()">Очистить</button>
+        </div>
+        ${itemsHtml}
+      </div>
+
+      <div class="card-box">
+        <h3 class="card-box-title">Детали доставки и получатель</h3>
+        <div class="form-grid">
+          <div>
+            <label class="form-label">Способ получения</label>
+            <div class="mode-toggle" style="margin-bottom:6px;">
+              <button type="button" class="mode-btn ${orderMode === 'delivery' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('delivery')">Доставка курьером</button>
+              <button type="button" class="mode-btn ${orderMode === 'pickup' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('pickup')">Самовывоз</button>
+            </div>
+            ${orderMode === 'delivery' ? `
+              <input type="text" class="form-input" id="order-addr-input" value="${userAddress}" placeholder="Город, улица, дом, квартира/офис, ориентир" style="margin-top:6px;">
+            ` : `
+              <div style="font-size:12px;color:var(--text-muted);background:var(--bg-surface);padding:8px 10px;border-radius:6px;border:1px solid var(--line-subtle);">
+                📍 Адрес ресторана: г. Ташкент, ул. Хуснабад, 5-й проезд, 1а<br>
+                ⏰ Готовность к выдаче: ~25-35 минут
+              </div>
+            `}
+          </div>
+
+          <div>
+            <label class="form-label">${t('resName')}</label>
+            <input type="text" class="form-input" id="order-name-input" value="${userName}" placeholder="Имя получателя">
+          </div>
+
+          <div>
+            <label class="form-label">${t('resPhone')}</label>
+            <input type="tel" class="form-input" id="order-phone-input" value="${userPhone}" placeholder="+998 90 123 45 67">
+          </div>
+
+          <div>
+            <label class="form-label">Способ оплаты</label>
+            <div class="payment-grid" id="payment-options">
+              <label class="pay-card active"><input type="radio" name="pay-method" value="Payme" checked><span>Payme</span></label>
+              <label class="pay-card"><input type="radio" name="pay-method" value="Click"><span>Click</span></label>
+              <label class="pay-card"><input type="radio" name="pay-method" value="Наличными"><span>Наличными</span></label>
+              <label class="pay-card"><input type="radio" name="pay-method" value="Картой при получении"><span>Картой при получении</span></label>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label">Комментарий к заказу (необязательно)</label>
+            <textarea class="form-textarea" id="order-comment-input" placeholder="Код домофона, количество приборов, пожелания..."></textarea>
+          </div>
+
+          <div class="order-calc-table">
+            <div class="order-calc-row">
+              <span>${t('subtotal')}</span>
+              <span>${money(total)}</span>
+            </div>
+            <div class="order-calc-row">
+              <span>${t('deliveryFee')}</span>
+              <span>${deliveryFee === 0 ? t('free') : money(deliveryFee)}</span>
+            </div>
+            <div class="order-calc-row total">
+              <span>${t('total')}</span>
+              <span class="val serif">${money(grandTotal)}</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary" id="btn-submit-order" onclick="window.FX_APP.submitOrder()">
+            <span>${t('checkoutBtn')} • ${money(grandTotal)}</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Bind payment selectors
+    container.querySelectorAll('.pay-card').forEach(card => {
+      card.addEventListener('click', () => {
+        haptic('light');
+        container.querySelectorAll('.pay-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        const radio = card.querySelector('input');
+        if (radio) radio.checked = true;
+      });
+    });
+  }
+
+  // ── Submit Order to Backend API ──
+  async function submitOrder() {
+    const btn = document.getElementById('btn-submit-order');
+    const nameEl = document.getElementById('order-name-input');
+    const phoneEl = document.getElementById('order-phone-input');
+    const addrEl = document.getElementById('order-addr-input');
+    const commentEl = document.getElementById('order-comment-input');
+    const payRadio = document.querySelector('input[name="pay-method"]:checked');
+
+    const name = (nameEl ? nameEl.value : userName || 'Гость').trim();
+    let phone = (phoneEl ? phoneEl.value : userPhone || '').trim();
+    const address = addrEl ? addrEl.value.trim() : (orderMode === 'delivery' ? 'Уточняется оператором' : 'Самовывоз из ресторана');
+    const comment = commentEl ? commentEl.value.trim() : '';
+    const payment = payRadio ? payRadio.value : 'Payme';
+
+    if (!name) {
+      alert('Пожалуйста, укажите имя');
+      if (nameEl) nameEl.focus();
+      return;
+    }
+
+    if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
+      alert('Пожалуйста, укажите контактный телефон (+998...)');
+      if (phoneEl) phoneEl.focus();
+      return;
+    }
+
+    if (!phone.startsWith('+')) {
+      const cleanDigits = phone.replace(/[^0-9]/g, '');
+      phone = cleanDigits.startsWith('998') ? `+${cleanDigits}` : `+998${cleanDigits}`;
+    }
+
+    // Save defaults
+    userName = name;
+    userPhone = phone;
+    userAddress = address;
+    localStorage.setItem('fx.name', name);
+    localStorage.setItem('fx.phone', phone);
+    localStorage.setItem('fx.addr', address);
+
+    const items = [];
+    for (const [id, qty] of Object.entries(cart)) {
+      const d = DISH_BY_ID[id];
+      if (d) {
+        items.push({
+          id,
+          name: d.nameRu,
+          price: d.price,
+          qty
+        });
+      }
+    }
+
+    if (items.length === 0) return;
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>Оформляем заказ...</span>`;
+    }
+
+    const payload = {
+      name,
+      phone,
+      mode: orderMode,
+      address,
+      payment,
+      items,
+      comment,
+      telegramUserId: tgUser ? tgUser.id : 0,
+      telegramUsername: tgUser ? tgUser.username : ''
+    };
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        haptic('success');
+        const orderId = data.id || `WEB-${data.orderNum}`;
+
+        // Save into local history
+        const historyItem = {
+          type: 'order',
+          code: orderId,
+          date: new Date().toLocaleString('ru-RU'),
+          total: data.total || getCartSummary().total,
+          mode: orderMode === 'delivery' ? 'Доставка курьером' : 'Самовывоз',
+          itemsCount: items.reduce((s, i) => s + i.qty, 0)
+        };
+        recentHistory.unshift(historyItem);
+        localStorage.setItem('fenix_user_history', JSON.stringify(recentHistory.slice(0, 10)));
+
+        // Clear cart
+        cart = {};
+        localStorage.setItem('fx.cart', '{}');
+        updateFloatingCartBar();
+
+        // Show Success screen in Cart tab
+        showOrderSuccess(orderId, historyItem);
+      } else {
+        alert(data.error || 'Ошибка при оформлении заказа');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>${t('checkoutBtn')}</span>`;
+        }
+      }
+    } catch (err) {
+      console.error('Order error:', err);
+      alert('Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>${t('checkoutBtn')}</span>`;
+      }
+    }
+  }
+
+  function showOrderSuccess(orderId, details) {
+    const container = document.getElementById('cart-content');
+    if (!container) return;
+    container.innerHTML = `
+      <div class="card-box success-card">
+        <div class="success-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3 class="serif" style="font-size:22px;margin-bottom:4px;">${t('orderPlacedOk')}</h3>
+        <p style="font-size:12px;color:var(--text-muted);">${t('orderCodeTxt')}</p>
+        <div class="success-code">${orderId}</div>
+        <p class="success-hint">${t('orderTrackHint')}</p>
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto;">
+          <button type="button" class="btn-primary" onclick="window.FX_APP.lookupCode('${orderId}')">${t('trackStatusBtn')}</button>
+          <button type="button" class="btn-outline" onclick="window.FX_APP.switchTab('tab-menu')">${t('goToMenu')}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Table Reservation Logic ──
+  function initReservation() {
+    const today = new Date();
+    const dateInput = document.getElementById('res-date-input');
+    if (dateInput) {
+      dateInput.value = today.toISOString().split('T')[0];
+      dateInput.min = today.toISOString().split('T')[0];
+    }
+
+    // Prefill name & phone
+    const nameEl = document.getElementById('res-name-input');
+    const phoneEl = document.getElementById('res-phone-input');
+    if (nameEl && userName) nameEl.value = userName;
+    if (phoneEl && userPhone) phoneEl.value = userPhone;
+
+    // Date chips
+    const dateChips = document.getElementById('res-date-chips');
+    if (dateChips) {
+      dateChips.querySelectorAll('.date-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          haptic('light');
+          dateChips.querySelectorAll('.date-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          const d = new Date();
+          d.setDate(d.getDate() + parseInt(chip.dataset.day || 0, 10));
+          if (dateInput) dateInput.value = d.toISOString().split('T')[0];
+        });
+      });
+    }
+
+    // Time slots
+    const slotsWrap = document.getElementById('res-time-slots');
+    if (slotsWrap) {
+      slotsWrap.querySelectorAll('.slot-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          haptic('light');
+          slotsWrap.querySelectorAll('.slot-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+      });
+    }
+
+    // Guest stepper
+    let guestCount = 2;
+    const minusBtn = document.getElementById('btn-guests-minus');
+    const plusBtn = document.getElementById('btn-guests-plus');
+    const countVal = document.getElementById('val-guests');
+    if (minusBtn && plusBtn && countVal) {
+      minusBtn.onclick = () => {
+        haptic('light');
+        if (guestCount > 1) {
+          guestCount--;
+          countVal.textContent = `${guestCount} ${guestCount === 1 ? 'персона' : guestCount < 5 ? 'персоны' : 'персон'}`;
+        }
+      };
+      plusBtn.onclick = () => {
+        haptic('light');
+        if (guestCount < 30) {
+          guestCount++;
+          countVal.textContent = `${guestCount} ${guestCount === 1 ? 'персона' : guestCount < 5 ? 'персоны' : 'персон'}`;
+        }
+      };
+    }
+
+    // Hall selection
+    document.querySelectorAll('.hall-card').forEach(card => {
+      card.addEventListener('click', () => {
+        haptic('light');
+        document.querySelectorAll('.hall-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+
+    // Submit Reservation
+    const submitBtn = document.getElementById('btn-submit-reservation');
+    if (submitBtn) {
+      submitBtn.onclick = async () => {
+        const name = (nameEl ? nameEl.value : '').trim();
+        let phone = (phoneEl ? phoneEl.value : '').trim();
+        const date = dateInput ? dateInput.value : '';
+        const activeTimeChip = document.querySelector('#res-time-slots .slot-chip.active');
+        const time = activeTimeChip ? activeTimeChip.dataset.time : '18:30';
+        const activeHall = document.querySelector('.hall-card.active');
+        const hall = activeHall ? activeHall.dataset.hall : 'Основной зал';
+        const comment = (document.getElementById('res-comment-input') || {}).value || '';
+
+        if (!name) {
+          alert('Пожалуйста, укажите ваше имя');
+          if (nameEl) nameEl.focus();
+          return;
+        }
+
+        if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
+          alert('Пожалуйста, укажите контактный телефон (+998...)');
+          if (phoneEl) phoneEl.focus();
+          return;
+        }
+
+        if (!phone.startsWith('+')) {
+          const cleanDigits = phone.replace(/[^0-9]/g, '');
+          phone = cleanDigits.startsWith('998') ? `+${cleanDigits}` : `+998${cleanDigits}`;
+        }
+
+        userName = name;
+        userPhone = phone;
+        localStorage.setItem('fx.name', name);
+        localStorage.setItem('fx.phone', phone);
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>Бронируем столик...</span>`;
+
+        const payload = {
+          name,
+          phone,
+          date,
+          time,
+          guests: guestCount,
+          hall,
+          comment,
+          telegramUserId: tgUser ? tgUser.id : 0,
+          telegramUsername: tgUser ? tgUser.username : ''
+        };
+
+        try {
+          const res = await fetch('/api/reservations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+
+          if (data.ok) {
+            haptic('success');
+            const resId = data.id || `WEB-${data.code}`;
+
+            // Save in history
+            const historyItem = {
+              type: 'reservation',
+              code: resId,
+              date: `${date} в ${time}`,
+              guests: `${guestCount} чел.`,
+              hall
+            };
+            recentHistory.unshift(historyItem);
+            localStorage.setItem('fenix_user_history', JSON.stringify(recentHistory.slice(0, 10)));
+
+            // Show success
+            document.getElementById('reserve-form-container').style.display = 'none';
+            const succWrap = document.getElementById('reserve-success-container');
+            succWrap.style.display = 'block';
+            succWrap.innerHTML = `
+              <div class="success-card">
+                <div class="success-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h3 class="serif" style="font-size:22px;margin-bottom:4px;">${t('resSuccess')}</h3>
+                <p style="font-size:12px;color:var(--text-muted);">${t('resCodeTxt')}</p>
+                <div class="success-code">${resId}</div>
+                <div class="details-table" style="max-width:280px;margin:0 auto 20px;">
+                  <div class="details-row"><span>Дата и время:</span><strong>${date} · ${time}</strong></div>
+                  <div class="details-row"><span>Гостей:</span><strong>${guestCount} чел.</strong></div>
+                  <div class="details-row"><span>Зал:</span><strong>${hall}</strong></div>
+                </div>
+                <p class="success-hint">${t('resTrackHint')}</p>
+                <div style="display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto;">
+                  <button type="button" class="btn-primary" onclick="window.FX_APP.lookupCode('${resId}')">${t('trackStatusBtn')}</button>
+                  <button type="button" class="btn-outline" onclick="window.FX_APP.resetReservationForm()">Забронировать еще</button>
+                </div>
+              </div>
+            `;
+          } else {
+            alert(data.error || 'Ошибка при бронировании');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>${t('resSubmit')}</span>`;
+          }
+        } catch (err) {
+          console.error('Reservation error:', err);
+          alert('Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `<span>${t('resSubmit')}</span>`;
+        }
+      };
+    }
+  }
+
+  function resetReservationForm() {
+    document.getElementById('reserve-form-container').style.display = 'block';
+    document.getElementById('reserve-success-container').style.display = 'none';
+    const submitBtn = document.getElementById('btn-submit-reservation');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<span>${t('resSubmit')}</span>`;
+    }
+  }
+
+  // ── Status & Tracking Tab ──
+  function renderRecentHistory() {
+    const list = document.getElementById('recent-cards-list');
+    const sec = document.getElementById('recent-submissions-section');
+    if (!list || !sec) return;
+
+    if (!recentHistory || recentHistory.length === 0) {
+      sec.style.display = 'none';
+      return;
+    }
+
+    sec.style.display = 'block';
+    let html = '';
+    recentHistory.forEach(item => {
+      const isOrder = item.type === 'order';
+      html += `
+        <div class="recent-item-card" onclick="window.FX_APP.lookupCode('${item.code}')">
+          <div class="recent-item-top">
+            <span class="recent-item-code">${item.code}</span>
+            <span class="recent-item-type">${isOrder ? 'Заказ' : 'Бронь столика'}</span>
+          </div>
+          <div class="recent-item-summary">
+            ${isOrder ? 
+              `${item.mode} • ${item.itemsCount} поз. • ${money(item.total)}` : 
+              `${item.date} • ${item.guests} • ${item.hall}`}
+          </div>
+          <div class="recent-item-date">${item.date || ''}</div>
+        </div>
+      `;
+    });
+    list.innerHTML = html;
+  }
+
+  async function lookupCode(q) {
+    if (!q) return;
+    haptic('light');
+    switchTab('tab-status');
+    const input = document.getElementById('status-query-input');
+    if (input) input.value = q;
+
+    const resContainer = document.getElementById('tracking-result-container');
+    if (!resContainer) return;
+
+    resContainer.innerHTML = `
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">
+        <p style="font-size:13px;">Проверяем статус в системе FENIX...</p>
+      </div>
+    `;
+
+    try {
+      const res = await fetch(`/api/lookup?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+
+      if (data.ok && data.found && data.record) {
+        haptic('success');
+        renderTrackingCard(data.record);
+      } else {
+        resContainer.innerHTML = `
+          <div class="card-box" style="text-align:center;padding:20px;">
+            <p style="font-size:13px;color:var(--danger);margin-bottom:8px;">${t('statusNotFound')}</p>
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">По номеру «${q}» данных не найдено.</p>
+            <a href="tel:+998971850010" class="btn-outline" style="max-width:240px;margin:0 auto;text-decoration:none;">${t('callRestaurant')}</a>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Lookup error:', err);
+      resContainer.innerHTML = `
+        <div class="card-box" style="text-align:center;padding:20px;color:var(--danger);">
+          <p>Ошибка связи с сервером при проверке статуса.</p>
+        </div>
+      `;
+    }
+  }
+
+  function renderTrackingCard(record) {
+    const resContainer = document.getElementById('tracking-result-container');
+    if (!resContainer) return;
+
+    const isOrder = record.type === 'order';
+    const statusStr = (record.status || '').toLowerCase();
+
+    // Determine step states
+    let s1 = 'done', s2 = '', s3 = '', s4 = '';
+
+    if (isOrder) {
+      if (statusStr.includes('готов') || statusStr.includes('кухн')) {
+        s1 = 'done'; s2 = 'active';
+      } else if (statusStr.includes('пути') || statusStr.includes('достав') || statusStr.includes('выдач')) {
+        s1 = 'done'; s2 = 'done'; s3 = 'active';
+      } else if (statusStr.includes('заверш') || statusStr.includes('выполнен') || statusStr.includes('оплачен')) {
+        s1 = 'done'; s2 = 'done'; s3 = 'done'; s4 = 'done';
+      } else {
+        s1 = 'active';
+      }
+    } else {
+      // Reservation
+      if (statusStr.includes('подтвержд')) {
+        s1 = 'done'; s2 = 'active';
+      } else if (statusStr.includes('готов') || statusStr.includes('стол')) {
+        s1 = 'done'; s2 = 'done'; s3 = 'active';
+      } else if (statusStr.includes('гости') || statusStr.includes('завершен')) {
+        s1 = 'done'; s2 = 'done'; s3 = 'done';
+      } else {
+        s1 = 'active';
+      }
+    }
+
+    let detailsHtml = '';
+    if (isOrder) {
+      const itemsList = Object.entries(record.items || {}).map(([name, qty]) => `${name} × ${qty}`).join(', ');
+      detailsHtml = `
+        <div class="details-table">
+          <div class="details-row"><span>Получатель:</span><strong>${record.name}</strong></div>
+          <div class="details-row"><span>Телефон:</span><strong>${record.phone}</strong></div>
+          <div class="details-row"><span>Способ:</span><strong>${record.orderType || 'Заказ'}</strong></div>
+          <div class="details-row"><span>Адрес:</span><strong>${record.address || '—'}</strong></div>
+          <div class="details-row"><span>Состав заказа:</span><strong>${itemsList || '—'}</strong></div>
+          <div class="details-row" style="border-top:1px solid var(--line-subtle);padding-top:6px;color:var(--gold-hi);font-weight:600;"><span>Итого:</span><strong>${money(record.total)}</strong></div>
+        </div>
+      `;
+    } else {
+      detailsHtml = `
+        <div class="details-table">
+          <div class="details-row"><span>Гость:</span><strong>${record.name}</strong></div>
+          <div class="details-row"><span>Телефон:</span><strong>${record.phone}</strong></div>
+          <div class="details-row"><span>Дата и время:</span><strong>${record.date} в ${record.time}</strong></div>
+          <div class="details-row"><span>Гостей:</span><strong>${record.guests} чел.</strong></div>
+          <div class="details-row"><span>Выбранный зал:</span><strong>${record.zone || 'Основной зал'}</strong></div>
+        </div>
+      `;
+    }
+
+    let stepperHtml = '';
+    if (isOrder) {
+      stepperHtml = `
+        <div class="stepper">
+          <div class="step-item ${s1}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">1. Заказ зарегистрирован</div>
+            <div class="step-desc">Поступил в ресторан и передан администратору</div>
+          </div>
+          <div class="step-item ${s2}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">2. Готовится на кухне</div>
+            <div class="step-desc">Шеф-повара Fenix готовят ваши блюда</div>
+          </div>
+          <div class="step-item ${s3}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">3. ${record.orderType && record.orderType.includes('Самовывоз') ? 'Готов к выдаче' : 'Передан курьеру / В пути'}</div>
+            <div class="step-desc">${record.orderType && record.orderType.includes('Самовывоз') ? 'Ожидает вас в ресторане' : 'Курьер направляется по вашему адресу'}</div>
+          </div>
+          <div class="step-item ${s4}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">4. Выполнен</div>
+            <div class="step-desc">Приятного аппетита!</div>
+          </div>
+        </div>
+      `;
+    } else {
+      stepperHtml = `
+        <div class="stepper">
+          <div class="step-item ${s1}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">1. Заявка зарегистрирована</div>
+            <div class="step-desc">Данные о дате и гостях сохранены</div>
+          </div>
+          <div class="step-item ${s2}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">2. Подтверждено рестораном</div>
+            <div class="step-desc">Столик зарезервирован за вами</div>
+          </div>
+          <div class="step-item ${s3}">
+            <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-title">3. Стол подготовлен</div>
+            <div class="step-desc">Ждём вас в ресторане Fenix</div>
+          </div>
+        </div>
+      `;
+    }
+
+    resContainer.innerHTML = `
+      <div class="tracking-card">
+        <div class="tracking-header">
+          <div>
+            <div class="tracking-id">${record.code}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Статус: <b style="color:var(--gold-hi);">${record.status || 'В обработке'}</b></div>
+          </div>
+          <span class="tracking-type">${isOrder ? 'Заказ' : 'Бронь стола'}</span>
+        </div>
+        ${stepperHtml}
+        ${detailsHtml}
+        <div style="margin-top:14px;display:flex;gap:10px;">
+          <a href="tel:+998971850010" class="btn-outline" style="text-decoration:none;font-size:12px;padding:8px 12px;flex:1;">
+            <svg style="width:14px;height:14px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Позвонить в FENIX</span>
+          </a>
+          <button type="button" class="btn-outline" style="font-size:12px;padding:8px 12px;" onclick="window.FX_APP.lookupCode('${record.code}')">Обновить</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ── Dish Modal (Emil Kowalski Bottom Sheet) ──
+  function openDishModal(id) {
+    const d = DISH_BY_ID[id];
+    if (!d) return;
+    haptic('light');
+    activeModalDish = d;
+    modalQty = cart[id] || 1;
+
+    const overlay = document.getElementById('dish-modal-overlay');
+    const sheet = document.getElementById('dish-modal-sheet');
+    const imgEl = document.getElementById('modal-dish-img');
+    const titleEl = document.getElementById('modal-dish-title');
+    const descEl = document.getElementById('modal-dish-desc');
+    const priceEl = document.getElementById('modal-dish-price');
+    const qtyVal = document.getElementById('modal-qty-val');
+    const btnAddText = document.getElementById('modal-btn-add-text');
+
+    if (imgEl) {
+      if (d.img) {
+        imgEl.style.display = 'block';
+        imgEl.src = d.img;
+        imgEl.className = 'sheet-img ' + (d.img.endsWith('.png') ? 'png-dish' : '');
+      } else {
+        imgEl.style.display = 'none';
+      }
+    }
+
+    if (titleEl) titleEl.textContent = getDishName(d);
+    if (descEl) descEl.textContent = getDishDesc(d) || 'Изысканное авторское блюдо из отборных ингредиентов';
+    if (priceEl) priceEl.textContent = money(d.price);
+    if (qtyVal) qtyVal.textContent = modalQty;
+
+    updateModalBtn();
+
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDishModal() {
+    const overlay = document.getElementById('dish-modal-overlay');
+    const sheet = document.getElementById('dish-modal-sheet');
+    if (overlay) overlay.classList.remove('open');
+    if (sheet) sheet.classList.remove('open');
+    document.body.style.overflow = '';
+    activeModalDish = null;
+  }
+
+  function updateModalBtn() {
+    const btnAddText = document.getElementById('modal-btn-add-text');
+    if (btnAddText && activeModalDish) {
+      const sum = (activeModalDish.price || 0) * modalQty;
+      btnAddText.textContent = `${t('addToCart')} • ${money(sum)}`;
+    }
+  }
+
+  // ── Tab Navigation ──
+  function switchTab(tabId) {
+    haptic('light');
+    currentTab = tabId;
+
+    // View visibility
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    const target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+
+    // Dock buttons active state
+    document.querySelectorAll('.dock-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+
+    // Menu search & category headers only visible on Menu tab
+    const menuControls = document.getElementById('menu-controls-header');
+    if (menuControls) {
+      menuControls.style.display = tabId === 'tab-menu' ? 'block' : 'none';
+    }
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'auto' });
+
+    // Floating cart bar state
+    updateFloatingCartBar();
+
+    // Specific tab activations
+    if (tabId === 'tab-cart') renderCartView();
+    if (tabId === 'tab-status') renderRecentHistory();
+  }
+
+  function setOrderMode(mode) {
+    haptic('light');
+    orderMode = mode;
+    localStorage.setItem('fx.mode', mode);
+
+    const btnDeliv = document.getElementById('btn-mode-delivery');
+    const btnPickup = document.getElementById('btn-mode-pickup');
+    if (btnDeliv) btnDeliv.classList.toggle('active', mode === 'delivery');
+    if (btnPickup) btnPickup.classList.toggle('active', mode === 'pickup');
+
+    const bannerText = document.getElementById('address-banner-text');
+    if (bannerText) {
+      bannerText.textContent = mode === 'delivery' ? 
+        (userAddress || t('addressDefault')) : 
+        t('pickupAddress');
+    }
+
+    if (currentTab === 'tab-cart') renderCartView();
+  }
+
+  function setLanguage(lang) {
+    haptic('light');
+    currentLang = lang;
+    localStorage.setItem('fx.lang', lang);
+
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+
+    // Update static labels
+    const tDeliv = document.getElementById('txt-mode-delivery');
+    const tPickup = document.getElementById('txt-mode-pickup');
+    if (tDeliv) tDeliv.textContent = t('delivery');
+    if (tPickup) tPickup.textContent = t('pickup');
+
+    const searchInput = document.getElementById('dish-search-input');
+    if (searchInput) searchInput.placeholder = t('searchPlaceholder');
+
+    const navMenu = document.getElementById('nav-lbl-menu');
+    const navReserve = document.getElementById('nav-lbl-reserve');
+    const navCart = document.getElementById('nav-lbl-cart');
+    const navStatus = document.getElementById('nav-lbl-status');
+    if (navMenu) navMenu.textContent = t('navMenu');
+    if (navReserve) navReserve.textContent = t('navReserve');
+    if (navCart) navCart.textContent = t('navCart');
+    if (navStatus) navStatus.textContent = t('navStatus');
+
+    setOrderMode(orderMode);
+    renderSubcategories();
+    renderMenuDishes();
+    if (currentTab === 'tab-cart') renderCartView();
+  }
+
+  // ── Global App API exposed for inline handlers ──
+  window.FX_APP = {
+    switchTab,
+    setOrderMode,
+    setLanguage,
+    updateCart,
+    openDishModal,
+    closeDishModal,
+    clearCart: () => {
+      haptic('warning');
+      cart = {};
+      localStorage.setItem('fx.cart', '{}');
+      updateFloatingCartBar();
+      renderCartView();
+      renderMenuDishes();
+    },
+    submitOrder,
+    lookupCode,
+    resetReservationForm
+  };
+
+  // ── Boot & Event Listeners ──
+  document.addEventListener('DOMContentLoaded', () => {
+    // Dock click handlers
+    document.querySelectorAll('.dock-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // Language click handlers
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+    });
+
+    // Mode click handlers
+    const btnDeliv = document.getElementById('btn-mode-delivery');
+    const btnPickup = document.getElementById('btn-mode-pickup');
+    if (btnDeliv) btnDeliv.addEventListener('click', () => setOrderMode('delivery'));
+    if (btnPickup) btnPickup.addEventListener('click', () => setOrderMode('pickup'));
+
+    // Address pill prompt
+    const addrPill = document.getElementById('address-pill');
+    if (addrPill) {
+      addrPill.addEventListener('click', () => {
+        if (orderMode === 'delivery') {
+          const newAddr = prompt('Укажите ваш адрес доставки в Ташкенте:', userAddress || '');
+          if (newAddr && newAddr.trim()) {
+            userAddress = newAddr.trim();
+            localStorage.setItem('fx.addr', userAddress);
+            setOrderMode('delivery');
+          }
+        } else {
+          alert('Самовывоз из ресторана Fenix: г. Ташкент, ул. Хуснабад, 5-й проезд, 1а.');
+        }
+      });
+    }
+
+    // Floating cart bar click
+    const floatingBar = document.getElementById('floating-cart-bar');
+    if (floatingBar) {
+      floatingBar.addEventListener('click', () => switchTab('tab-cart'));
+    }
+
+    // Cuisine selector chips
+    document.querySelectorAll('.cuisine-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        haptic('light');
+        document.querySelectorAll('.cuisine-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedCuisine = chip.dataset.cuisine;
+        selectedSubcat = 'all';
+        renderSubcategories();
+        renderMenuDishes();
+      });
+    });
+
+    // Search input
+    const searchInput = document.getElementById('dish-search-input');
+    const clearBtn = document.getElementById('search-clear-btn');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        searchQuery = searchInput.value;
+        if (clearBtn) clearBtn.classList.toggle('visible', Boolean(searchQuery));
+        renderMenuDishes();
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearBtn.classList.remove('visible');
+        renderMenuDishes();
+        searchInput.focus();
+      });
+    }
+
+    // Dish modal events
+    const overlay = document.getElementById('dish-modal-overlay');
+    if (overlay) overlay.addEventListener('click', closeDishModal);
+    const grabber = document.querySelector('.sheet-grabber');
+    if (grabber) grabber.addEventListener('click', closeDishModal);
+
+    const mMinus = document.getElementById('modal-qty-minus');
+    const mPlus = document.getElementById('modal-qty-plus');
+    const mVal = document.getElementById('modal-qty-val');
+    const mAddBtn = document.getElementById('modal-btn-add');
+
+    if (mMinus) {
+      mMinus.onclick = () => {
+        haptic('light');
+        if (modalQty > 1) {
+          modalQty--;
+          mVal.textContent = modalQty;
+          updateModalBtn();
+        }
+      };
+    }
+    if (mPlus) {
+      mPlus.onclick = () => {
+        haptic('light');
+        modalQty++;
+        mVal.textContent = modalQty;
+        updateModalBtn();
+      }
+    }
+    if (mAddBtn) {
+      mAddBtn.onclick = () => {
+        if (activeModalDish) {
+          updateCart(activeModalDish.id, modalQty);
+          closeDishModal();
+        }
+      };
+    }
+
+    // Status Lookup events
+    const lookupBtn = document.getElementById('btn-lookup-status');
+    const lookupInput = document.getElementById('status-query-input');
+    if (lookupBtn && lookupInput) {
+      lookupBtn.onclick = () => lookupCode(lookupInput.value.trim());
+      lookupInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') lookupCode(lookupInput.value.trim());
+      });
+    }
+
+    // Init components
+    setLanguage(currentLang);
+    setOrderMode(orderMode);
+    initReservation();
+    renderSubcategories();
+    renderMenuDishes();
+    renderRecentHistory();
+
+    // Check hash route if any
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'reserve' || hash === 'reservation') switchTab('tab-reserve');
+    else if (hash === 'cart') switchTab('tab-cart');
+    else if (hash === 'status') switchTab('tab-status');
+  });
+
+})();
+</script>
+</body>
+</html>

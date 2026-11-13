@@ -12,6 +12,7 @@ ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_CHAT_ID", "").split(",") i
 
 # Official Website URL (configurable, for local dev: http://localhost:3000 or production domain)
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://b714-213-230-78-186.ngrok-free.app")
+WEBAPP_URL = os.getenv("WEBAPP_URL", f"{WEBSITE_URL}/app.html")
 
 # Paths to assets
 LOGO_AVATAR = BASE_DIR / "img" / "bot_avatar.png"

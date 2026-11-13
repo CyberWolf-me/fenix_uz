@@ -5,7 +5,7 @@ from aiogram.types import (
     WebAppInfo
 )
 from menu_data import MENU, ITEMS_BY_ID, format_price
-from config import WEBSITE_URL
+from config import WEBSITE_URL, WEBAPP_URL
 
 def is_valid_telegram_url(url: str) -> bool:
     if not url:
@@ -17,6 +17,14 @@ def is_valid_telegram_url(url: str) -> bool:
         return False
     return True
 
+def webapp_inline_button(text: str = "📱 Открыть приложение (Заказ & Бронь)") -> InlineKeyboardButton:
+    target = WEBAPP_URL or WEBSITE_URL
+    if is_valid_telegram_url(target):
+        if target.startswith("https://"):
+            return InlineKeyboardButton(text=text, web_app=WebAppInfo(url=target))
+        return InlineKeyboardButton(text=text, url=target)
+    return InlineKeyboardButton(text=text, callback_data="show_website_info")
+
 def website_inline_button(text: str = "🌐 Наш официальный сайт") -> InlineKeyboardButton:
     if is_valid_telegram_url(WEBSITE_URL):
         if WEBSITE_URL.startswith("https://"):
@@ -26,7 +34,14 @@ def website_inline_button(text: str = "🌐 Наш официальный сай
     return InlineKeyboardButton(text=text, callback_data="show_website_info")
 
 def main_reply_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
+    target = WEBAPP_URL or WEBSITE_URL
+    app_btn = (
+        KeyboardButton(text="📱 Открыть приложение (Заказ & Бронь)", web_app=WebAppInfo(url=target))
+        if (is_valid_telegram_url(target) and target.startswith("https://"))
+        else KeyboardButton(text="📖 Меню ресторана")
+    )
     kb = [
+        [app_btn],
         [
             KeyboardButton(text="📖 Меню ресторана"),
             KeyboardButton(text="🛒 Корзина")
@@ -54,15 +69,15 @@ def main_reply_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
 def cuisines_inline_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [
+            webapp_inline_button("📱 Открыть приложение (Заказ & Бронь)")
+        ],
+        [
             InlineKeyboardButton(text="🇪🇺 Европейская кухня", callback_data="sec:euro"),
             InlineKeyboardButton(text="🇰🇷 Корейская кухня", callback_data="sec:korea")
         ],
         [
             InlineKeyboardButton(text="🍢 Шашлыки & Мангал", callback_data="sec:grill"),
             InlineKeyboardButton(text="🍸 Барная карта & Коктейли", callback_data="sec:bar")
-        ],
-        [
-            website_inline_button("🌐 Открыть интерактивный сайт")
         ],
         [
             InlineKeyboardButton(text="📸 Просмотр страниц меню (1-8)", callback_data="menu_pages_list")

@@ -15,8 +15,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
+from aiogram.types import MenuButtonWebApp, WebAppInfo
 
-from config import BOT_TOKEN
+from config import BOT_TOKEN, WEBAPP_URL
 from handlers import start, menu, cart, reservation, contacts, search
 
 logging.basicConfig(
@@ -57,6 +58,15 @@ async def main():
         await bot.delete_webhook(drop_pending_updates=True)
         me = await bot.get_me()
         logger.info(f"Bot @{me.username} (ID: {me.id}) connected successfully!")
+
+        if WEBAPP_URL and WEBAPP_URL.startswith("https://"):
+            try:
+                await bot.set_chat_menu_button(
+                    menu_button=MenuButtonWebApp(text="Заказ & Бронь", web_app=WebAppInfo(url=WEBAPP_URL))
+                )
+                logger.info(f"Telegram WebApp Menu Button configured: {WEBAPP_URL}")
+            except Exception as e:
+                logger.warning(f"Could not set chat menu button: {e}")
         print("\n" + "=" * 55)
         print(f" [FENIX RESTAURANT & BAR] BOT IS ONLINE!")
         print(f" Bot username: @{me.username}")

@@ -536,6 +536,7 @@ const server = http.createServer(async (req, res) => {
 
   // Static file serving
   let reqPath = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  if (reqPath === "/app" || reqPath === "/miniapp") reqPath = "/app.html";
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, "");
   const filePath = path.join(PUBLIC_DIR, safePath);
 
