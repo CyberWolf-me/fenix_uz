@@ -208,7 +208,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
@@ -340,6 +340,272 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, found: Boolean(found), record: found }));
+    return;
+  }
+
+  // ── Admin API Endpoints ──
+  // 1. Admin Overview Statistics
+  if (req.method === "GET" && url.pathname === "/api/admin/overview") {
+    let overview = {
+      ordersToday: 0,
+      ordersRevenueToday: 0,
+      activeOrdersCount: 0,
+      reservationsToday: 0,
+      reservationsUpcoming: 0,
+      eventsPending: 0,
+      serverTime: new Date().toISOString()
+    };
+    if (db) {
+      try {
+        const todayStr = new Date().toISOString().split("T")[0];
+        
+        // Active orders (not finished / cancelled)
+        const activeOrders = db.prepare(`
+          SELECT COUNT(*) AS c FROM orders 
+          WHERE LOWER(status) NOT LIKE '%выполнен%' 
+            AND LOWER(status) NOT LIKE '%отмен%' 
+            AND LOWER(status) NOT LIKE '%заверш%'
+        `).get()?.c || 0;
+        overview.activeOrdersCount = activeOrders;
+
+        // Today's orders
+        const todayOrders = db.prepare(`
+          SELECT COUNT(*) AS c, COALESCE(SUM(total_price), 0) AS rev FROM orders 
+          WHERE DATE(created_at) = DATE('now') OR created_at LIKE ?
+        `).get(`${todayStr}%`);
+        overview.ordersToday = todayOrders?.c || 0;
+        overview.ordersRevenueToday = todayOrders?.rev || 0;
+
+        // Today's reservations
+        const todayRes = db.prepare(`
+          SELECT COUNT(*) AS c FROM reservations 
+          WHERE res_date = ? OR DATE(created_at) = DATE('now')
+        `).get(todayStr);
+        overview.reservationsToday = todayRes?.c || 0;
+
+        // Active upcoming reservations
+        const upcomingRes = db.prepare(`
+          SELECT COUNT(*) AS c FROM reservations 
+          WHERE LOWER(status) NOT LIKE '%отмен%' AND LOWER(status) NOT LIKE '%заверш%'
+        `).get()?.c || 0;
+        overview.reservationsUpcoming = upcomingRes;
+
+        // Events pending
+        const evPending = db.prepare(`
+          SELECT COUNT(*) AS c FROM event_inquiries 
+          WHERE LOWER(status) NOT LIKE '%отмен%' AND LOWER(status) NOT LIKE '%заверш%'
+        `).get()?.c || 0;
+        overview.eventsPending = evPending;
+      } catch (err) {
+        console.error("[Admin Overview Error]:", err.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, overview }));
+    return;
+  }
+
+  // 2. Admin Orders List
+  if (req.method === "GET" && url.pathname === "/api/admin/orders") {
+    let orders = [];
+    if (db) {
+      try {
+        const rows = db.prepare(`
+          SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
+                 order_type, address, payment_method, items_json, total_price, 
+                 created_at, status 
+          FROM orders 
+          ORDER BY id DESC LIMIT 200
+        `).all();
+
+        orders = rows.map(r => {
+          let items = {};
+          try { items = JSON.parse(r.items_json || "{}"); } catch (_) {}
+          return {
+            id: r.id,
+            orderNum: r.order_num,
+            code: `WEB-${r.order_num}`,
+            customerName: r.customer_name,
+            customerPhone: r.customer_phone,
+            orderType: r.order_type,
+            address: r.address,
+            paymentMethod: r.payment_method,
+            items,
+            totalPrice: r.total_price,
+            createdAt: r.created_at,
+            status: r.status
+          };
+        });
+      } catch (err) {
+        console.error("[Admin Orders Error]:", err.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, orders }));
+    return;
+  }
+
+  // 3. Admin Update Order Status
+  if ((req.method === "POST" || req.method === "PATCH") && url.pathname === "/api/admin/orders/status") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    const { id, orderNum, status } = payload;
+    if (!status || (!id && !orderNum)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/orderNum, status)" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        if (id) {
+          db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, id);
+        } else {
+          db.prepare("UPDATE orders SET status = ? WHERE order_num = ?").run(status, orderNum);
+        }
+        console.log(`[Admin] Updated order ${id || orderNum} status to "${status}"`);
+      } catch (err) {
+        console.error("[Admin Order Status Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, status }));
+    return;
+  }
+
+  // 4. Admin Reservations List
+  if (req.method === "GET" && url.pathname === "/api/admin/reservations") {
+    let reservations = [];
+    if (db) {
+      try {
+        const rows = db.prepare(`
+          SELECT id, code, user_id, user_name, customer_name, customer_phone, 
+                 res_date, res_time, guests, zone, created_at, status 
+          FROM reservations 
+          ORDER BY id DESC LIMIT 200
+        `).all();
+
+        reservations = rows.map(r => ({
+          id: r.id,
+          code: r.code,
+          codeFormatted: `WEB-${r.code}`,
+          customerName: r.customer_name,
+          customerPhone: r.customer_phone,
+          date: r.res_date,
+          time: r.res_time,
+          guests: r.guests,
+          zone: r.zone,
+          createdAt: r.created_at,
+          status: r.status
+        }));
+      } catch (err) {
+        console.error("[Admin Reservations Error]:", err.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, reservations }));
+    return;
+  }
+
+  // 5. Admin Update Reservation Status
+  if ((req.method === "POST" || req.method === "PATCH") && url.pathname === "/api/admin/reservations/status") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    const { id, code, status } = payload;
+    if (!status || (!id && !code)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/code, status)" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        if (id) {
+          db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(status, id);
+        } else {
+          db.prepare("UPDATE reservations SET status = ? WHERE code = ?").run(status, code);
+        }
+        console.log(`[Admin] Updated reservation ${id || code} status to "${status}"`);
+      } catch (err) {
+        console.error("[Admin Reservation Status Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, status }));
+    return;
+  }
+
+  // 6. Admin Event Inquiries List
+  if (req.method === "GET" && url.pathname === "/api/admin/events") {
+    let events = [];
+    if (db) {
+      try {
+        const rows = db.prepare(`
+          SELECT id, event_id, customer_name, customer_phone, event_type, 
+                 hall, guests, event_date, comment, created_at, status 
+          FROM event_inquiries 
+          ORDER BY id DESC LIMIT 100
+        `).all();
+
+        events = rows.map(r => ({
+          id: r.id,
+          eventId: r.event_id,
+          customerName: r.customer_name,
+          customerPhone: r.customer_phone,
+          eventType: r.event_type,
+          hall: r.hall,
+          guests: r.guests,
+          eventDate: r.event_date,
+          comment: r.comment,
+          createdAt: r.created_at,
+          status: r.status
+        }));
+      } catch (err) {
+        console.error("[Admin Events Error]:", err.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, events }));
+    return;
+  }
+
+  // 7. Admin Update Event Status
+  if ((req.method === "POST" || req.method === "PATCH") && url.pathname === "/api/admin/events/status") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    const { id, eventId, status } = payload;
+    if (!status || (!id && !eventId)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/eventId, status)" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        if (id) {
+          db.prepare("UPDATE event_inquiries SET status = ? WHERE id = ?").run(status, id);
+        } else {
+          db.prepare("UPDATE event_inquiries SET status = ? WHERE event_id = ?").run(status, eventId);
+        }
+        console.log(`[Admin] Updated event ${id || eventId} status to "${status}"`);
+      } catch (err) {
+        console.error("[Admin Event Status Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, status }));
     return;
   }
 
@@ -537,6 +803,7 @@ const server = http.createServer(async (req, res) => {
   // Static file serving
   let reqPath = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
   if (reqPath === "/app" || reqPath === "/miniapp") reqPath = "/app.html";
+  if (reqPath === "/admin") reqPath = "/admin.html";
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, "");
   const filePath = path.join(PUBLIC_DIR, safePath);
 

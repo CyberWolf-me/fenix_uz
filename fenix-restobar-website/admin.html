@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>FENIX Restobar — Панель Администратора</title>
+<meta name="theme-color" content="#0A0907">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── FENIX LUXURY DESIGN SYSTEM ── */
+:root {
+  --bg-root: #0A0907;
+  --bg-nav: #0D0B08;
+  --bg-card: #13100B;
+  --bg-card-elevated: #1A1610;
+  --bg-card-subtle: #16130D;
+  --bg-input: #18140E;
+  
+  --gold: #C08A3E;
+  --gold-hi: #DFB16C;
+  --gold-glow: rgba(223, 177, 108, 0.16);
+  --gold-border: rgba(192, 138, 62, 0.28);
+  --gold-border-subtle: rgba(192, 138, 62, 0.16);
+
+  --line-subtle: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(192, 138, 62, 0.35);
+
+  --text-white: #FFFFFF;
+  --text-cream: #F5EBE1;
+  --text-muted: #9E9382;
+  --text-dim: #6E6557;
+
+  /* Status Tokens */
+  --st-new: #DFB16C;
+  --st-new-bg: rgba(223, 177, 108, 0.14);
+  --st-cook: #60A5FA;
+  --st-cook-bg: rgba(96, 165, 250, 0.14);
+  --st-route: #A78BFA;
+  --st-route-bg: rgba(167, 139, 250, 0.14);
+  --st-done: #34D399;
+  --st-done-bg: rgba(52, 211, 153, 0.14);
+  --st-cancel: #F87171;
+  --st-cancel-bg: rgba(248, 113, 113, 0.14);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-root);
+  color: var(--text-cream);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .serif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Top Header Bar ── */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(13, 11, 8, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--gold-border-subtle);
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-emblem {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(192, 138, 62, 0.2), rgba(223, 177, 108, 0.05));
+  border: 1px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-emblem svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--gold-hi);
+}
+
+.brand-title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  color: var(--gold-hi);
+  line-height: 1.1;
+}
+
+.brand-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #34D399;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34D399;
+  box-shadow: 0 0 8px #34D399;
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+.tashkent-clock {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-cream);
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tashkent-clock svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--gold);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-header {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  color: var(--text-cream);
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-header:hover {
+  background: var(--bg-card-elevated);
+  border-color: var(--gold);
+  color: var(--gold-hi);
+}
+
+.btn-header svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.btn-header.active {
+  border-color: var(--gold);
+  color: var(--gold-hi);
+  background: rgba(192, 138, 62, 0.12);
+}
+
+/* ── Container Layout ── */
+.admin-container {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+  width: 100%;
+  flex: 1;
+}
+
+/* ── Metrics Cards Grid ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+  border-color: var(--gold-border);
+  transform: translateY(-2px);
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.kpi-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-title svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold);
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-white);
+  margin-top: 8px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  line-height: 1;
+}
+
+.kpi-value.gold {
+  color: var(--gold-hi);
+}
+
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ── Navigation Tabs & Toolbar ── */
+.toolbar-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 20px;
+}
+
+.tabs-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-cream);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tab-btn.active {
+  background: rgba(192, 138, 62, 0.14);
+  color: var(--gold-hi);
+  border-color: var(--gold-border);
+  font-weight: 600;
+}
+
+.tab-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-white);
+}
+
+.tab-btn.active .tab-badge {
+  background: var(--gold);
+  color: #0A0907;
+}
+
+.toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 520px;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  stroke: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-white);
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--gold);
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: var(--bg-input);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.view-btn.active {
+  background: rgba(192, 138, 62, 0.2);
+  color: var(--gold-hi);
+}
+
+.view-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* ── Filter Pills Bar ── */
+.filter-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-pill:hover {
+  color: var(--text-white);
+  border-color: var(--gold);
+}
+
+.filter-pill.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #0A0907;
+  font-weight: 600;
+}
+
+/* ── Kanban Board Layout ── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .kanban-board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kanban-col {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.col-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.col-header.col-new { border-top: 3px solid var(--st-new); }
+.col-header.col-cook { border-top: 3px solid var(--st-cook); }
+.col-header.col-route { border-top: 3px solid var(--st-route); }
+.col-header.col-done { border-top: 3px solid var(--st-done); }
+
+.col-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.col-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-white);
+}
+
+.col-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.col-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 300px);
+}
+
+.col-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ── Order Card (Kanban) ── */
+.order-card {
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.order-card:hover {
+  border-color: var(--gold-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.order-card.urgent {
+  border-left: 3px solid var(--st-cancel);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-code {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--gold-hi);
+}
+
+.card-elapsed {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.card-elapsed.late {
+  color: var(--st-cancel);
+  font-weight: 600;
+}
+
+.card-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.card-mode-badge.delivery {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93C5FD;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.card-mode-badge.pickup {
+  background: rgba(223, 177, 108, 0.15);
+  color: var(--gold-hi);
+  border: 1px solid rgba(223, 177, 108, 0.3);
+}
+
+.card-customer {
+  margin-bottom: 10px;
+}
+
+.card-customer-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-white);
+}
+
+.card-customer-phone {
+  font-size: 12px;
+  color: var(--gold-hi);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.card-customer-phone:hover {
+  text-decoration: underline;
+}
+
+.card-address {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  line-height: 1.35;
+  border-left: 2px solid var(--gold-border);
+}
+
+.card-items-list {
+  list-style: none;
+  margin-bottom: 10px;
+  border-top: 1px solid var(--line-subtle);
+  padding-top: 8px;
+}
+
+.card-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 3px 0;
+  color: var(--text-cream);
+}
+
+.card-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+
+.card-item-qty {
+  font-weight: 700;
+  color: var(--gold-hi);
+  white-space: nowrap;
+}
+
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--line-subtle);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.card-total {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gold-hi);
+}
+
+.card-actions-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.btn-action-primary {
+  flex: 1;
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: #0A0907;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.btn-action-primary:hover {
+  background: var(--gold-hi);
+  border-color: var(--gold-hi);
+}
+
+.btn-action-icon {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  color: var(--text-muted);
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-action-icon:hover {
+  color: var(--text-white);
+  border-color: var(--gold);
+}
+
+.btn-action-icon.danger:hover {
+  color: var(--st-cancel);
+  border-color: var(--st-cancel);
+}
+
+.btn-action-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* ── Table View ── */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.admin-table th {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-subtle);
+}
+
+.admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-subtle);
+  color: var(--text-cream);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill.new { background: var(--st-new-bg); color: var(--st-new); border: 1px solid rgba(223, 177, 108, 0.3); }
+.status-pill.cook { background: var(--st-cook-bg); color: var(--st-cook); border: 1px solid rgba(96, 165, 250, 0.3); }
+.status-pill.route { background: var(--st-route-bg); color: var(--st-route); border: 1px solid rgba(167, 139, 250, 0.3); }
+.status-pill.done { background: var(--st-done-bg); color: var(--st-done); border: 1px solid rgba(52, 211, 153, 0.3); }
+.status-pill.cancel { background: var(--st-cancel-bg); color: var(--st-cancel); border: 1px solid rgba(248, 113, 113, 0.3); }
+
+/* ── Reservations Layout ── */
+.reservations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.res-card {
+  background: var(--bg-card);
+  border: 1px solid var(--gold-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.res-card:hover {
+  border-color: var(--gold-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.res-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.res-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-white);
+}
+
+.res-date-badge svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold);
+}
+
+.res-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.res-info-item span {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.res-info-item strong {
+  color: var(--text-white);
+  font-weight: 600;
+}
+
+.res-actions-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-subtle);
+}
+
+/* ── Modal / Receipt Drawer ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.receipt-modal {
+  background: #14110C;
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--gold-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.receipt-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 70vh;
+  font-family: 'Courier New', monospace;
+  color: #ECE5DC;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.receipt-footer {
+  padding: 14px 18px;
+  border-top: 1px solid var(--gold-border-subtle);
+  display: flex;
+  gap: 10px;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+/* ── Floating Notification Toast ── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #1C1812;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+  color: var(--text-white);
+  min-width: 320px;
+  pointer-events: auto;
+  animation: slide-in 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(223, 177, 108, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--gold-hi);
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-hi);
+}
+
+.toast-desc {
+  font-size: 11px;
+  color: var(--text-cream);
+  margin-top: 3px;
+}
+
+/* ── Print Styles (Thermal 80mm) ── */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-modal, .receipt-modal * {
+    visibility: visible;
+  }
+  .receipt-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    border: none;
+    box-shadow: none;
+    color: #000;
+    background: #fff;
+  }
+  .receipt-header, .receipt-footer {
+    display: none !important;
+  }
+  .receipt-body {
+    padding: 0;
+    color: #000;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Navigation Bar -->
+<header class="admin-header">
+  <div class="brand-wrap">
+    <div class="brand-emblem">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="brand-title-wrap">
+      <div class="brand-name">FENIX</div>
+      <div class="brand-sub">Admin Console • Live Monitor</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      <span>LIVE</span>
+    </div>
+    <div class="tashkent-clock">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><polyline points="12 6 12 12 16 14" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span id="txt-live-clock">Ташкент: --:--:--</span>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button type="button" class="btn-header active" id="btn-sound-toggle" title="Включить / Выключить звуковое оповещение">
+      <svg viewBox="0 0 24 24" fill="none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="txt-sound-status">Звук: Вкл</span>
+    </button>
+    <button type="button" class="btn-header" id="btn-manual-refresh" title="Обновить данные сейчас">
+      <svg viewBox="0 0 24 24" fill="none" id="icon-refresh-spin"><path d="M23 4v6h-6M1 20v-6h6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Обновить</span>
+    </button>
+    <a href="/app.html" target="_blank" class="btn-header" title="Открыть клиентское Mini App">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke-width="1.8"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Mini App</span>
+    </a>
+  </div>
+</header>
+
+<!-- Main Container -->
+<main class="admin-container">
+
+  <!-- KPI Overview Grid -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title">
+        <span>Активные заказы</span>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <div class="kpi-value gold" id="val-kpi-active-orders">0</div>
+      <div class="kpi-sub">В кухне и у курьеров прямо сейчас</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-title">
+        <span>Выручка сегодня</span>
+        <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="1" x2="12" y2="23" stroke-width="1.8"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+      <div class="kpi-value" id="val-kpi-revenue">0 сум</div>
+      <div class="kpi-sub" id="txt-kpi-orders-count">Заказов за сегодня: 0</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-title">
+        <span>Брони сегодня</span>
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-width="1.8"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="1.8"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="1.8"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="1.8"/></svg>
+      </div>
+      <div class="kpi-value gold" id="val-kpi-reservations">0</div>
+      <div class="kpi-sub" id="txt-kpi-res-sub">Всего предстоящих: 0</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-title">
+        <span>Требуют внимания</span>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-width="1.8"/><line x1="12" y1="9" x2="12" y2="13" stroke-width="1.8"/><line x1="12" y1="17" x2="12.01" y2="17" stroke-width="2"/></svg>
+      </div>
+      <div class="kpi-value" id="val-kpi-pending" style="color:var(--st-new);">0</div>
+      <div class="kpi-sub">Новые заказы и неподтвержденные брони</div>
+    </div>
+  </section>
+
+  <!-- Toolbar with Tabs & Search -->
+  <section class="toolbar-wrap">
+    <div class="tabs-nav">
+      <button type="button" class="tab-btn active" data-tab="orders" id="tab-btn-orders">
+        <svg viewBox="0 0 24 24" fill="none" style="width:15px;height:15px;stroke:currentColor;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-width="1.8"/></svg>
+        <span>Заказы & Доставка</span>
+        <span class="tab-badge" id="badge-orders-count">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="reservations" id="tab-btn-reservations">
+        <svg viewBox="0 0 24 24" fill="none" style="width:15px;height:15px;stroke:currentColor;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke-width="1.8"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="1.8"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="1.8"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="1.8"/></svg>
+        <span>Бронирование столов</span>
+        <span class="tab-badge" id="badge-res-count">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="events" id="tab-btn-events">
+        <svg viewBox="0 0 24 24" fill="none" style="width:15px;height:15px;stroke:currentColor;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke-width="1.8"/></svg>
+        <span>Банкеты & Мероприятия</span>
+        <span class="tab-badge" id="badge-events-count">0</span>
+      </button>
+    </div>
+
+    <div class="toolbar-controls">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke-width="1.8"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="1.8"/></svg>
+        <input type="text" class="search-input" id="global-search-input" placeholder="Поиск по коду #WEB, имени, номеру телефона...">
+      </div>
+
+      <div class="view-toggle" id="orders-view-toggle">
+        <button type="button" class="view-btn active" data-view="kanban" title="Канбан доска">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="18" rx="1" stroke-width="1.8"/><rect x="14" y="3" width="7" height="11" rx="1" stroke-width="1.8"/></svg>
+          <span>Доска</span>
+        </button>
+        <button type="button" class="view-btn" data-view="table" title="Табличный вид">
+          <svg viewBox="0 0 24 24" fill="none"><line x1="8" y1="6" x2="21" y2="6" stroke-width="1.8"/><line x1="8" y1="12" x2="21" y2="12" stroke-width="1.8"/><line x1="8" y1="18" x2="21" y2="18" stroke-width="1.8"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="2"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="2"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="2"/></svg>
+          <span>Таблица</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 1: ORDERS CONTENT -->
+  <section id="section-orders">
+    <!-- Kanban View -->
+    <div class="kanban-board" id="orders-kanban-view">
+      <!-- Col 1: New Orders -->
+      <div class="kanban-col">
+        <div class="col-header col-new">
+          <div class="col-title-wrap">
+            <span class="col-title">Новые заказы</span>
+            <span class="col-count" id="count-col-new">0</span>
+          </div>
+        </div>
+        <div class="col-body" id="col-body-new">
+          <!-- Cards inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Col 2: Cooking in Kitchen -->
+      <div class="kanban-col">
+        <div class="col-header col-cook">
+          <div class="col-title-wrap">
+            <span class="col-title">Кухня (Готовятся)</span>
+            <span class="col-count" id="count-col-cook">0</span>
+          </div>
+        </div>
+        <div class="col-body" id="col-body-cook">
+          <!-- Cards inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Col 3: Courier / Ready for pickup -->
+      <div class="kanban-col">
+        <div class="col-header col-route">
+          <div class="col-title-wrap">
+            <span class="col-title">В пути / Выдача</span>
+            <span class="col-count" id="count-col-route">0</span>
+          </div>
+        </div>
+        <div class="col-body" id="col-body-route">
+          <!-- Cards inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Col 4: Completed -->
+      <div class="kanban-col">
+        <div class="col-header col-done">
+          <div class="col-title-wrap">
+            <span class="col-title">Выполнены</span>
+            <span class="col-count" id="count-col-done">0</span>
+          </div>
+        </div>
+        <div class="col-body" id="col-body-done">
+          <!-- Cards inserted via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Table View -->
+    <div class="table-wrap" id="orders-table-view" style="display:none;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Код заказа</th>
+            <th>Время</th>
+            <th>Клиент</th>
+            <th>Способ</th>
+            <th>Адрес / Локация</th>
+            <th>Позиции</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="orders-table-body">
+          <!-- Rows inserted via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB 2: RESERVATIONS CONTENT -->
+  <section id="section-reservations" style="display:none;">
+    <!-- Filter Pills for Hall & Date -->
+    <div class="filter-pills-bar">
+      <span style="font-size:12px;color:var(--text-muted);margin-right:4px;">Дата:</span>
+      <button type="button" class="filter-pill active" data-res-date="all">Все даты</button>
+      <button type="button" class="filter-pill" data-res-date="today">Сегодня</button>
+      <button type="button" class="filter-pill" data-res-date="tomorrow">Завтра</button>
+
+      <span style="font-size:12px;color:var(--text-muted);margin-left:14px;margin-right:4px;">Зал:</span>
+      <button type="button" class="filter-pill active" data-res-hall="all">Все залы</button>
+      <button type="button" class="filter-pill" data-res-hall="main">Основной зал</button>
+      <button type="button" class="filter-pill" data-res-hall="banquet">Банкетный зал</button>
+      <button type="button" class="filter-pill" data-res-hall="vip">VIP-кабина</button>
+    </div>
+
+    <div class="reservations-grid" id="reservations-cards-grid">
+      <!-- Reservation Cards inserted via JS -->
+    </div>
+  </section>
+
+  <!-- TAB 3: EVENT INQUIRIES CONTENT -->
+  <section id="section-events" style="display:none;">
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID заявки</th>
+            <th>Дата мероприятия</th>
+            <th>Заказчик</th>
+            <th>Телефон</th>
+            <th>Тип события</th>
+            <th>Зал & Гости</th>
+            <th>Пожелания</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="events-table-body">
+          <!-- Rows inserted via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- Thermal Printable Receipt Modal -->
+<div class="modal-overlay" id="receipt-modal-overlay">
+  <div class="receipt-modal">
+    <div class="receipt-header">
+      <strong style="color:var(--gold-hi);font-size:14px;">Печать чека заказа</strong>
+      <button type="button" class="close-btn" onclick="closeReceiptModal()">
+        <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke-width="2"/></svg>
+      </button>
+    </div>
+    <div class="receipt-body" id="receipt-print-content">
+      <!-- Receipt text generated dynamically -->
+    </div>
+    <div class="receipt-footer">
+      <button type="button" class="btn-action-primary" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;stroke:currentColor;"><polyline points="6 9 6 2 18 2 18 9" stroke-width="1.8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke-width="1.8"/><rect x="6" y="14" width="12" height="8" stroke-width="1.8"/></svg>
+        <span>Распечатать чек</span>
+      </button>
+      <button type="button" class="btn-header" onclick="closeReceiptModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Toast Notifications -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ── FENIX RESTOBAR ADMIN ENGINE ── */
+(function() {
+  let state = {
+    orders: [],
+    reservations: [],
+    events: [],
+    overview: {},
+    activeTab: 'orders',
+    ordersView: 'kanban',
+    resFilterDate: 'all',
+    resFilterHall: 'all',
+    searchQuery: '',
+    soundEnabled: true,
+    lastSeenOrderNum: 0,
+    lastSeenResCode: 0,
+    audioCtx: null
+  };
+
+  // ── Web Audio API Luxury Chime ──
+  function playAlertChime() {
+    if (!state.soundEnabled) return;
+    try {
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (state.audioCtx.state === 'suspended') {
+        state.audioCtx.resume();
+      }
+
+      const now = state.audioCtx.currentTime;
+      
+      // Tone 1: 880Hz (A5)
+      const osc1 = state.audioCtx.createOscillator();
+      const gain1 = state.audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.12, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(state.audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Tone 2: 1320Hz (E6)
+      const osc2 = state.audioCtx.createOscillator();
+      const gain2 = state.audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1320, now + 0.12);
+      gain2.gain.setValueAtTime(0.14, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(state.audioCtx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch (e) {
+      console.warn('Audio chime error:', e);
+    }
+  }
+
+  // ── Notification Toast ──
+  function showToast(title, desc) {
+    playAlertChime();
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `
+      <div class="toast-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke-width="1.8"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-width="1.8"/></svg>
+      </div>
+      <div class="toast-body">
+        <div class="toast-title">${title}</div>
+        <div class="toast-desc">${desc}</div>
+      </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 5500);
+  }
+
+  // ── Formatters ──
+  function formatMoney(num) {
+    if (!num) return '0 сум';
+    return Number(num).toLocaleString('ru-RU') + ' сум';
+  }
+
+  function getElapsedMinutes(createdAt) {
+    if (!createdAt) return 0;
+    const then = new Date(createdAt.replace(' ', 'T') + (createdAt.includes('Z') ? '' : 'Z')).getTime();
+    const now = Date.now();
+    return Math.max(0, Math.floor((now - then) / 60000));
+  }
+
+  function formatElapsed(createdAt) {
+    const mins = getElapsedMinutes(createdAt);
+    if (mins < 1) return 'Только что';
+    if (mins < 60) return `${mins} мин назад`;
+    const hours = Math.floor(mins / 60);
+    return `${hours} ч ${mins % 60} мин назад`;
+  }
+
+  // ── Live Tashkent Clock ──
+  function updateClock() {
+    const el = document.getElementById('txt-live-clock');
+    if (!el) return;
+    const now = new Date();
+    // Tashkent is UTC+5
+    const opts = { timeZone: 'Asia/Tashkent', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    el.textContent = `Ташкент: ${now.toLocaleTimeString('ru-RU', opts)}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── Polling & Data Fetching ──
+  async function fetchOverview() {
+    try {
+      const res = await fetch('/api/admin/overview');
+      const data = await res.json();
+      if (data.ok && data.overview) {
+        state.overview = data.overview;
+        renderKPIs();
+      }
+    } catch (err) {
+      console.warn('Overview fetch error:', err);
+    }
+  }
+
+  async function fetchOrders() {
+    try {
+      const res = await fetch('/api/admin/orders');
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.orders)) {
+        // Detect new incoming orders for chime & toast
+        if (state.lastSeenOrderNum > 0) {
+          const fresh = data.orders.filter(o => o.orderNum > state.lastSeenOrderNum);
+          if (fresh.length > 0) {
+            fresh.forEach(o => {
+              showToast(`Новый заказ #${o.code}`, `${o.customerName} • ${formatMoney(o.totalPrice)}`);
+            });
+          }
+        }
+        if (data.orders.length > 0) {
+          state.lastSeenOrderNum = Math.max(...data.orders.map(o => o.orderNum || 0));
+        }
+
+        state.orders = data.orders;
+        renderOrders();
+      }
+    } catch (err) {
+      console.warn('Orders fetch error:', err);
+    }
+  }
+
+  async function fetchReservations() {
+    try {
+      const res = await fetch('/api/admin/reservations');
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.reservations)) {
+        // Detect new incoming reservations
+        if (state.lastSeenResCode > 0) {
+          const fresh = data.reservations.filter(r => r.code > state.lastSeenResCode);
+          if (fresh.length > 0) {
+            fresh.forEach(r => {
+              showToast(`Новая бронь #${r.codeFormatted}`, `${r.customerName} • ${r.date} в ${r.time} (${r.guests} чел.)`);
+            });
+          }
+        }
+        if (data.reservations.length > 0) {
+          state.lastSeenResCode = Math.max(...data.reservations.map(r => r.code || 0));
+        }
+
+        state.reservations = data.reservations;
+        renderReservations();
+      }
+    } catch (err) {
+      console.warn('Reservations fetch error:', err);
+    }
+  }
+
+  async function fetchEvents() {
+    try {
+      const res = await fetch('/api/admin/events');
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.events)) {
+        state.events = data.events;
+        renderEvents();
+      }
+    } catch (err) {
+      console.warn('Events fetch error:', err);
+    }
+  }
+
+  async function refreshAll() {
+    const icon = document.getElementById('icon-refresh-spin');
+    if (icon) {
+      icon.style.transform = 'rotate(360deg)';
+      icon.style.transition = 'transform 0.5s ease';
+      setTimeout(() => { icon.style.transform = 'none'; icon.style.transition = 'none'; }, 500);
+    }
+    await Promise.all([fetchOverview(), fetchOrders(), fetchReservations(), fetchEvents()]);
+  }
+
+  // Auto-poll every 6 seconds
+  setInterval(refreshAll, 6000);
+
+  // ── Render KPIs ──
+  function renderKPIs() {
+    const o = state.overview;
+    const valActive = document.getElementById('val-kpi-active-orders');
+    const valRev = document.getElementById('val-kpi-revenue');
+    const txtOrdCount = document.getElementById('txt-kpi-orders-count');
+    const valRes = document.getElementById('val-kpi-reservations');
+    const txtResSub = document.getElementById('txt-kpi-res-sub');
+    const valPending = document.getElementById('val-kpi-pending');
+
+    if (valActive) valActive.textContent = o.activeOrdersCount || 0;
+    if (valRev) valRev.textContent = formatMoney(o.ordersRevenueToday || 0);
+    if (txtOrdCount) txtOrdCount.textContent = `Заказов за сегодня: ${o.ordersToday || 0}`;
+    if (valRes) valRes.textContent = o.reservationsToday || 0;
+    if (txtResSub) txtResSub.textContent = `Предстоящих: ${o.reservationsUpcoming || 0}`;
+    
+    // Pending: new orders + pending reservations
+    const pendingCount = (state.orders.filter(ord => isStatusNew(ord.status)).length) + 
+                         (state.reservations.filter(r => isStatusPending(r.status)).length);
+    if (valPending) valPending.textContent = pendingCount;
+
+    // Badges in tabs
+    const bOrd = document.getElementById('badge-orders-count');
+    const bRes = document.getElementById('badge-res-count');
+    const bEv = document.getElementById('badge-events-count');
+    if (bOrd) bOrd.textContent = state.orders.length;
+    if (bRes) bRes.textContent = state.reservations.length;
+    if (bEv) bEv.textContent = state.events.length;
+  }
+
+  // ── Status Helper Checkers ──
+  function isStatusNew(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('нов') || s.includes('new') || s.includes('принят');
+  }
+
+  function isStatusCooking(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('готов') || s.includes('кухн') || s.includes('cook');
+  }
+
+  function isStatusRoute(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('пути') || s.includes('достав') || s.includes('выдач') || s.includes('route');
+  }
+
+  function isStatusCompleted(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('выполнен') || s.includes('заверш') || s.includes('оплачен') || s.includes('done');
+  }
+
+  function isStatusCancelled(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('отмен') || s.includes('cancel');
+  }
+
+  function isStatusPending(st) {
+    const s = String(st || '').toLowerCase();
+    return s.includes('ожидает') || s.includes('нов') || s.includes('pending');
+  }
+
+  // ── Status Updater Actions ──
+  window.updateOrderStatus = async function(id, orderNum, newStatus) {
+    try {
+      const res = await fetch('/api/admin/orders/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, orderNum, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('Статус заказа обновлен', `#WEB-${orderNum} ➔ ${newStatus}`);
+        await refreshAll();
+      }
+    } catch (err) {
+      alert('Ошибка при обновлении статуса: ' + err.message);
+    }
+  };
+
+  window.updateReservationStatus = async function(id, code, newStatus) {
+    try {
+      const res = await fetch('/api/admin/reservations/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, code, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('Статус брони обновлен', `#WEB-${code} ➔ ${newStatus}`);
+        await refreshAll();
+      }
+    } catch (err) {
+      alert('Ошибка при обновлении брони: ' + err.message);
+    }
+  };
+
+  window.updateEventStatus = async function(id, eventId, newStatus) {
+    try {
+      const res = await fetch('/api/admin/events/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, eventId, status: newStatus })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('Статус заявки обновлен', `#${eventId} ➔ ${newStatus}`);
+        await refreshAll();
+      }
+    } catch (err) {
+      alert('Ошибка при обновлении события: ' + err.message);
+    }
+  };
+
+  // ── Render Orders (Kanban & Table) ──
+  function renderOrders() {
+    const q = state.searchQuery.toLowerCase();
+    let list = state.orders;
+    if (q) {
+      list = list.filter(o => 
+        (o.code && o.code.toLowerCase().includes(q)) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+        (o.customerPhone && o.customerPhone.includes(q)) ||
+        (o.address && o.address.toLowerCase().includes(q))
+      );
+    }
+
+    // Split for Kanban columns
+    const colNew = list.filter(o => isStatusNew(o.status));
+    const colCook = list.filter(o => isStatusCooking(o.status));
+    const colRoute = list.filter(o => isStatusRoute(o.status));
+    const colDone = list.filter(o => isStatusCompleted(o.status));
+
+    document.getElementById('count-col-new').textContent = colNew.length;
+    document.getElementById('count-col-cook').textContent = colCook.length;
+    document.getElementById('count-col-route').textContent = colRoute.length;
+    document.getElementById('count-col-done').textContent = colDone.length;
+
+    renderKanbanCol('col-body-new', colNew, 'new');
+    renderKanbanCol('col-body-cook', colCook, 'cook');
+    renderKanbanCol('col-body-route', colRoute, 'route');
+    renderKanbanCol('col-body-done', colDone, 'done');
+
+    // Table render
+    renderOrdersTable(list);
+  }
+
+  function renderKanbanCol(elementId, items, colType) {
+    const container = document.getElementById(elementId);
+    if (!container) return;
+    if (items.length === 0) {
+      container.innerHTML = `<div class="col-empty">Нет заказов в этой колонке</div>`;
+      return;
+    }
+
+    let html = '';
+    items.forEach(o => {
+      const isDelivery = o.orderType && o.orderType.toLowerCase().includes('достав');
+      const mins = getElapsedMinutes(o.createdAt);
+      const isUrgent = mins > 25 && colType !== 'done';
+
+      let itemsHtml = '';
+      if (o.items && typeof o.items === 'object') {
+        const entries = Object.entries(o.items);
+        itemsHtml = entries.map(([name, qty]) => `
+          <li class="card-item-row">
+            <span class="card-item-name">${name}</span>
+            <span class="card-item-qty">× ${qty}</span>
+          </li>
+        `).join('');
+      }
+
+      // Action buttons depending on column
+      let actionBtnHtml = '';
+      if (colType === 'new') {
+        actionBtnHtml = `
+          <button type="button" class="btn-action-primary" onclick="updateOrderStatus(${o.id}, ${o.orderNum}, 'готовится на кухне')">
+            <svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;stroke:currentColor;"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><polyline points="12 6 12 12 14 14" stroke-width="1.8"/></svg>
+            <span>На кухню</span>
+          </button>
+        `;
+      } else if (colType === 'cook') {
+        const nextTarget = isDelivery ? 'в пути / у курьера' : 'готов к выдаче';
+        actionBtnHtml = `
+          <button type="button" class="btn-action-primary" onclick="updateOrderStatus(${o.id}, ${o.orderNum}, '${nextTarget}')">
+            <svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;stroke:currentColor;"><polyline points="20 6 9 17 4 12" stroke-width="2"/></svg>
+            <span>${isDelivery ? 'Курьеру' : 'Готов'}</span>
+          </button>
+        `;
+      } else if (colType === 'route') {
+        actionBtnHtml = `
+          <button type="button" class="btn-action-primary" style="background:#34D399;border-color:#34D399;" onclick="updateOrderStatus(${o.id}, ${o.orderNum}, 'выполнен')">
+            <svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;stroke:currentColor;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2"/><polyline points="22 4 12 14.01 9 11.01" stroke-width="2"/></svg>
+            <span>Выполнен</span>
+          </button>
+        `;
+      }
+
+      html += `
+        <div class="order-card ${isUrgent ? 'urgent' : ''}">
+          <div class="card-top">
+            <span class="card-code">#${o.code}</span>
+            <span class="card-elapsed ${mins > 25 ? 'late' : ''}">
+              <svg viewBox="0 0 24 24" fill="none" style="width:12px;height:12px;stroke:currentColor;"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><polyline points="12 6 12 12 14 14" stroke-width="1.8"/></svg>
+              <span>${formatElapsed(o.createdAt)}</span>
+            </span>
+          </div>
+
+          <div class="card-mode-badge ${isDelivery ? 'delivery' : 'pickup'}">
+            ${isDelivery ? `
+              <svg viewBox="0 0 24 24" fill="none" style="width:12px;height:12px;stroke:currentColor;"><circle cx="18.5" cy="17.5" r="3.5" stroke-width="1.8"/><circle cx="5.5" cy="17.5" r="3.5" stroke-width="1.8"/><circle cx="15" cy="5" r="1" stroke-width="2"/><path d="M12 17.5V14l-3-3 4-3 2 3h2" stroke-width="1.8"/></svg>
+              <span>Доставка</span>
+            ` : `
+              <svg viewBox="0 0 24 24" fill="none" style="width:12px;height:12px;stroke:currentColor;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-width="1.8"/></svg>
+              <span>Самовывоз</span>
+            `}
+          </div>
+
+          <div class="card-customer">
+            <div class="card-customer-name">${o.customerName || 'Гость'}</div>
+            <a href="tel:${o.customerPhone}" class="card-customer-phone">
+              <svg viewBox="0 0 24 24" fill="none" style="width:12px;height:12px;stroke:currentColor;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke-width="1.8"/></svg>
+              <span>${o.customerPhone}</span>
+            </a>
+          </div>
+
+          ${isDelivery && o.address ? `
+            <div class="card-address">
+              <strong>Адрес:</strong> ${o.address}
+            </div>
+          ` : ''}
+
+          <ul class="card-items-list">
+            ${itemsHtml}
+          </ul>
+
+          <div class="card-bottom">
+            <span style="font-size:11px;color:var(--text-muted);">${o.paymentMethod || 'Оплата'}</span>
+            <span class="card-total">${formatMoney(o.totalPrice)}</span>
+          </div>
+
+          <div class="card-actions-row">
+            ${actionBtnHtml}
+            <button type="button" class="btn-action-icon" onclick="openReceiptModal(${o.id})" title="Печать чека">
+              <svg viewBox="0 0 24 24" fill="none"><polyline points="6 9 6 2 18 2 18 9" stroke-width="1.8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke-width="1.8"/><rect x="6" y="14" width="12" height="8" stroke-width="1.8"/></svg>
+            </button>
+            ${colType !== 'done' ? `
+              <button type="button" class="btn-action-icon danger" onclick="if(confirm('Отменить заказ #${o.code}?')) updateOrderStatus(${o.id}, ${o.orderNum}, 'отменен')" title="Отменить заказ">
+                <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke-width="1.8"/><line x1="6" y1="6" x2="18" y2="18" stroke-width="1.8"/></svg>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  function renderOrdersTable(list) {
+    const tbody = document.getElementById('orders-table-body');
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-dim);">Заказов не найдено</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(o => {
+      let itemsStr = '—';
+      if (o.items && typeof o.items === 'object') {
+        itemsStr = Object.entries(o.items).map(([n, q]) => `${n} × ${q}`).join(', ');
+      }
+
+      let stClass = 'new';
+      if (isStatusCooking(o.status)) stClass = 'cook';
+      else if (isStatusRoute(o.status)) stClass = 'route';
+      else if (isStatusCompleted(o.status)) stClass = 'done';
+      else if (isStatusCancelled(o.status)) stClass = 'cancel';
+
+      return `
+        <tr>
+          <td><strong style="color:var(--gold-hi);">${o.code}</strong></td>
+          <td><span style="font-size:11px;color:var(--text-muted);">${formatElapsed(o.createdAt)}</span></td>
+          <td>
+            <strong>${o.customerName || 'Гость'}</strong><br>
+            <a href="tel:${o.customerPhone}" style="color:var(--text-muted);font-size:11px;text-decoration:none;">${o.customerPhone}</a>
+          </td>
+          <td>${o.orderType || '—'}</td>
+          <td><span style="font-size:11px;">${o.address || '—'}</span></td>
+          <td><span style="font-size:11px;max-width:240px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${itemsStr}</span></td>
+          <td><strong>${formatMoney(o.totalPrice)}</strong></td>
+          <td><span class="status-pill ${stClass}">${o.status}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="btn-action-icon" onclick="openReceiptModal(${o.id})" title="Чек">
+                <svg viewBox="0 0 24 24" fill="none"><polyline points="6 9 6 2 18 2 18 9" stroke-width="1.8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke-width="1.8"/><rect x="6" y="14" width="12" height="8" stroke-width="1.8"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── Render Reservations ──
+  function renderReservations() {
+    const q = state.searchQuery.toLowerCase();
+    let list = state.reservations;
+
+    // Search filter
+    if (q) {
+      list = list.filter(r => 
+        (r.codeFormatted && r.codeFormatted.toLowerCase().includes(q)) ||
+        (r.customerName && r.customerName.toLowerCase().includes(q)) ||
+        (r.customerPhone && r.customerPhone.includes(q)) ||
+        (r.zone && r.zone.toLowerCase().includes(q))
+      );
+    }
+
+    // Date filter
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tmrw = new Date();
+    tmrw.setDate(tmrw.getDate() + 1);
+    const tmrwStr = tmrw.toISOString().split('T')[0];
+
+    if (state.resFilterDate === 'today') {
+      list = list.filter(r => r.date === todayStr);
+    } else if (state.resFilterDate === 'tomorrow') {
+      list = list.filter(r => r.date === tmrwStr);
+    }
+
+    // Hall filter
+    if (state.resFilterHall !== 'all') {
+      list = list.filter(r => {
+        const z = String(r.zone || '').toLowerCase();
+        if (state.resFilterHall === 'main') return z.includes('основн') || z.includes('1') || !z;
+        if (state.resFilterHall === 'banquet') return z.includes('банкет') || z.includes('2');
+        if (state.resFilterHall === 'vip') return z.includes('vip');
+        return true;
+      });
+    }
+
+    const grid = document.getElementById('reservations-cards-grid');
+    if (!grid) return;
+    if (list.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 16px;color:var(--text-dim);">Бронирований по выбранным фильтрам не найдено</div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(r => {
+      let stClass = 'new';
+      if (r.status.includes('подтвержд')) stClass = 'cook';
+      else if (r.status.includes('готов') || r.status.includes('стол')) stClass = 'route';
+      else if (r.status.includes('гости') || r.status.includes('заверш')) stClass = 'done';
+      else if (r.status.includes('отмен')) stClass = 'cancel';
+
+      const isToday = r.date === todayStr;
+
+      return `
+        <div class="res-card">
+          <div class="res-top">
+            <span class="card-code">#${r.codeFormatted}</span>
+            <span class="status-pill ${stClass}">${r.status}</span>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:15px;font-weight:600;color:var(--text-white);">${r.customerName || 'Гость'}</div>
+            <a href="tel:${r.customerPhone}" class="card-customer-phone">
+              <svg viewBox="0 0 24 24" fill="none" style="width:13px;height:13px;stroke:currentColor;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke-width="1.8"/></svg>
+              <span>${r.customerPhone}</span>
+            </a>
+          </div>
+
+          <div class="res-info-grid">
+            <div class="res-info-item">
+              <span>Дата визита</span>
+              <strong>${r.date} ${isToday ? '<b style="color:var(--gold-hi);">(Сегодня)</b>' : ''}</strong>
+            </div>
+            <div class="res-info-item">
+              <span>Время</span>
+              <strong style="color:var(--gold-hi);font-size:14px;">${r.time}</strong>
+            </div>
+            <div class="res-info-item">
+              <span>Число гостей</span>
+              <strong>${r.guests} чел.</strong>
+            </div>
+            <div class="res-info-item">
+              <span>Зал / Зона</span>
+              <strong>${r.zone || 'Основной зал'}</strong>
+            </div>
+          </div>
+
+          <div class="res-actions-bar">
+            ${isStatusPending(r.status) ? `
+              <button type="button" class="btn-action-primary" onclick="updateReservationStatus(${r.id}, ${r.code}, 'подтверждено')">
+                <span>Подтвердить</span>
+              </button>
+            ` : r.status.includes('подтвержд') ? `
+              <button type="button" class="btn-action-primary" style="background:#A78BFA;border-color:#A78BFA;" onclick="updateReservationStatus(${r.id}, ${r.code}, 'стол подготовлен')">
+                <span>Стол накрыт</span>
+              </button>
+            ` : r.status.includes('стол') ? `
+              <button type="button" class="btn-action-primary" style="background:#34D399;border-color:#34D399;" onclick="updateReservationStatus(${r.id}, ${r.code}, 'гости в ресторане')">
+                <span>Гости пришли</span>
+              </button>
+            ` : `
+              <span style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;">Бронь завершена</span>
+            `}
+            <button type="button" class="btn-action-icon danger" onclick="if(confirm('Отменить бронь #${r.codeFormatted}?')) updateReservationStatus(${r.id}, ${r.code}, 'отменена')" title="Отменить бронь">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke-width="1.8"/><line x1="6" y1="6" x2="18" y2="18" stroke-width="1.8"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Render Events ──
+  function renderEvents() {
+    const tbody = document.getElementById('events-table-body');
+    if (!tbody) return;
+    if (state.events.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-dim);">Заявок на банкеты пока нет</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = state.events.map(ev => `
+      <tr>
+        <td><strong style="color:var(--gold-hi);">#${ev.eventId}</strong></td>
+        <td><strong>${ev.eventDate || 'Уточняется'}</strong></td>
+        <td><strong>${ev.customerName}</strong></td>
+        <td><a href="tel:${ev.customerPhone}" style="color:var(--gold-hi);text-decoration:none;">${ev.customerPhone}</a></td>
+        <td>${ev.eventType || 'Банкет'}</td>
+        <td>${ev.hall || 'Зал уточняется'} • <b>${ev.guests} чел.</b></td>
+        <td><span style="font-size:11px;color:var(--text-muted);">${ev.comment || '—'}</span></td>
+        <td><span class="status-pill new">${ev.status}</span></td>
+        <td>
+          <button type="button" class="btn-action-primary" style="padding:4px 8px;" onclick="updateEventStatus(${ev.id}, '${ev.eventId}', 'связались с клиентом')">
+            <span>Обработано</span>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Printable Thermal Receipt Modal Logic ──
+  window.openReceiptModal = function(orderId) {
+    const o = state.orders.find(item => item.id === orderId);
+    if (!o) return;
+
+    let itemsLines = '';
+    if (o.items && typeof o.items === 'object') {
+      itemsLines = Object.entries(o.items).map(([name, qty]) => {
+        return `${name.padEnd(24).slice(0, 24)} × ${String(qty).padStart(2)}`;
+      }).join('\n');
+    }
+
+    const content = `
+================================
+         FENIX RESTOBAR         
+    г. Ташкент, Яккасарайский   
+      ул. Шота Руставели 34     
+       Тел: +998 97 185 00 10   
+================================
+ЧЕК ЗАКАЗА: #${o.code}
+ДАТА/ВРЕМЯ: ${o.createdAt || new Date().toLocaleString()}
+КЛИЕНТ:     ${o.customerName || 'Гость'}
+ТЕЛЕФОН:    ${o.customerPhone}
+СПОСОБ:     ${o.orderType || 'Доставка'}
+${o.address ? `АДРЕС:      ${o.address}\n` : ''}--------------------------------
+НАИМЕНОВАНИЕ              КОЛ-ВО
+--------------------------------
+${itemsLines || 'Позиции уточняются'}
+--------------------------------
+ОПЛАТА:     ${o.paymentMethod || 'Онлайн / Наличные'}
+ИТОГО:      ${formatMoney(o.totalPrice)}
+================================
+  Спасибо, что выбираете FENIX! 
+       Приятного аппетита!      
+================================
+    `;
+
+    document.getElementById('receipt-print-content').innerHTML = `<pre style="margin:0;font-family:inherit;white-space:pre-wrap;">${content}</pre>`;
+    document.getElementById('receipt-modal-overlay').classList.add('active');
+  };
+
+  window.closeReceiptModal = function() {
+    document.getElementById('receipt-modal-overlay').classList.remove('active');
+  };
+
+  // ── Setup UI Event Listeners ──
+  function setupEvents() {
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.activeTab = btn.dataset.tab;
+
+        document.getElementById('section-orders').style.display = state.activeTab === 'orders' ? 'block' : 'none';
+        document.getElementById('section-reservations').style.display = state.activeTab === 'reservations' ? 'block' : 'none';
+        document.getElementById('section-events').style.display = state.activeTab === 'events' ? 'block' : 'none';
+        document.getElementById('orders-view-toggle').style.display = state.activeTab === 'orders' ? 'inline-flex' : 'none';
+      };
+    });
+
+    // Orders view toggle (Kanban vs Table)
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.ordersView = btn.dataset.view;
+
+        document.getElementById('orders-kanban-view').style.display = state.ordersView === 'kanban' ? 'grid' : 'none';
+        document.getElementById('orders-table-view').style.display = state.ordersView === 'table' ? 'block' : 'none';
+      };
+    });
+
+    // Reservation Filter Pills (Date)
+    document.querySelectorAll('[data-res-date]').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('[data-res-date]').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.resFilterDate = pill.dataset.resDate;
+        renderReservations();
+      };
+    });
+
+    // Reservation Filter Pills (Hall)
+    document.querySelectorAll('[data-res-hall]').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('[data-res-hall]').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        state.resFilterHall = pill.dataset.resHall;
+        renderReservations();
+      };
+    });
+
+    // Search input
+    const searchInput = document.getElementById('global-search-input');
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        state.searchQuery = e.target.value.trim();
+        renderOrders();
+        renderReservations();
+      };
+    }
+
+    // Manual refresh
+    const refreshBtn = document.getElementById('btn-manual-refresh');
+    if (refreshBtn) refreshBtn.onclick = refreshAll;
+
+    // Sound toggle
+    const soundBtn = document.getElementById('btn-sound-toggle');
+    const soundTxt = document.getElementById('txt-sound-status');
+    if (soundBtn && soundTxt) {
+      soundBtn.onclick = () => {
+        state.soundEnabled = !state.soundEnabled;
+        soundBtn.classList.toggle('active', state.soundEnabled);
+        soundTxt.textContent = state.soundEnabled ? 'Звук: Вкл' : 'Звук: Выкл';
+        if (state.soundEnabled) playAlertChime();
+      };
+    }
+  }
+
+  // ── Initialization ──
+  document.addEventListener('DOMContentLoaded', () => {
+    setupEvents();
+    refreshAll();
+  });
+})();
+</script>
+</body>
+</html>

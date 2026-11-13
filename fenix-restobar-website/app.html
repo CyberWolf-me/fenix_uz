@@ -51,7 +51,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
-  padding-bottom: calc(82px + var(--safe-bottom));
+  padding-bottom: max(96px, calc(86px + var(--safe-bottom)));
 }
 
 /* ── Typography & Display ── */
@@ -584,7 +584,7 @@ body {
 /* ── Floating Cart Bar (on menu tab) ── */
 .floating-cart-bar {
   position: fixed;
-  bottom: calc(70px + var(--safe-bottom));
+  bottom: max(84px, calc(74px + var(--safe-bottom)));
   left: 14px;
   right: 14px;
   z-index: 45;
@@ -1409,7 +1409,7 @@ body {
   background: #0B0906; /* Solid crisp luxury obsidian, no blur smudge */
   border-top: 1px solid rgba(192, 138, 62, 0.24);
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
-  padding: 7px 12px calc(11px + var(--safe-bottom));
+  padding: 8px 12px max(24px, calc(10px + var(--safe-bottom)));
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -2437,8 +2437,10 @@ body {
     }
   }
 
-  // State
-  let currentLang = localStorage.getItem('fx.lang') || 'ru';
+  // Pre-fill user data if available from Telegram
+  let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+  let detectedLang = (tgUser && tgUser.language_code === 'uz') ? 'uz' : ((tgUser && tgUser.language_code === 'en') ? 'en' : 'ru');
+  let currentLang = localStorage.getItem('fx.lang') || detectedLang;
   let currentTab = 'tab-menu';
   let orderMode = localStorage.getItem('fx.mode') || 'delivery';
   let userAddress = localStorage.getItem('fx.addr') || '';
@@ -2453,9 +2455,6 @@ body {
   let modalQty = 1;
   let reservationGuestCount = 2;
   let lastTrackedRecord = null;
-
-  // Pre-fill user data if available from Telegram
-  let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
   let userName = localStorage.getItem('fx.name') || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : '');
   let userPhone = localStorage.getItem('fx.phone') || '';
 
@@ -3112,10 +3111,10 @@ body {
       if (s.includes('отмен') || s.includes('bekor') || s.includes('cancel')) {
         return t('stOrderCancelled');
       }
-      return rawStatus;
+      return t('statusProcessing');
     } else {
       // Reservation
-      if (s.includes('ожидает') || s.includes('нов') || s.includes('kutil') || s.includes('pending')) {
+      if (s.includes('ожидает') || s.includes('нов') || s.includes('kutil') || s.includes('pending') || s.includes('обраб')) {
         return t('stResPending');
       }
       if (s.includes('подтвержд') || s.includes('tasdiq') || s.includes('confirm')) {
@@ -3130,7 +3129,7 @@ body {
       if (s.includes('отмен') || s.includes('bekor') || s.includes('cancel')) {
         return t('stResCancelled');
       }
-      return rawStatus;
+      return t('stResPending');
     }
   }
 
@@ -3153,6 +3152,18 @@ body {
       return t('hallVipTitle');
     }
     return t('hallMainTitle');
+  }
+
+  function translateAddress(addr) {
+    if (!addr) return '—';
+    const s = String(addr).toLowerCase();
+    if (s.includes('уточн') || s.includes('aniqlan')) {
+      return currentLang === 'uz' ? 'Aniqlanmoqda' : currentLang === 'en' ? 'To be confirmed' : 'Уточняется';
+    }
+    if (s.includes('самовывоз') || s.includes('olib ketish')) {
+      return t('cartTakeaway');
+    }
+    return addr;
   }
 
   // ── Render Category Sub-Chips ──
@@ -3896,6 +3907,7 @@ body {
       const summary = isOrder ? 
         `${translateDeliveryMode(item.mode)} • ${countLabel} • ${money(item.total)}` : 
         `${item.date || ''} • ${guestsStr} • ${translateHall(item.hall)}`;
+      const statusLabel = translateStatus(item.status || (isOrder ? 'новый' : 'ожидает подтверждения'), item.type);
 
       html += `
         <div class="recent-item-card" onclick="window.FX_APP.lookupCode('${item.code}')">
@@ -3904,7 +3916,10 @@ body {
             <span class="recent-item-type">${typeLabel}</span>
           </div>
           <div class="recent-item-summary">${summary}</div>
-          <div class="recent-item-date">${item.date || ''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+            <span class="recent-item-date">${item.date || ''}</span>
+            <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;border:1px solid rgba(192,138,62,0.25);">${statusLabel}</span>
+          </div>
         </div>
       `;
     });
@@ -3997,7 +4012,7 @@ body {
           <div class="details-row"><span>${t('trackRecipient')}</span><strong>${record.name || '—'}</strong></div>
           <div class="details-row"><span>${t('trackPhone')}</span><strong>${record.phone || '—'}</strong></div>
           <div class="details-row"><span>${t('trackMethod')}</span><strong>${translateDeliveryMode(record.orderType)}</strong></div>
-          <div class="details-row"><span>${t('trackAddress')}</span><strong>${record.address || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackAddress')}</span><strong>${translateAddress(record.address)}</strong></div>
           <div class="details-row"><span>${t('trackItems')}</span><strong>${itemsList || '—'}</strong></div>
           <div class="details-row" style="border-top:1px solid var(--line-subtle);padding-top:6px;color:var(--gold-hi);font-weight:600;"><span>${t('trackTotal')}</span><strong>${money(record.total)}</strong></div>
         </div>
@@ -4195,7 +4210,8 @@ body {
     if (orderMode === 'pickup') {
       bannerText.textContent = t('pickupAddress');
     } else {
-      bannerText.textContent = userAddress || (userDistrict ? `Ташкент, ${userDistrict} р-н` : t('addressDefault'));
+      const defDist = currentLang === 'uz' ? `Toshkent, ${userDistrict} tumani` : currentLang === 'en' ? `Tashkent, ${userDistrict} district` : `Ташкент, ${userDistrict} р-н`;
+      bannerText.textContent = userAddress || (userDistrict ? defDist : t('addressDefault'));
     }
   }
 
