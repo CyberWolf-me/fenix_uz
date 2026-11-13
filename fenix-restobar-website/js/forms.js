@@ -160,7 +160,9 @@
       comment: v.comment,
       hall: v.hall || 'any',
       eventType: v.type || 'Банкет',
-      lang: S.lang
+      lang: S.lang,
+      telegramUserId: S.tgUser ? S.tgUser.id : null,
+      telegramUsername: S.tgUser ? (S.tgUser.username || S.tgUser.first_name) : null
     };
 
     fetch(endpoint, {

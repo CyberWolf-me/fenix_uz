@@ -5,6 +5,18 @@
   const ROUTES = ['home', 'menu', 'events', 'gallery', 'contact', 'reserve', 'privacy'];
   let route = 'home', params = [];
 
+  // Telegram Mini App (WebApp) initialization
+  if (window.Telegram && window.Telegram.WebApp) {
+    try {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        S.tgUser = tg.initDataUnsafe.user;
+      }
+    } catch (_) {}
+  }
+
   function parse() {
     const h = location.hash.replace(/^#\/?/, '');
     const parts = h.split('/').filter(Boolean);

@@ -393,8 +393,8 @@ const server = http.createServer(async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             code,
-            0,
-            "Website",
+            data.telegramUserId || 0,
+            data.telegramUsername || "Website",
             data.name,
             data.phone,
             data.date || "",
@@ -450,8 +450,8 @@ const server = http.createServer(async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             orderNum,
-            0,
-            "Website",
+            data.telegramUserId || 0,
+            data.telegramUsername || "Website",
             data.name,
             data.phone,
             data.mode === "delivery" ? "Доставка курьером (сайт)" : "Самовывоз (сайт)",
