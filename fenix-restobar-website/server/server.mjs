@@ -54,6 +54,15 @@ try {
     console.log(`[DB] Initialized SQLite database at: ${dbPath}`);
   }
 
+  // Enable WAL mode and busy timeout for concurrent safety with Telegram Bot
+  try {
+    db.exec("PRAGMA journal_mode = WAL;");
+    db.exec("PRAGMA busy_timeout = 5000;");
+    db.exec("PRAGMA synchronous = NORMAL;");
+  } catch (err) {
+    console.warn("[DB] WAL PRAGMA warning:", err.message);
+  }
+
   // Ensure tables exist
   db.exec(`
     CREATE TABLE IF NOT EXISTS orders (

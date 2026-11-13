@@ -1,3 +1,8 @@
+# Environment variables and secrets
+.env
+*.env
+.env.local
+
 # Raw Design Assets, Print Materials & Large Archives
 raw_design_assets/
 *.eps
@@ -6,7 +11,10 @@ raw_design_assets/
 *.pdf
 loose_dish_pngs/
 
-# SQLite lock / temp files
+# SQLite databases and lock/temp files
+*.db
+*.sqlite
+*.sqlite3
 *.db-journal
 *.db-wal
 *.db-shm

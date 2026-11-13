@@ -1,7 +1,11 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
+# Load .env from bot directory or project root
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 # Bot Token provided by user
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI")
