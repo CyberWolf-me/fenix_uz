@@ -499,3 +499,271 @@
 .sect-title::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
 .hide-sm { display: inline; }
 @media (max-width: 1320px) { .hide-sm { display: none; } }
+
+/* ── RESPONSIVE GRIDS & MOBILE ADAPTIVE ARCHITECTURE ─────────── */
+.couriers-layout {
+  display: grid;
+  grid-template-columns: 1fr 370px;
+  gap: 14px;
+  margin-top: 14px;
+  min-height: 520px;
+}
+
+.venue-floor-grid {
+  display: grid;
+  grid-template-columns: 1fr 310px;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+}
+
+/* Desktop Defaults */
+.mobile-bottom-nav { display: none !important; }
+.mobile-menu-btn { display: none !important; }
+.mobile-drawer-scrim { display: none !important; }
+.desktop-rail-btn { display: inline-flex; }
+
+/* ── TABLET SCREENS (769px – 1024px) ─────────────────────────── */
+@media (max-width: 1024px) {
+  .app:not([data-rail="0"]) {
+    grid-template-columns: var(--nav-w-min) 1fr;
+  }
+  .couriers-layout {
+    grid-template-columns: 1fr 320px;
+  }
+  .venue-floor-grid {
+    grid-template-columns: 1fr 280px;
+  }
+  .board {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+}
+
+/* ── MOBILE SCREENS (≤ 768px, Phones & Compact Handhelds) ────── */
+@media (max-width: 768px) {
+  #root {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Slide-out Off-Canvas Drawer */
+  .nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -280px;
+    width: 260px;
+    z-index: 1000;
+    transition: left 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.55);
+  }
+  .nav.mobile-open {
+    left: 0 !important;
+  }
+
+  .mobile-drawer-scrim {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 998;
+    animation: fade 0.18s ease;
+  }
+
+  /* Compact Topbar */
+  .topbar {
+    min-height: 54px;
+    height: 54px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .topbar-mid {
+    display: none;
+  }
+  .topbar-title {
+    font-size: 15px;
+  }
+  .topbar-eyebrow {
+    font-size: 8px;
+  }
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+  .desktop-rail-btn {
+    display: none !important;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* Main Area & Scroll Padding */
+  .main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .page {
+    padding: 12px 12px calc(68px + env(safe-area-inset-bottom, 12px)) 12px;
+    gap: 12px;
+  }
+
+  /* 2-Column KPIs Grid on Mobile */
+  .kpis {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+  .kpi {
+    padding: 9px 11px;
+  }
+  .kpi-body .stat-num {
+    font-size: 18px;
+  }
+  .kpi-ico {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Mobile Swipeable Kanban Board */
+  .board {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding-bottom: 12px;
+    min-height: 480px;
+  }
+  .board .col {
+    flex: 0 0 84vw;
+    min-width: 84vw;
+    max-width: 84vw;
+    scroll-snap-align: center;
+  }
+
+  /* Vertical Stacking for Couriers and Floor Scheme */
+  .couriers-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px;
+  }
+  .couriers-layout > div:first-child {
+    min-height: 380px !important;
+    height: 380px !important;
+  }
+
+  .venue-floor-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px;
+  }
+  .venue-floor-grid > div:first-child {
+    min-height: 420px !important;
+  }
+
+  .theme-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Filter Wrap */
+  .filters {
+    gap: 8px;
+  }
+
+  /* Horizontal Scroll for Data Tables */
+  .card:has(table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card table.tbl {
+    min-width: 580px;
+  }
+
+  /* Mobile Fixed Bottom Navigation Bar */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--line-strong);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
+    z-index: 900;
+    align-items: stretch;
+    justify-content: space-around;
+  }
+
+  .mobile-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 0;
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 2px;
+    gap: 3px;
+    position: relative;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-tab-btn[data-on="1"] {
+    color: var(--accent);
+  }
+
+  .mobile-tab-label {
+    font-size: 9px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .mobile-tab-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 15px);
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 8px;
+    font-weight: 800;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    font-family: var(--f-mono);
+    line-height: 1;
+  }
+}

@@ -138,7 +138,7 @@ function Settings({ t, theme, setTheme, dir, setDir, lang, setLang, sound, setSo
       <div className="sect-title">{t('appearance_lbl')}</div>
       <div className="card" style={{ padding: 14, marginBottom: 16 }}>
         <div className="label" style={{ marginBottom: 9 }}>{t('themes')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 9 }}>
+        <div className="theme-grid">
           {THEMES.map((th) => (
             <button key={th.id} onClick={() => setTheme(th.id)}
                     style={{

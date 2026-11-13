@@ -191,7 +191,7 @@ function Couriers({ t, toast, orders = [] }) {
       </div>
 
       {/* Main Delivery Layout: Interactive Map + Real Orders List */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 370px', gap: 14, marginTop: 14, minHeight: 520 }}>
+      <div className="couriers-layout">
         {/* Left: Map of Tashkent */}
         <div className="card" style={{ position: 'relative', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{

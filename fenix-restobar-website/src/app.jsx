@@ -136,6 +136,7 @@ function App() {
   const [createOpen, setCreateOpen] = useState(false);
   const [bookingsCount, setBookingsCount] = useState(0);
   const [cmdk, setCmdk] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toasts, pushToast] = useToasts();
   const now = useTick(1000);
   const seenOrderIds = useRef(new Set());
@@ -395,15 +396,42 @@ function App() {
 
   return (
     <div className="app" data-rail={tw.rail ? '1' : '0'}>
-      <Sidebar page={page} setPage={setPage} rail={tw.rail} t={t} counts={counts} onLogout={handleLogout} />
+      <Sidebar
+        page={page}
+        setPage={(p) => { setPage(p); setMobileMenuOpen(false); }}
+        rail={tw.rail}
+        t={t}
+        counts={counts}
+        onLogout={handleLogout}
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
+      />
       <div className="main">
-        <Topbar page={page} t={t} rail={tw.rail} setRail={(v) => setTweak('rail', v)} now={now}
-                onSearch={() => setCmdk(true)} theme={theme} setTheme={(v) => setTweak('theme', v)}
-                lang={lang} setLang={(v) => setTweak('lang', v)} onNew={() => setCreateOpen(true)}
-                toast={pushToast} onLogout={handleLogout} />
+        <Topbar
+          page={page}
+          t={t}
+          rail={tw.rail}
+          setRail={(v) => setTweak('rail', v)}
+          now={now}
+          onSearch={() => setCmdk(true)}
+          theme={theme}
+          setTheme={(v) => setTweak('theme', v)}
+          lang={lang}
+          setLang={(v) => setTweak('lang', v)}
+          onNew={() => setCreateOpen(true)}
+          toast={pushToast}
+          onLogout={handleLogout}
+          onToggleMenu={() => setMobileMenuOpen((v) => !v)}
+        />
         <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {screens[page]}
         </main>
+        <MobileBottomNav
+          page={page}
+          setPage={(p) => { setPage(p); setMobileMenuOpen(false); }}
+          counts={counts}
+          onOpenDrawer={() => setMobileMenuOpen(true)}
+        />
       </div>
 
       {loaded && (

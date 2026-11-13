@@ -29,74 +29,101 @@ const PAGE_META = {
   settings: { eyebrow: 'FENIX · ADMIN', icon: 'gear' },
 };
 
-function Sidebar({ page, setPage, rail, t, counts, onLogout }) {
+function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onCloseMobile }) {
   return (
-    <nav className="nav" aria-label="Main">
-      <div className="nav-brand">
-        <div className="brand-mark"><Icon name="layers" size={17} stroke={1.7} /></div>
-        <div className="brand-txt">
-          <div className="brand-name">Fenix</div>
-          <div className="brand-sub">Terminal &amp; Dispatch OS</div>
-        </div>
-      </div>
-      <div className="nav-scroll">
-        {NAV.map((g) => (
-          <div className="nav-group" key={g.group}>
-            <div className="nav-group-label">{t(g.group)}</div>
-            {g.items.map((it) => {
-              const on = page === it.id;
-              const b = it.badge === 'live' ? counts.live : it.badge;
-              return (
-                <button key={it.id} className="nav-item" data-on={on ? '1' : '0'}
-                        onClick={() => setPage(it.id)} title={rail ? t(it.k) : undefined}>
-                  <Icon name={it.icon} size={16} />
-                  <span className="nav-item-txt">{t(it.k)}</span>
-                  {b != null && (
-                    <span className="nav-badge" data-tone={it.badge === 'live' ? 'accent' : 'muted'}>{b}</span>
-                  )}
-                  {rail && b != null && <span className="nav-dot" />}
-                </button>
-              );
-            })}
+    <>
+      {mobileOpen && (
+        <div
+          className="mobile-drawer-scrim"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+      <nav className={`nav ${mobileOpen ? 'mobile-open' : ''}`} aria-label="Main">
+        <div className="nav-brand">
+          <div className="brand-mark"><Icon name="layers" size={17} stroke={1.7} /></div>
+          <div className="brand-txt">
+            <div className="brand-name">Fenix</div>
+            <div className="brand-sub">Terminal &amp; Dispatch OS</div>
           </div>
-        ))}
-      </div>
-      <div className="nav-foot" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button className="nav-user" style={{ flex: 1 }}>
-          <span className="avatar" data-tone="accent">АШ</span>
-          <span className="nav-user-txt">
-            <span className="nav-user-name">Алмасов Ш.</span>
-            <span className="nav-user-role">Диспетчер · Смена 1</span>
-          </span>
-        </button>
-        {onLogout && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-icon btn-sm"
-            onClick={onLogout}
-            title="Выйти из системы"
-            style={{ color: 'var(--text-3)', padding: '8px', cursor: 'pointer' }}
-            onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-3)'}
-          >
-            <Icon name="logOut" size={16} />
+          {mobileOpen && (
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              onClick={onCloseMobile}
+              style={{ marginLeft: 'auto' }}
+              title="Закрыть"
+            >
+              <Icon name="x" size={16} />
+            </button>
+          )}
+        </div>
+        <div className="nav-scroll">
+          {NAV.map((g) => (
+            <div className="nav-group" key={g.group}>
+              <div className="nav-group-label">{t(g.group)}</div>
+              {g.items.map((it) => {
+                const on = page === it.id;
+                const b = it.badge === 'live' ? counts.live : it.badge;
+                return (
+                  <button key={it.id} className="nav-item" data-on={on ? '1' : '0'}
+                          onClick={() => { setPage(it.id); if (onCloseMobile) onCloseMobile(); }}
+                          title={rail ? t(it.k) : undefined}>
+                    <Icon name={it.icon} size={16} />
+                    <span className="nav-item-txt">{t(it.k)}</span>
+                    {b != null && (
+                      <span className="nav-badge" data-tone={it.badge === 'live' ? 'accent' : 'muted'}>{b}</span>
+                    )}
+                    {rail && b != null && <span className="nav-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div className="nav-foot" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="nav-user" style={{ flex: 1 }}>
+            <span className="avatar" data-tone="accent">АШ</span>
+            <span className="nav-user-txt">
+              <span className="nav-user-name">Алмасов Ш.</span>
+              <span className="nav-user-role">Диспетчер · Смена 1</span>
+            </span>
           </button>
-        )}
-      </div>
-    </nav>
+          {onLogout && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon btn-sm"
+              onClick={onLogout}
+              title="Выйти из системы"
+              style={{ color: 'var(--text-3)', padding: '8px', cursor: 'pointer' }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-3)'}
+            >
+              <Icon name="logOut" size={16} />
+            </button>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
 
-function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout }) {
+function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu }) {
   const hh = new Date(now);
   const clock = [hh.getHours(), hh.getMinutes(), hh.getSeconds()]
     .map((x) => String(x).padStart(2, '0')).join(':');
   const meta = PAGE_META[page] || {};
   return (
     <header className="topbar">
-      <button className="btn btn-ghost btn-icon" onClick={() => setRail(!rail)} title="Панель">
+      {/* Mobile Drawer Hamburger Button */}
+      <button className="btn btn-ghost btn-icon mobile-menu-btn" onClick={onToggleMenu} title="Меню навигации">
+        <Icon name="hamburger" size={17} />
+      </button>
+
+      {/* Desktop Panel Rail Button */}
+      <button className="btn btn-ghost btn-icon desktop-rail-btn" onClick={() => setRail(!rail)} title="Свернуть панель">
         <Icon name="panel" size={16} />
       </button>
+
       <div className="topbar-page">
         <div className="topbar-eyebrow">{meta.eyebrow}</div>
         <h1 className="topbar-title" data-screen-label={t(page)}>{t(page)}</h1>
@@ -110,10 +137,10 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
       <div className="topbar-right">
         <button className="btn btn-ghost btn-sm" onClick={onSearch} title={t('search_short')} style={{ gap: 6 }}>
           <Icon name="search" size={14} />
-          <span className="kbd">⌘K</span>
+          <span className="kbd hide-mobile">⌘K</span>
         </button>
 
-        <div className="seg" role="group" aria-label={t('theme')}>
+        <div className="seg hide-mobile" role="group" aria-label={t('theme')}>
           {THEMES.map((th) => (
             <button key={th.id} data-on={theme === th.id ? '1' : '0'} onClick={() => setTheme(th.id)}
                     title={th.label} style={{ padding: '0 7px' }}>
@@ -125,7 +152,7 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
           ))}
         </div>
 
-        <button className="btn btn-ghost btn-sm" onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'uzc' : 'ru')}
+        <button className="btn btn-ghost btn-sm hide-mobile" onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'uzc' : 'ru')}
                 title={t('language')}
                 style={{ fontFamily: 'var(--f-mono)', fontSize: 10, letterSpacing: '.04em', padding: '0 6px' }}>
           {lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : 'ЎЗ'}
@@ -136,12 +163,55 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
         </button>
         <Btn size="sm" variant="accent" icon="plus" onClick={onNew}>{t('create')}</Btn>
         {onLogout && (
-          <button className="btn btn-ghost btn-icon btn-sm" title="Выйти из системы" onClick={onLogout} style={{ color: 'var(--text-3)' }}>
+          <button className="btn btn-ghost btn-icon btn-sm hide-mobile" title="Выйти из системы" onClick={onLogout} style={{ color: 'var(--text-3)' }}>
             <Icon name="logOut" size={15} />
           </button>
         )}
       </div>
     </header>
+  );
+}
+
+function MobileBottomNav({ page, setPage, counts, onOpenDrawer }) {
+  const PRIMARY_TABS = [
+    { id: 'dispatch', label: 'Заказы', icon: 'dpad', badge: counts.live },
+    { id: 'bookings', label: 'Брони', icon: 'calendar', badge: 4 },
+    { id: 'floor', label: 'Зал', icon: 'grid' },
+    { id: 'couriers', label: 'Курьеры', icon: 'bike', badge: 3 },
+    { id: 'menu', label: 'Меню', icon: 'menuBook' },
+  ];
+
+  return (
+    <nav className="mobile-bottom-nav" aria-label="Мобильная навигация">
+      {PRIMARY_TABS.map((tab) => {
+        const on = page === tab.id;
+        return (
+          <button
+            key={tab.id}
+            className="mobile-tab-btn"
+            data-on={on ? '1' : '0'}
+            onClick={() => setPage(tab.id)}
+          >
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={tab.icon} size={18} />
+              {tab.badge != null && tab.badge > 0 && (
+                <span className="mobile-tab-badge">{tab.badge}</span>
+              )}
+            </div>
+            <span className="mobile-tab-label">{tab.label}</span>
+          </button>
+        );
+      })}
+      <button
+        type="button"
+        className="mobile-tab-btn"
+        onClick={onOpenDrawer}
+        title="Ещё разделы"
+      >
+        <Icon name="more" size={18} />
+        <span className="mobile-tab-label">Ещё</span>
+      </button>
+    </nav>
   );
 }
 
@@ -470,4 +540,4 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
   );
 }
 
-Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, CommandPalette, CreateModal, THEMES, DIRECTIONS });
+Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, MobileBottomNav, CommandPalette, CreateModal, THEMES, DIRECTIONS });

@@ -109,7 +109,7 @@ function Bookings({ t, toast }) {
 
   return (
     <div className="page">
-      <div className="kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className="kpis">
         {[
           { l: 'bookings_today', v: bookingsTodayCount, f: 'Основной зал · VIP · Банкетный' },
           { l: 'pending', v: pending, f: 'Требуют ответа сейчас', warn: true },
@@ -510,7 +510,7 @@ function Floor({ t, toast }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 14, flex: 1, minHeight: 0 }}>
+      <div className="venue-floor-grid">
         {/* Interactive Floor Scheme Canvas */}
         <div
           className="card"
