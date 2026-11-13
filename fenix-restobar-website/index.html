@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FENIX Restobar — Ташкент | Европейская и корейская кухня, бар и банкеты</title>
+  <meta name="description" content="FENIX Restobar в Ташкенте (Яшнабадский район, Хуснобод 5-й проезд, 1). Европейская и корейская кухня, бар и банкеты." />
+  <link rel="alternate" hreflang="ru" href="/ru/" />
+  <link rel="alternate" hreflang="uz" href="/uz/" />
+  <link rel="alternate" hreflang="en" href="/en/" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    "name": "FENIX Restobar Tashkent",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Husnobod 5-tor ko'chasi, 1",
+      "addressLocality": "Tashkent",
+      "addressRegion": "Yashnobod district",
+      "addressCountry": "UZ"
+    },
+    "telephone": "+998971850010",
+    "servesCuisine": ["European", "Korean"],
+    "priceRange": "200 000 - 500 000 UZS",
+    "menu": "/menu.html",
+    "sameAs": [
+      "https://www.instagram.com/fenix.tashkent",
+      "https://t.me/fenix_tashkent"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a href="#main-content" class="skip-link" data-i18n="skip_link"></a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo" aria-label="FENIX Restobar Tashkent">
+        <img src="assets/logo/fenix-mark.svg" alt="" width="34" height="24" style="filter: invert(66%) sepia(39%) saturate(580%) hue-rotate(355deg) brightness(88%) contrast(88%);" />
+        <span>FENIX</span>
+        <span class="label-eyebrow">Restobar</span>
+      </a>
+
+      <nav aria-label="Primary">
+        <ul class="nav-list">
+          <li><a href="index.html" aria-current="page" data-i18n="nav_home"></a></li>
+          <li><a href="menu.html"  data-i18n="nav_menu"></a></li>
+          <li><a href="events.html"  data-i18n="nav_events"></a></li>
+          <li><a href="gallery.html"  data-i18n="nav_gallery"></a></li>
+          <li><a href="contact.html"  data-i18n="nav_contact"></a></li>
+          <li><a href="style-guide.html"  data-i18n="nav_styleguide"></a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <div class="lang-switcher" role="group" aria-label="Language">
+          <button type="button" class="lang-btn active" data-lang="ru" aria-pressed="true">RU</button>
+          <button type="button" class="lang-btn" data-lang="uz" aria-pressed="false">UZ</button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <a href="tel:+998971850010" class="btn btn-outline btn-sm">+998 97 185 00 10</a>
+        <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" class="btn btn-outline btn-sm" data-i18n="cta_bot" title="Telegram-бот">🤖 Бот</a>
+        <button type="button" class="btn btn-outline btn-sm cart-trigger" data-open-cart>
+          <span data-i18n="cta_bag"></span>
+          <span class="cart-badge" data-cart-count>0</span>
+        </button>
+        <a href="contact.html#reserve" class="btn btn-primary btn-sm" data-i18n="cta_reserve"></a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" id="home-hero">
+      <div class="container hero-layout">
+        <div>
+          <span class="label-eyebrow" data-i18n="hero_eyebrow"></span>
+          <h1 style="margin-top:var(--s2);" data-i18n="hero_title"></h1>
+          <p class="hero-lead" data-i18n="hero_lead"></p>
+          <div class="hero-ctas">
+            <a href="contact.html#reserve" class="btn btn-primary" data-i18n="cta_reserve"></a>
+            <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" class="btn btn-outline" data-i18n="cta_bot">🤖 Telegram-бот</a>
+            <a href="events.html" class="btn btn-outline" data-i18n="cta_inquire_event"></a>
+            <a href="menu.html" class="btn btn-outline" data-i18n="cta_view_menu"></a>
+            <button type="button" class="btn btn-outline btn-sm" id="hero-mode-toggle" data-i18n="hero_toggle_photo"></button>
+          </div>
+        </div>
+
+        <div class="hero-media-card">
+          <div class="hero-collage">
+            <img src="assets/menu/13.webp" alt="Ribeye Steak" width="240" height="132" />
+            <img src="assets/menu/27.webp" alt="Samgyeopsal" width="240" height="132" />
+            <img src="assets/menu/4.webp" alt="Assorted Cold Cuts" width="240" height="132" />
+            <img src="assets/menu/10.webp" alt="Capri Shrimp Salad" width="240" height="132" />
+          </div>
+          <div class="hero-scrim-caption">
+            <span class="owner-placeholder" data-i18n="hero_placeholder_note"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="facts-band">
+      <div class="container facts-grid">
+        <div class="fact-box">
+          <span class="label-eyebrow" data-i18n="fact_hours_label"></span>
+          <p class="fact-value" data-open-status></p>
+          <span class="owner-placeholder">[[OWNER: opening hours]]</span>
+        </div>
+        <div class="fact-box">
+          <span class="label-eyebrow" data-i18n="fact_address_label"></span>
+          <p class="fact-value" data-i18n="fact_address_val"></p>
+        </div>
+        <div class="fact-box">
+          <span class="label-eyebrow" data-i18n="fact_halls_label"></span>
+          <p class="fact-value" data-i18n="fact_halls_val"></p>
+          <span class="owner-placeholder">[[OWNER: capacity]]</span>
+        </div>
+        <div class="fact-box">
+          <span class="label-eyebrow" data-i18n="fact_bill_label"></span>
+          <p class="fact-value">200&#8239;000 – 500&#8239;000 so'm</p>
+          <span class="owner-placeholder">[[OWNER: average bill]]</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="page-section">
+      <div class="container">
+        <div class="section-head" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:var(--s3);">
+          <div>
+            <span class="label-eyebrow" data-i18n="sig_eyebrow"></span>
+            <h2 data-i18n="sig_heading"></h2>
+          </div>
+          <a href="menu.html" class="btn btn-outline" data-i18n="cta_view_menu"></a>
+        </div>
+        <div class="dish-grid" id="featured-dishes-grid"></div>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="label-eyebrow" data-i18n="rooms_eyebrow"></span>
+          <h2 data-i18n="rooms_heading"></h2>
+        </div>
+        <div class="two-col">
+          <article class="card">
+            <span class="label-eyebrow" data-i18n="room1_tag"></span>
+            <h3 style="margin-top:var(--s2);" data-i18n="room1_title"></h3>
+            <p style="margin-top:var(--s2);" data-i18n="room1_desc"></p>
+            <div style="margin-top:var(--s3);">
+              <a href="contact.html#reserve" class="btn btn-primary" data-i18n="cta_reserve"></a>
+            </div>
+          </article>
+          <article class="card">
+            <span class="label-eyebrow" data-i18n="room2_tag"></span>
+            <h3 style="margin-top:var(--s2);" data-i18n="room2_title"></h3>
+            <p style="margin-top:var(--s2);" data-i18n="room2_desc"></p>
+            <div style="margin-top:var(--s3);">
+              <a href="events.html" class="btn btn-outline" data-i18n="cta_inquire_event"></a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Keyboard-Accessible Lightbox (Component 7) -->
+  <div class="modal-backdrop" id="fenix-lightbox" role="dialog" aria-modal="true" aria-labelledby="lb-title">
+    <div class="modal-panel" style="text-align:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label-eyebrow" id="lb-cat"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="lb-close-btn" data-i18n="close_btn"></button>
+      </div>
+      <img id="lb-img" class="lightbox-img" src="" alt="" />
+      <h3 id="lb-title"></h3>
+      <p id="lb-price" class="dish-price"></p>
+    </div>
+  </div>
+
+  <!-- Pickup & Delivery Order Drawer (Phase 2 Scaffold — Section 7.8) -->
+  <div class="modal-backdrop" id="fenix-cart-modal" role="dialog" aria-modal="true" aria-labelledby="cart-dialog-title">
+    <div class="modal-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--s3);">
+        <h2 id="cart-dialog-title" style="font-size:1.5rem;" data-i18n="bag_title"></h2>
+        <button type="button" class="btn btn-outline btn-sm" id="cart-close-btn" data-i18n="close_btn"></button>
+      </div>
+
+      <div id="cart-items-list" style="margin-bottom:var(--s3);"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--s2) 0 var(--s3);">
+        <strong data-i18n="bag_total_lbl"></strong>
+        <span id="cart-subtotal" class="dish-price">0 so'm</span>
+      </div>
+
+      <p style="margin-bottom:var(--s3);">
+        <span class="owner-placeholder">[[OWNER: delivery zones, minimum order, delivery fee &amp; courier policy (Section 7.8)]]</span>
+      </p>
+
+      <form id="delivery-order-form" novalidate>
+        <div class="form-group">
+          <select id="ord-mode" class="form-control" aria-label="Order Mode">
+            <option value="pickup" data-i18n="bag_mode_pickup"></option>
+            <option value="delivery" data-i18n="bag_mode_delivery"></option>
+          </select>
+        </div>
+
+        <div class="form-group" id="ord-address-group" style="display:none;">
+          <label for="ord-address" data-i18n="bag_address_lbl"></label>
+          <input type="text" id="ord-address" class="form-control" autocomplete="street-address" />
+        </div>
+
+        <div class="form-group">
+          <label for="ord-payment" data-i18n="bag_pay_lbl"></label>
+          <select id="ord-payment" class="form-control">
+            <option value="cash" data-i18n="bag_pay_cash"></option>
+            <option value="digital" data-i18n="bag_pay_card"></option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="ord-name" data-i18n="lbl_name"></label>
+          <input type="text" id="ord-name" class="form-control" autocomplete="name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="ord-phone" data-i18n="lbl_phone"></label>
+          <input type="tel" id="ord-phone" class="form-control" autocomplete="tel" value="+998 " required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;" data-i18n="bag_submit"></button>
+        <div style="margin-top:var(--s2); text-align:center;">
+          <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" style="font-size:var(--text-xs); color:var(--gold); text-decoration:underline;">🤖 Или закажите в Telegram-боте @Fenix_restaurant_bot</a>
+        </div>
+        <div id="ord-status-banner" class="form-banner" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container three-col">
+      <div>
+        <h3 style="margin-bottom:var(--s2);">FENIX Restobar <span class="owner-placeholder">[[OWNER: official name]]</span></h3>
+        <p data-i18n="fact_address_val"></p>
+        <p style="margin-top:var(--s2);">
+          <a href="https://yandex.com/maps/org/fenix/21833806944/" target="_blank" rel="noopener" data-map-link="yandex" data-i18n="map_yandex"></a><br />
+          <a href="https://www.google.com/maps/search/?api=1&amp;query=Fenix+Husnobod+1+Tashkent" target="_blank" rel="noopener" data-map-link="google" data-i18n="map_google"></a>
+        </p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:var(--s2);" data-i18n="footer_phones"></h3>
+        <p>
+          <a href="tel:+998971850010">+998 97 185 00 10</a><br />
+          <a href="tel:+998971850020">+998 97 185 00 20</a>
+        </p>
+        <p style="margin-top:var(--s2);">
+          <a href="https://www.instagram.com/fenix.tashkent" target="_blank" rel="noopener">Instagram</a> ·
+          <a href="https://t.me/fenix_tashkent" target="_blank" rel="noopener">Канал</a> ·
+          <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" style="color:var(--gold);">🤖 @Fenix_restaurant_bot</a>
+        </p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:var(--s2);" data-i18n="footer_hours"></h3>
+        <p data-i18n="hours_mon_thu"></p>
+        <p data-i18n="hours_fri_sat"></p>
+        <p data-i18n="hours_sun"></p>
+        <p style="margin-top:var(--s2);">
+          <a href="privacy.html" data-i18n="footer_privacy"></a> ·
+          <span class="owner-placeholder">[[OWNER: legal entity details]]</span>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="data/restaurant-facts.js"></script>
+  <script src="data/i18n.js"></script>
+  <script src="data/menu.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

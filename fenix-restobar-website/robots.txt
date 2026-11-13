@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fenixrestobar.uz/sitemap.xml

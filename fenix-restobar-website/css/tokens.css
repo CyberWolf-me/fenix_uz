@@ -1,0 +1,109 @@
+/* ==========================================================================
+   SELF-HOSTED SUBSETTED FONTS (Cyrillic & Latin WOFF2 — Section 8 & 9)
+   ========================================================================== */
+@font-face {
+  font-family: 'Cormorant';
+  src: url('../assets/fonts/CormorantGaramond-300-cyrillic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant';
+  src: url('../assets/fonts/CormorantGaramond-300-latin.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant';
+  src: url('../assets/fonts/CormorantGaramond-400i-cyrillic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant';
+  src: url('../assets/fonts/CormorantGaramond-400i-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-300-cyrillic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-300-latin.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-400-cyrillic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-400-latin.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-500-cyrillic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jost';
+  src: url('../assets/fonts/Jost-500-latin.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+   FENIX RESTOBAR — DESIGN SYSTEM TOKENS (Section 6 of Build Brief v0.1)
+   WCAG 2.2 Level AA Verified
+   ========================================================================== */
+:root {
+  /* Core Palette (Section 6) */
+  --bg: #0B0906;
+  --bg-raised: #14110A;
+  --ink: #F0E7D6;                         /* Main text: 16.0:1 contrast on --bg (AAA) */
+  --text-dim: rgba(240, 231, 214, .56);   /* Secondary text: ~5.4:1 contrast on --bg (AA) */
+  --accent: #C08A3E;                      /* Buttons, prices, links: 6.6:1 contrast on --bg (AA) */
+  --on-accent: #0B0906;                   /* Dark text on --accent fill: 6.6:1 (AA) */
+  --ember: #7E3A18;                       /* Decoration & borders only */
+  --line: rgba(240, 231, 214, .15);       /* Borders/dividers only — NEVER used for text */
+
+  /* Justified Semantic Status Tokens (Rule 3: required for WCAG 2.2 AA form states) */
+  --status-ok: #7BC47F;                   /* 8.9:1 on --bg — "Open now" & form success text */
+  --status-err: #F08080;                  /* 7.1:1 on --bg — Form error text (not color alone) */
+
+  /* Typography (Section 6) */
+  --font-display: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
+  --font-body: 'Jost', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing: 8px scale (Section 6) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 16px;
+  --s4: 24px;
+  --s5: 40px;
+  --s6: 64px;
+
+  /* Layout */
+  --max-width: 1200px;
+  --tap-min: 44px;
+}

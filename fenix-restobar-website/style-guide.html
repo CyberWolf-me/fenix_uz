@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design System & Style Guide (T1) — FENIX Restobar</title>
+  <meta name="description" content="Design tokens, contrast audit, component states, and owner placeholders." />
+  <link rel="alternate" hreflang="ru" href="/ru/styleguide" />
+  <link rel="alternate" hreflang="uz" href="/uz/styleguide" />
+  <link rel="alternate" hreflang="en" href="/en/styleguide" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <a href="#main-content" class="skip-link" data-i18n="skip_link"></a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand-logo" aria-label="FENIX Restobar Tashkent">
+        <img src="assets/logo/fenix-mark.svg" alt="" width="34" height="24" style="filter: invert(66%) sepia(39%) saturate(580%) hue-rotate(355deg) brightness(88%) contrast(88%);" />
+        <span>FENIX</span>
+        <span class="label-eyebrow">Restobar</span>
+      </a>
+
+      <nav aria-label="Primary">
+        <ul class="nav-list">
+          <li><a href="index.html"  data-i18n="nav_home"></a></li>
+          <li><a href="menu.html"  data-i18n="nav_menu"></a></li>
+          <li><a href="events.html"  data-i18n="nav_events"></a></li>
+          <li><a href="gallery.html"  data-i18n="nav_gallery"></a></li>
+          <li><a href="contact.html"  data-i18n="nav_contact"></a></li>
+          <li><a href="style-guide.html" aria-current="page" data-i18n="nav_styleguide"></a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <div class="lang-switcher" role="group" aria-label="Language">
+          <button type="button" class="lang-btn active" data-lang="ru" aria-pressed="true">RU</button>
+          <button type="button" class="lang-btn" data-lang="uz" aria-pressed="false">UZ</button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+        <a href="tel:+998971850010" class="btn btn-outline btn-sm">+998 97 185 00 10</a>
+        <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" class="btn btn-outline btn-sm" data-i18n="cta_bot" title="Telegram-бот">🤖 Бот</a>
+        <button type="button" class="btn btn-outline btn-sm cart-trigger" data-open-cart>
+          <span data-i18n="cta_bag"></span>
+          <span class="cart-badge" data-cart-count>0</span>
+        </button>
+        <a href="contact.html#reserve" class="btn btn-primary btn-sm" data-i18n="cta_reserve"></a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="page-section">
+      <div class="container">
+        <span class="label-eyebrow">Task T1 Deliverable · Section 6 Design System</span>
+        <h1 style="margin-top:var(--s2);">FENIX Restobar — Tokens, Contrast &amp; Component States</h1>
+        <p style="margin-top:var(--s2);">
+          Provisional base: Direction A ("Ember"). All text combinations verified at WCAG 2.2 AA (&gt;= 4.5:1 body, &gt;= 3:1 large text &amp; UI controls).
+        </p>
+
+        <h2 style="margin:var(--s5) 0 var(--s3);">1. Color Tokens &amp; Contrast Ratios</h2>
+        <div class="three-col">
+          <div class="card" style="background:#0B0906; color:#F0E7D6;">
+            <strong>--bg: #0B0906</strong><br />
+            Primary page background. Pairs with <code>--ink</code> at <strong>16.0:1 (AAA)</strong>.
+          </div>
+          <div class="card" style="background:#14110A; color:#F0E7D6;">
+            <strong>--bg-raised: #14110A</strong><br />
+            Card, form, and drawer surface.
+          </div>
+          <div class="card" style="background:#0B0906; color:rgba(240,231,214,.56);">
+            <strong>--text-dim: rgba(240, 231, 214, .56)</strong><br />
+            Secondary copy (~5.4:1 contrast on --bg, passes AA).
+          </div>
+          <div class="card" style="background:#C08A3E; color:#0B0906;">
+            <strong>--accent: #C08A3E / --on-accent: #0B0906</strong><br />
+            Buttons, prices, links (6.6:1 contrast on --bg, passes AA).
+          </div>
+          <div class="card" style="background:#7E3A18; color:#F0E7D6;">
+            <strong>--ember: #7E3A18</strong><br />
+            Accent borders &amp; radial glow decoration only.
+          </div>
+          <div class="card" style="background:#0B0906; border:2px solid rgba(240,231,214,.15);">
+            <strong>--line: rgba(240, 231, 214, .15)</strong><br />
+            Dividers &amp; borders ONLY — never used for text.
+          </div>
+        </div>
+
+        <h2 style="margin:var(--s5) 0 var(--s3);">2. Typography &amp; 8px Spacing Scale</h2>
+        <div class="card">
+          <p class="display-lg">Display Large — Cormorant 300 (clamp 34px–60px)</p>
+          <p class="display-md" style="margin-top:var(--s2);">Display Medium — Cormorant 300 (clamp 26px–42px)</p>
+          <h3 style="margin-top:var(--s2);">Small Heading — Jost 500 (17px, Cyrillic &amp; Uzbek Latin oʻ / gʻ safe)</h3>
+          <p style="margin-top:var(--s2);">Body Copy — Jost 400 (16px minimum, line-height 1.6)</p>
+          <p style="margin-top:var(--s2);"><span class="label-eyebrow">Label Eyebrow — Jost 500 (12px minimum, 0.08em tracking)</span></p>
+          <p style="margin-top:var(--s3);">Spacing Tokens: <code>--s1: 4px</code> · <code>--s2: 8px</code> · <code>--s3: 16px</code> · <code>--s4: 24px</code> · <code>--s5: 40px</code> · <code>--s6: 64px</code></p>
+        </div>
+
+        <h2 style="margin:var(--s5) 0 var(--s3);">3. Interactive Component States (&gt;= 44px Tap Targets)</h2>
+        <div class="two-col">
+          <div class="card">
+            <h3 style="margin-bottom:var(--s3);">Buttons &amp; Inputs (Default, Focus, Error)</h3>
+            <div style="display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s3);">
+              <button type="button" class="btn btn-primary">Primary CTA</button>
+              <button type="button" class="btn btn-outline">Secondary CTA</button>
+              <button type="button" class="btn btn-primary" disabled>Loading / Disabled</button>
+            </div>
+            <div class="form-group">
+              <label for="sg-demo-ok">Default Input</label>
+              <input id="sg-demo-ok" type="text" class="form-control" value="+998 97 185 00 10" />
+            </div>
+            <div class="form-group">
+              <label for="sg-demo-err">Error Input State</label>
+              <input id="sg-demo-err" type="text" class="form-control" aria-invalid="true" value="+998 12" />
+              <div class="error-msg visible">Введите корректный номер Узбекистана (+998 и 9 цифр).</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom:var(--s3);">Form Banner States (Loading, Success, Failure)</h3>
+            <div class="form-banner loading" style="display:block;">Отправка запроса... (Loading State)</div>
+            <div class="form-banner success" style="display:block;">Запрос на бронь принят! (Success State)</div>
+            <div class="form-banner error" style="display:block;">Не удалось отправить онлайн-заявку — позвоните +998 97 185 00 10 (Failure Fallback)</div>
+          </div>
+        </div>
+
+        <h2 style="margin:var(--s5) 0 var(--s3);">4. Section 12 Owner Confirmation Checklist (Active Placeholders)</h2>
+        <div class="card">
+          <ul style="padding-left:var(--s4); color:var(--text-dim); display:grid; gap:var(--s2);">
+            <li><span class="owner-placeholder">[[OWNER: official restaurant name — "FENIX Restobar" vs "Fenix, Restaurant &amp; Bar"]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: opening hours, last seating time, and holiday closures]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: confirm which phone (+998 97 185 00 10 vs 00 20) is for reservations vs. events]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: capacity of each hall (120 / 170 vs. 100 seats) and real number of seats]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: confirm all 184 menu prices and photo mapping for 14.webp &amp; 28.webp]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: event packages, minimum guests, deposit policy, and what is included]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: confirmation reply window in minutes and staff Telegram/email target]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: delivery zones, minimum order, delivery fee, and Payme/Click/Uzum merchant IDs (Section 7.8)]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: real interior/room photography (replace room-hero.webp &amp; dish-galbi.webp placeholders)]]</span></li>
+            <li><span class="owner-placeholder">[[OWNER: legal entity details and Privacy Policy text]]</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Keyboard-Accessible Lightbox (Component 7) -->
+  <div class="modal-backdrop" id="fenix-lightbox" role="dialog" aria-modal="true" aria-labelledby="lb-title">
+    <div class="modal-panel" style="text-align:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="label-eyebrow" id="lb-cat"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="lb-close-btn" data-i18n="close_btn"></button>
+      </div>
+      <img id="lb-img" class="lightbox-img" src="" alt="" />
+      <h3 id="lb-title"></h3>
+      <p id="lb-price" class="dish-price"></p>
+    </div>
+  </div>
+
+  <!-- Pickup & Delivery Order Drawer (Phase 2 Scaffold — Section 7.8) -->
+  <div class="modal-backdrop" id="fenix-cart-modal" role="dialog" aria-modal="true" aria-labelledby="cart-dialog-title">
+    <div class="modal-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--s3);">
+        <h2 id="cart-dialog-title" style="font-size:1.5rem;" data-i18n="bag_title"></h2>
+        <button type="button" class="btn btn-outline btn-sm" id="cart-close-btn" data-i18n="close_btn"></button>
+      </div>
+
+      <div id="cart-items-list" style="margin-bottom:var(--s3);"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--s2) 0 var(--s3);">
+        <strong data-i18n="bag_total_lbl"></strong>
+        <span id="cart-subtotal" class="dish-price">0 so'm</span>
+      </div>
+
+      <p style="margin-bottom:var(--s3);">
+        <span class="owner-placeholder">[[OWNER: delivery zones, minimum order, delivery fee &amp; courier policy (Section 7.8)]]</span>
+      </p>
+
+      <form id="delivery-order-form" novalidate>
+        <div class="form-group">
+          <select id="ord-mode" class="form-control" aria-label="Order Mode">
+            <option value="pickup" data-i18n="bag_mode_pickup"></option>
+            <option value="delivery" data-i18n="bag_mode_delivery"></option>
+          </select>
+        </div>
+
+        <div class="form-group" id="ord-address-group" style="display:none;">
+          <label for="ord-address" data-i18n="bag_address_lbl"></label>
+          <input type="text" id="ord-address" class="form-control" autocomplete="street-address" />
+        </div>
+
+        <div class="form-group">
+          <label for="ord-payment" data-i18n="bag_pay_lbl"></label>
+          <select id="ord-payment" class="form-control">
+            <option value="cash" data-i18n="bag_pay_cash"></option>
+            <option value="digital" data-i18n="bag_pay_card"></option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="ord-name" data-i18n="lbl_name"></label>
+          <input type="text" id="ord-name" class="form-control" autocomplete="name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="ord-phone" data-i18n="lbl_phone"></label>
+          <input type="tel" id="ord-phone" class="form-control" autocomplete="tel" value="+998 " required />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;" data-i18n="bag_submit"></button>
+        <div id="ord-status-banner" class="form-banner" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container three-col">
+      <div>
+        <h3 style="margin-bottom:var(--s2);">FENIX Restobar <span class="owner-placeholder">[[OWNER: official name]]</span></h3>
+        <p data-i18n="fact_address_val"></p>
+        <p style="margin-top:var(--s2);">
+          <a href="https://yandex.com/maps/org/fenix/21833806944/" target="_blank" rel="noopener" data-map-link="yandex" data-i18n="map_yandex"></a><br />
+          <a href="https://www.google.com/maps/search/?api=1&amp;query=Fenix+Husnobod+1+Tashkent" target="_blank" rel="noopener" data-map-link="google" data-i18n="map_google"></a>
+        </p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:var(--s2);" data-i18n="footer_phones"></h3>
+        <p>
+          <a href="tel:+998971850010">+998 97 185 00 10</a><br />
+          <a href="tel:+998971850020">+998 97 185 00 20</a>
+        </p>
+        <p style="margin-top:var(--s2);">
+          <a href="https://www.instagram.com/fenix.tashkent" target="_blank" rel="noopener">Instagram</a> ·
+          <a href="https://t.me/fenix_tashkent" target="_blank" rel="noopener">Канал</a> ·
+          <a href="https://t.me/Fenix_restaurant_bot" target="_blank" rel="noopener" style="color:var(--gold);">🤖 @Fenix_restaurant_bot</a>
+        </p>
+      </div>
+
+      <div>
+        <h3 style="margin-bottom:var(--s2);" data-i18n="footer_hours"></h3>
+        <p data-i18n="hours_mon_thu"></p>
+        <p data-i18n="hours_fri_sat"></p>
+        <p data-i18n="hours_sun"></p>
+        <p style="margin-top:var(--s2);">
+          <a href="privacy.html" data-i18n="footer_privacy"></a> ·
+          <span class="owner-placeholder">[[OWNER: legal entity details]]</span>
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="data/restaurant-facts.js"></script>
+  <script src="data/i18n.js"></script>
+  <script src="data/menu.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
