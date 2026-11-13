@@ -18,9 +18,9 @@ const PUBLIC_DIR = path.resolve(__dirname, "..");
 const LOG_FILE = path.join(__dirname, "submissions.jsonl");
 
 const PORT = process.env.PORT || 3000;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "9206368189:AAFIZu2qqtl5JbEEEcXXGbny-8i4zkbu5Hk";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI";
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || process.env.ADMIN_CHAT_ID || "";
-const BOT_USERNAME = process.env.BOT_USERNAME || "Fenix_restaurant_bot";
+const BOT_USERNAME = process.env.BOT_USERNAME || "FenixRestaurantBot";
 
 // Locate fenix_restaurant.db from Telegram Bot project
 const DB_CANDIDATES = [
@@ -159,7 +159,7 @@ async function sendTelegramNotification(text) {
   if (recipientIds.length === 0) {
     console.log("\n[Telegram Alert Preview - No staff registered in DB yet]:");
     console.log(text.replace(/<[^>]*>/g, ""));
-    console.log("👉 Tip: Authorize staff by sending '/admin fenix' in @Fenix_restaurant_bot, or set TELEGRAM_CHAT_ID in environment.\n");
+    console.log("👉 Tip: Authorize staff by sending '/admin fenix' in @FenixRestaurantBot, or set TELEGRAM_CHAT_ID in environment.\n");
     return;
   }
 

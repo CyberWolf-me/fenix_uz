@@ -13,7 +13,7 @@ window.FENIX_FACTS = {
     { display: '+998 97 185 00 20', href: 'tel:+998971850020', status: 'verified' }
   ],
   telegram: { display: 't.me/fenix_tashkent', href: 'https://t.me/fenix_tashkent', status: 'verified' },
-  bot: { display: '@Fenix_restaurant_bot', href: 'https://t.me/Fenix_restaurant_bot', status: 'verified' },
+  bot: { display: '@FenixRestaurantBot', href: 'https://t.me/FenixRestaurantBot', status: 'verified' },
   instagram: { display: '@fenix.tashkent', href: 'https://www.instagram.com/fenix.tashkent', status: 'verified' },
   maps: {
     yandex: 'https://yandex.uz/maps/?text=' + encodeURIComponent('Fenix Restaurant Husnobod 5-tor 1 Tashkent'),

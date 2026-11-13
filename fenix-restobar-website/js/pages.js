@@ -81,7 +81,7 @@
         <div><p class="label">${e(t('footer.find'))}</p><p><a class="link" style="border:0;color:var(--text-dim)" href="${F.maps.yandex}" target="_blank" rel="noopener" data-track="directions">${e(F.address[L()])}<span class="sr-only"> (${e(t('a11y.newTab'))})</span></a></p></div>
         <div><p class="label">${e(t('footer.call'))}</p><ul>${F.phones.map(p => `<li><a href="${p.href}" data-track="call">${p.display}</a></li>`).join('')}</ul></div>
         <div><p class="label">${e(t('footer.hours'))}${S.dot(F.hours.status)}</p><p>${S.hoursCompact()}</p></div>
-        <div><p class="label">${e(t('footer.follow'))}</p><ul><li><a href="${F.telegram.href}" target="_blank" rel="noopener">Telegram · ${F.telegram.display}</a></li><li><a href="${F.bot ? F.bot.href : 'https://t.me/Fenix_restaurant_bot'}" target="_blank" rel="noopener">Telegram Bot · @Fenix_restaurant_bot</a></li><li><a href="${F.instagram.href}" target="_blank" rel="noopener">Instagram · ${F.instagram.display}</a></li><li><a href="#/privacy">${e(t('nav.privacy'))}</a></li></ul></div>
+        <div><p class="label">${e(t('footer.follow'))}</p><ul><li><a href="${F.telegram.href}" target="_blank" rel="noopener">Telegram · ${F.telegram.display}</a></li><li><a href="${F.bot ? F.bot.href : 'https://t.me/FenixRestaurantBot'}" target="_blank" rel="noopener">Telegram Bot · @FenixRestaurantBot</a></li><li><a href="${F.instagram.href}" target="_blank" rel="noopener">Instagram · ${F.instagram.display}</a></li><li><a href="#/privacy">${e(t('nav.privacy'))}</a></li></ul></div>
       </div>
       <div class="ftr-word">${S.logos.wordmark || ''}</div>
       <div class="ftr-bar"><span>${e(t('footer.rights'))}</span><span>${e(t('footer.city'))}</span></div>

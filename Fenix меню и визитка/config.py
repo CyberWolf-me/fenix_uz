@@ -4,8 +4,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 
 # Bot Token provided by user
-BOT_TOKEN = os.getenv("BOT_TOKEN", "9206368189:AAFIZu2qqtl5JbEEEcXXGbny-8i4zkbu5Hk")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "Fenix_restaurant_bot")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "FenixRestaurantBot")
 
 # Optional: Admin Chat IDs (comma-separated if multiple)
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_CHAT_ID", "").split(",") if x.strip().isdigit()]
