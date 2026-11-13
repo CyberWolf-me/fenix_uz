@@ -23,12 +23,12 @@
   --dur: .18s;
   --ease: cubic-bezier(.2, .7, .3, 1);
 
-  --f-display: 'Cormorant Garamond', Georgia, serif;
+  --f-display: 'Manrope', system-ui, sans-serif;
   --f-body: 'Manrope', system-ui, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, monospace;
   --track-label: .13em;
-  --display-weight: 600;
-  --num-casing: normal;
+  --display-weight: 700;
+  --num-casing: tabular-nums;
 }
 
 /* ── THEME · dark gold (heritage) ─────────────────────────────── */
@@ -176,15 +176,15 @@
    ════════════════════════════════════════════════════════════════ */
 [data-dir="a"] {
   --r: 13px; --r-sm: 9px; --r-xs: 5px;
-  --f-display: 'Cormorant Garamond', Georgia, serif;
-  --display-weight: 600;
-  --track-label: .16em;
+  --f-display: 'Manrope', system-ui, sans-serif;
+  --display-weight: 700;
+  --track-label: .14em;
   --card-shadow: var(--shadow);
-  --num-casing: normal;
+  --num-casing: tabular-nums;
   --kanban-rule: 1px;
 }
 [data-dir="a"] .stat-num,
-[data-dir="a"] .money-lg { font-family: var(--f-display); font-weight: 600; letter-spacing: -.01em; }
+[data-dir="a"] .money-lg { font-family: var(--f-body); font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 
 /* ════════════════════════════════════════════════════════════════
    DIRECTION B · «Медь» — modern hospitality, soft & round

@@ -76,7 +76,7 @@ function Couriers({ t, toast, orders = [] }) {
             border: 2px solid #fff; box-shadow: 0 0 16px rgba(211, 170, 99, 0.7);
             display: flex; align-items: center; justify-content: center; color: #111;
             font-size: 13px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
-            font-family: var(--f-display, sans-serif);
+            font-family: var(--f-body, sans-serif);
           ">FX</div>
         `,
         iconSize: [38, 38],

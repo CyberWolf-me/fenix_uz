@@ -637,7 +637,7 @@ function Floor({ t, toast }) {
                       style={{
                         fontSize: isBanquet || isVip || isBar ? 11 : 13,
                         fontWeight: 700,
-                        fontFamily: isBanquet || isVip || isBar ? 'var(--f-body)' : 'var(--f-display)',
+                        fontFamily: 'var(--f-body)',
                         letterSpacing: isVip ? '.03em' : 0,
                       }}
                     >
@@ -662,7 +662,7 @@ function Floor({ t, toast }) {
                 <div className="label">
                   {currentFloor === 1 ? '1-й этаж · Основной зал' : '2-й этаж · Банкетный зал'}
                 </div>
-                <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, fontWeight: 700, lineHeight: 1.1, marginTop: 3 }}>
+                <div style={{ fontFamily: 'var(--f-body)', fontSize: 18, fontWeight: 700, lineHeight: 1.1, marginTop: 3 }}>
                   {selectedTable.label}
                 </div>
                 {!selectedTable.stage && (

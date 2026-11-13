@@ -115,10 +115,10 @@ function LoginScreen({ onLoginSuccess }) {
 
           <h1 style={{
             margin: '0 0 6px',
-            fontFamily: 'var(--f-display, "Cormorant Garamond", Georgia, serif)',
-            fontSize: '32px',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
+            fontFamily: 'var(--f-body, "Manrope", system-ui, sans-serif)',
+            fontSize: '28px',
+            fontWeight: 800,
+            letterSpacing: '0.14em',
             color: 'var(--accent-2, #efd9a8)',
             textTransform: 'uppercase',
             lineHeight: 1
