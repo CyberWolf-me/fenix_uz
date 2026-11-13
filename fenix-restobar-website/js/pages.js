@@ -29,7 +29,8 @@
     'bar-glow': V('Бар', 'Bar', 'The bar', 'bar', 720, 1200),
     'bottles': V('Барная полка', 'Bar javoni', 'Back bar', 'bar', 720, 1200),
     'beer-set': V('Пивной сет', 'Pivo seti', 'Beer set', 'bar', 451, 800),
-    'hero-bg': V('Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'rooms', 1864, 844)
+    'hero-bg': V('Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'rooms', 1864, 844),
+    'halls-bg': V('Залы Fenix', 'Fenix zallari', 'Fenix Halls', 'rooms', 1821, 864)
   };
   /* dish photos (owner-supplied, t.me/realfeniximages) are added to the gallery as "food" */
   S.DISH_PHOTOS.forEach(id => { const it = S.byId[id]; if (it) IMG['dish/' + id] = { ru: it.name.ru, uz: it.name.uz, en: it.name.en, cat: 'food', w: 560, h: 560 }; });
@@ -146,7 +147,7 @@
     </div></section>`;
   H.room = () => `
     <section class="band" data-screen-label="Home · halls">
-      <div class="band-media" aria-hidden="true">${img('hall-long')}${img('entrance')}</div>
+      <div class="band-media" aria-hidden="true">${img('halls-bg')}</div>
       <p class="label tag">${e(t('room.tag'))}</p>
       <div class="band-in">
         ${eyebrow('room.kicker')}
