@@ -528,6 +528,102 @@
 .mobile-menu-btn { display: none !important; }
 .mobile-drawer-scrim { display: none !important; }
 .desktop-rail-btn { display: inline-flex; }
+.kpis-mobile-strip { display: none !important; }
+.mobile-stage-tabs { display: none !important; }
+.show-mobile-only { display: none !important; }
+
+/* ── TOOLBAR & KPI RIBBON BASE STYLES ────────────────────────── */
+.kpis-container { width: 100%; }
+
+.kpis-mobile-strip {
+  margin-bottom: 10px;
+}
+
+.kpis-mobile-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+}
+.kpis-mobile-summary:hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.kpis-mobile-items {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.kpis-mobile-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.kpis-mobile-pill b {
+  color: var(--text);
+}
+.kpis-mobile-pill.warn b {
+  color: var(--warn);
+}
+
+.kpis-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.kpis-dot.active { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+.kpis-dot.rev { background: var(--ok); }
+.kpis-dot.warn { background: var(--warn); }
+.kpis-dot.info { background: var(--info); }
+
+.kpis-mobile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  flex: none;
+}
+
+.dispatch-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.dispatch-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.dispatch-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
 
 /* ── TABLET SCREENS (769px – 1024px) ─────────────────────────── */
 @media (max-width: 1024px) {
@@ -631,10 +727,75 @@
     gap: 12px;
   }
 
-  /* 2-Column KPIs Grid on Mobile */
-  .kpis {
+  /* Mobile Toolbar with 2 Distinct Rows (Prevents Collision & Overlapping Text) */
+  .dispatch-page {
+    padding: 10px 12px calc(68px + env(safe-area-inset-bottom, 12px)) 12px !important;
+  }
+  .dispatch-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .dispatch-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .dispatch-toolbar-row .search {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    height: 36px;
+  }
+  .dispatch-chips-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap !important;
+    padding-bottom: 3px;
+  }
+  .dispatch-chips-row::-webkit-scrollbar {
+    display: none;
+  }
+  .dispatch-chips-row .chips {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+  }
+  .dispatch-chips-row .chip {
+    flex: none;
+    height: 28px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+  .dispatch-chips-row .pill {
+    flex: none;
+    height: 28px;
+  }
+  .show-mobile-only {
+    display: inline-flex !important;
+  }
+
+  /* Compact Collapsible Metric Strip (Saves ~190px of vertical space on mobile) */
+  .kpis-mobile-strip {
+    display: block !important;
+  }
+  .kpis:not(.mobile-expanded) {
+    display: none !important;
+  }
+  .kpis.mobile-expanded {
+    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px;
+    margin-bottom: 12px;
   }
   .kpi {
     padding: 9px 11px;
@@ -647,21 +808,97 @@
     height: 24px;
   }
 
-  /* Mobile Swipeable Kanban Board */
-  .board {
+  /* Mobile Stage Tabs: Purpose-built Touch Ergonomics */
+  .mobile-stage-tabs {
     display: flex !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory;
+    gap: 6px;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    gap: 12px;
-    padding-bottom: 12px;
-    min-height: 480px;
+    scrollbar-width: none;
+    margin-bottom: 10px;
+    width: 100%;
   }
-  .board .col {
-    flex: 0 0 84vw;
-    min-width: 84vw;
-    max-width: 84vw;
-    scroll-snap-align: center;
+  .mobile-stage-tab {
+    flex: 1;
+    min-width: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    color: var(--text-2);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--dur) var(--ease);
+  }
+  .mobile-stage-tab[data-on="1"] {
+    background: var(--surface-2);
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .mobile-stage-tab-name {
+    font-size: 11px;
+  }
+  .mobile-stage-tab-badge {
+    font-family: var(--f-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 99px;
+    background: var(--surface-3);
+    color: var(--text-2);
+  }
+  .mobile-stage-tab-badge[data-tone="accent"] {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  /* Mobile Stage Board: Full-width Ergonomic Cards with Zero Lateral Squishing */
+  .dispatch-board {
+    display: block !important;
+    overflow: visible !important;
+    min-height: 0 !important;
+  }
+  .dispatch-board .col.mobile-inactive-stage {
+    display: none !important;
+  }
+  .dispatch-board .col.mobile-active-stage {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: transparent;
+    border: 0;
+  }
+  .dispatch-board .col-head {
+    display: none !important;
+  }
+  .dispatch-board .col-body {
+    padding: 0;
+    gap: 12px;
+  }
+
+  /* Spacious Order Card Design on Mobile */
+  .ocard {
+    padding: 12px 14px;
+    border-radius: var(--r);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  }
+  .ocard-top {
+    margin-bottom: 6px;
+  }
+  .ocard-actions {
+    margin-top: 10px;
+  }
+  .ocard-actions button {
+    min-height: 40px;
+    font-size: 13px;
+    font-weight: 700;
   }
 
   /* Vertical Stacking for Couriers and Floor Scheme */

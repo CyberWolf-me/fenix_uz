@@ -32,6 +32,7 @@ const ICON_PATHS = {
   x: 'M5 5l10 10 M15 5 5 15',
   chevronR: 'M7.5 4.5 13 10l-5.5 5.5',
   chevronD: 'M5 7.5 10 13l5-5.5',
+  chevronU: 'M5 12.5 10 7l5 5.5',
   chevronL: 'M12.5 4.5 7 10l5.5 5.5',
   arrowUp: 'M10 16V4 M5 9l5-5 5 5',
   arrowDown: 'M10 4v12 M5 11l5 5 5-5',

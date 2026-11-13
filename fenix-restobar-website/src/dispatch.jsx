@@ -8,6 +8,7 @@ const COLUMNS = [
 ];
 
 function Kpis({ t, orders = [], bookingsCount = 0 }) {
+  const [expandedMobile, setExpandedMobile] = useState(false);
   const active = orders.filter((o) => o.col !== 'done').length;
   const inKitchen = orders.filter((o) => o.col === 'kitchen').length;
   const rev = orders.reduce((s, o) => s + (o.total || 0), 0);
@@ -50,29 +51,77 @@ function Kpis({ t, orders = [], bookingsCount = 0 }) {
       alert: attentionCount > 0,
     },
   ];
+
   return (
-    <div className="kpis">
-      {cards.map((c) => (
-        <div className="card kpi" key={c.label}>
-          <div className="kpi-top">
-            <span className="label">{t(c.label)}</span>
-            <span className="kpi-ico" style={c.alert ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
-              <Icon name={c.icon} size={14} />
+    <div className="kpis-container">
+      {/* Mobile Compact Metric Strip (Saves ~190px of vertical space on phones) */}
+      <div className="kpis-mobile-strip">
+        <button
+          type="button"
+          className="kpis-mobile-summary"
+          onClick={() => setExpandedMobile((v) => !v)}
+          aria-expanded={expandedMobile}
+          title="Нажмите, чтобы развернуть подробные метрики"
+        >
+          <div className="kpis-mobile-items">
+            <span className="kpis-mobile-pill active">
+              <span className="kpis-dot active" />
+              <b className="mono">{active}</b> в работе
             </span>
+            <span className="kpis-mobile-pill rev">
+              <span className="kpis-dot rev" />
+              <b className="mono">{summ(rev)}</b> сум
+            </span>
+            {attentionCount > 0 ? (
+              <span className="kpis-mobile-pill warn">
+                <span className="kpis-dot warn" />
+                <b className="mono">{attentionCount}</b> вним.
+              </span>
+            ) : (
+              <span className="kpis-mobile-pill">
+                <span className="kpis-dot info" />
+                <b className="mono">{bookingsCount}</b> брон.
+              </span>
+            )}
           </div>
-          <div className="kpi-body">
-            <div className="stat-num" style={c.serif ? undefined : undefined}>
-              {c.serif ? c.num : c.num}{c.suffix && <small>{c.suffix}</small>}
+          <span className="kpis-mobile-toggle">
+            <span>{expandedMobile ? 'Скрыть' : 'Сводка'}</span>
+            <Icon name={expandedMobile ? 'chevronU' : 'chevronD'} size={12} />
+          </span>
+        </button>
+      </div>
+
+      {/* Full Metric Cards Grid (Standard on Desktop, Accordion on Mobile) */}
+      <div className={`kpis ${expandedMobile ? 'mobile-expanded' : ''}`}>
+        {cards.map((c) => (
+          <div className="card kpi" key={c.label}>
+            <div className="kpi-top">
+              <span className="label">{t(c.label)}</span>
+              <span className="kpi-ico" style={c.alert ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
+                <Icon name={c.icon} size={14} />
+              </span>
             </div>
-            {c.delta && <span className="delta" data-up={c.up ? '1' : '0'}>
-              <Icon name="arrowUp" size={10} stroke={2.2} />{c.delta}</span>}
+            <div className="kpi-body">
+              <div className="stat-num">
+                {c.num}{c.suffix && <small>{c.suffix}</small>}
+              </div>
+              {c.delta && (
+                <span className="delta" data-up={c.up ? '1' : '0'}>
+                  <Icon name="arrowUp" size={10} stroke={2.2} />{c.delta}
+                </span>
+              )}
+            </div>
+            <div className="kpi-foot">
+              <span className="trunc">{c.foot}</span>
+              {c.pills.map((p) => (
+                <Pill key={p.text} tone={p.tone} dot={p.tone === 'ok'}>
+                  <span>{p.text}</span>
+                </Pill>
+              ))}
+            </div>
           </div>
-          <div className="kpi-foot">
-            <span className="trunc">{c.foot}</span>
-            {c.pills.map((p) => <Pill key={p.text} tone={p.tone} dot={p.tone === 'ok'}><span>{p.text}</span></Pill>)}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -328,7 +377,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const [q, setQ] = useState('');
   const [typeF, setTypeF] = useState('all');
   const [sort, setSort] = useState('sla');
-  const [density, setDensity] = useState('');
+  const [mobileStage, setMobileStage] = useState('new');
 
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
@@ -345,56 +394,111 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   }, [orders, q, typeF, sort]);
 
   const lateCount = filtered.filter((o) => slaState(o).late && o.col !== 'done').length;
+  const newCount = filtered.filter((o) => o.col === 'new').length;
 
   return (
-    <div className="page page-flush" style={{ padding: '14px 18px 0' }}>
+    <div className="page page-flush dispatch-page">
       <Kpis t={t} orders={orders} bookingsCount={bookingsCount} />
 
-      <div className="filters" style={{ marginBottom: 11 }}>
-        <div className="search">
-          <Icon name="search" size={13} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('search')} />
-          {q && <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')}><Icon name="x" size={11} /></button>}
-        </div>
+      {/* Structured Responsive Toolbar (Eliminates mobile collision & cramming) */}
+      <div className="dispatch-toolbar">
+        {/* Primary Controls Row: Search + View Toggles + Action */}
+        <div className="dispatch-toolbar-row">
+          <div className="search grow">
+            <Icon name="search" size={13} />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Поиск по номеру, имени или адресу..."
+            />
+            {q && (
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')} title="Очистить">
+                <Icon name="x" size={11} />
+              </button>
+            )}
+          </div>
 
-        <div className="chips">
-          {['all', 'delivery', 'pickup', 'hall'].map((k) => (
-            <button key={k} className="chip" data-on={typeF === k ? '1' : '0'} onClick={() => setTypeF(k)}>
-              {k === 'all' ? t('all') : t(k)}
+          <div className="seg hide-mobile">
+            <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по срочности SLA">SLA</button>
+            <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
+          </div>
+
+          <div className="seg">
+            <button data-on={view === 'board' ? '1' : '0'} onClick={() => setView('board')} title={t('board')}>
+              <Icon name="grid" size={12} />
             </button>
-          ))}
+            <button data-on={view === 'list' ? '1' : '0'} onClick={() => setView('list')} title={t('list')}>
+              <Icon name="bookStack" size={12} />
+            </button>
+          </div>
+
+          {newCount > 0 && (
+            <Btn size="sm" variant="accent" icon="check" onClick={() => dispatch('acceptAll')} title={t('accept_all')}>
+              <span className="hide-sm">{t('accept_all')}</span>
+            </Btn>
+          )}
         </div>
 
-        {lateCount > 0 && (
-          <Pill tone="danger" dot>{lateCount} {t('late')}</Pill>
-        )}
+        {/* Secondary Filter Row: Smooth Touch-Scrollable Chips (Zero text overlap) */}
+        <div className="dispatch-chips-row">
+          <div className="chips">
+            {['all', 'delivery', 'pickup', 'hall'].map((k) => (
+              <button key={k} className="chip" data-on={typeF === k ? '1' : '0'} onClick={() => setTypeF(k)}>
+                {k === 'all' ? t('all') : t(k)}
+              </button>
+            ))}
+          </div>
 
-        <div className="seg">
-          <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по SLA">SLA</button>
-          <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме">Σ</button>
+          {lateCount > 0 && (
+            <Pill tone="danger" dot>{lateCount} {t('late')}</Pill>
+          )}
+
+          <div className="seg show-mobile-only" style={{ marginLeft: 'auto' }}>
+            <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по SLA">SLA</button>
+            <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
+          </div>
         </div>
-
-        <div className="seg">
-          <button data-on={view === 'board' ? '1' : '0'} onClick={() => setView('board')} title={t('board')}>
-            <Icon name="grid" size={12} />
-          </button>
-          <button data-on={view === 'list' ? '1' : '0'} onClick={() => setView('list')} title={t('list')}>
-            <Icon name="bookStack" size={12} />
-          </button>
-        </div>
-
-        <Btn size="sm" variant="ghost" icon="check" onClick={() => dispatch('acceptAll')} title={t('accept_all')}>
-          <span className="hide-sm">{t('accept_all')}</span>
-        </Btn>
       </div>
+
+      {/* Mobile Stage Selector Tabs (Purpose-built for handheld touch ergonomics) */}
+      {view === 'board' && (
+        <div className="mobile-stage-tabs" role="tablist" aria-label="Статусы заказов">
+          {COLUMNS.map((c) => {
+            const list = filtered.filter((o) => o.col === c.id);
+            const on = mobileStage === c.id;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                className="mobile-stage-tab"
+                data-on={on ? '1' : '0'}
+                onClick={() => setMobileStage(c.id)}
+                style={{ '--stage-tone': c.tone }}
+              >
+                <span className="mobile-stage-tab-name">{t(c.label)}</span>
+                <span className="mobile-stage-tab-badge" data-tone={c.id === 'new' && list.length > 0 ? 'accent' : 'normal'}>
+                  {list.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingBottom: 14 }}>
         {view === 'board' ? (
-          <div className="board">
+          <div className="board dispatch-board" data-mobile-stage={mobileStage}>
             {COLUMNS.map((c) => {
               const list = filtered.filter((o) => o.col === c.id);
+              const isMobileActive = mobileStage === c.id;
               return (
-                <section className="col" key={c.id} data-screen-label={t(c.label)}>
+                <section
+                  className={`col ${isMobileActive ? 'mobile-active-stage' : 'mobile-inactive-stage'}`}
+                  key={c.id}
+                  data-screen-label={t(c.label)}
+                >
                   <div className="col-head" style={{ '--col-tone': c.tone }}>
                     <span className="col-idx">{c.idx}</span>
                     <span className="col-name">{t(c.label)}</span>
