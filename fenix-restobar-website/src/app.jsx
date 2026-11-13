@@ -59,18 +59,19 @@ function App() {
   const [view, setView] = useState(() => {
     try { return localStorage.getItem('fx.view') || 'board'; } catch (e) { return 'board'; }
   });
-  const [orders, setOrders] = useState(FX.orders);
+  const [orders, setOrders] = useState([]);
   const [openOrder, setOpenOrder] = useState(null);
   const [printOrder, setPrintOrder] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [bookingsCount, setBookingsCount] = useState(0);
   const [cmdk, setCmdk] = useState(false);
   const [toasts, pushToast] = useToasts();
   const now = useTick(1000);
-  const seenOrderIds = useRef(new Set(FX.orders.map((o) => o.id)));
+  const seenOrderIds = useRef(new Set());
 
   const t = useCallback((k) => (FX_I18N[lang] && FX_I18N[lang][k]) || (FX_I18N.ru[k] || k), [lang]);
 
-  // Live Sync with Backend
+  // Live Sync with Backend Orders
   const syncOrders = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch('/api/admin/orders');
@@ -120,22 +121,35 @@ function App() {
           mapped.forEach((o) => seenOrderIds.current.add(o.id));
         }
 
-        setOrders((prev) => {
-          const realIds = new Set(mapped.map((m) => m.id));
-          const remainingDemo = FX.orders.filter((d) => !realIds.has(d.id));
-          return [...mapped, ...remainingDemo];
-        });
+        // ONLY real orders from SQLite
+        setOrders(mapped);
       }
     } catch (e) {
       console.error('Error syncing orders:', e);
     }
   }, [pushToast, tw.sound]);
 
+  // Sync bookings count for header KPI
+  const syncBookingsCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/reservations');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.ok && Array.isArray(data.reservations)) {
+        setBookingsCount(data.reservations.length);
+      }
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     syncOrders(true);
-    const interval = setInterval(() => syncOrders(false), 6000);
+    syncBookingsCount();
+    const interval = setInterval(() => {
+      syncOrders(false);
+      syncBookingsCount();
+    }, 6000);
     return () => clearInterval(interval);
-  }, [syncOrders]);
+  }, [syncOrders, syncBookingsCount]);
 
   /* persist */
   useEffect(() => { try { localStorage.setItem('fx.page', page); } catch (e) {} }, [page]);
@@ -247,14 +261,15 @@ function App() {
   const screens = {
     dispatch: <Dispatch t={t} orders={orders} dispatch={dispatch} view={view} setView={setView}
                         onOpen={setOpenOrder} onAdvance={(o) => advance(o)}
-                        onPrint={setPrintOrder} toast={pushToast} lang={lang} />,
+                        onPrint={setPrintOrder} toast={pushToast} lang={lang}
+                        bookingsCount={bookingsCount} />,
     bookings: <Bookings t={t} toast={pushToast} />,
     banquets: <Banquets t={t} toast={pushToast} />,
     floor: <Floor t={t} toast={pushToast} />,
-    couriers: <Couriers t={t} toast={pushToast} />,
+    couriers: <Couriers t={t} toast={pushToast} orders={orders} />,
     menu: <MenuScreen t={t} toast={pushToast} />,
     staff: <Staff t={t} toast={pushToast} />,
-    analytics: <Analytics t={t} />,
+    analytics: <Analytics t={t} orders={orders} />,
     settings: <Settings t={t} theme={theme} setTheme={(v) => setTweak('theme', v)} dir={dir} setDir={(v) => setTweak('dir', v)}
                        lang={lang} setLang={(v) => setTweak('lang', v)} sound={tw.sound} setSound={(v) => setTweak('sound', v)}
                        rail={tw.rail} setRail={(v) => setTweak('rail', v)} />,

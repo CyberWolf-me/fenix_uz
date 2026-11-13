@@ -7,20 +7,48 @@ const COLUMNS = [
   { id: 'done', idx: '04', label: 'done', tone: 'var(--ok)' },
 ];
 
-function Kpis({ t, orders }) {
+function Kpis({ t, orders = [], bookingsCount = 0 }) {
   const active = orders.filter((o) => o.col !== 'done').length;
-  const rev = orders.reduce((s, o) => s + o.total, 0) + 1180000;
+  const inKitchen = orders.filter((o) => o.col === 'kitchen').length;
+  const rev = orders.reduce((s, o) => s + (o.total || 0), 0);
   const late = orders.filter((o) => slaState(o).late && o.col !== 'done').length;
+  const newOrdersCount = orders.filter((o) => o.col === 'new').length;
+  const attentionCount = newOrdersCount + late;
+
   const cards = [
-    { label: 'active_orders', icon: 'dpad', num: active, foot: t('in_kitchen'),
-      pills: [{ tone: 'ok', text: t('kitchen_ok') }] },
-    { label: 'revenue', icon: 'wallet', num: summ(rev), suffix: 'сум', serif: true,
-      foot: `${t('checks')}: ${orders.length + 9}`, pills: [{ tone: 'ok', text: t('today') }],
-      delta: '+12.4%', up: true, spark: FX.revenue },
-    { label: 'bookings_today', icon: 'calendar', num: 4, foot: `${t('pending')}: 4`,
-      pills: [{ tone: 'info', text: '3 зала' }] },
-    { label: 'attention', icon: 'alert', num: late + 4, foot: t('new_orders'),
-      pills: [{ tone: 'warn', text: t('pending') }], alert: true },
+    {
+      label: 'active_orders',
+      icon: 'dpad',
+      num: active,
+      foot: inKitchen > 0 ? `${inKitchen} на кухне` : active > 0 ? `${active} в обработке` : 'Кухня свободна',
+      pills: [{ tone: active > 6 ? 'warn' : 'ok', text: active > 0 ? 'Кухня в норме' : 'Ожидание' }],
+    },
+    {
+      label: 'revenue',
+      icon: 'wallet',
+      num: summ(rev),
+      suffix: 'сум',
+      serif: true,
+      foot: `${t('checks')}: ${orders.length}`,
+      pills: [{ tone: 'ok', text: t('today') }],
+      delta: orders.length > 0 ? `${orders.length} заказов` : null,
+      up: true,
+    },
+    {
+      label: 'bookings_today',
+      icon: 'calendar',
+      num: bookingsCount,
+      foot: bookingsCount > 0 ? `${bookingsCount} активных броней` : 'Броней на сегодня нет',
+      pills: [{ tone: 'info', text: '3 зала' }],
+    },
+    {
+      label: 'attention',
+      icon: 'alert',
+      num: attentionCount,
+      foot: newOrdersCount > 0 ? `${newOrdersCount} новых требуют ответа` : 'Все заказы в работе',
+      pills: [{ tone: attentionCount > 0 ? 'warn' : 'ok', text: attentionCount > 0 ? 'Внимание' : 'В норме' }],
+      alert: attentionCount > 0,
+    },
   ];
   return (
     <div className="kpis">
@@ -296,7 +324,7 @@ function ReceiptModal({ o, onClose, t }) {
   );
 }
 
-function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang }) {
+function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang, bookingsCount = 0 }) {
   const [q, setQ] = useState('');
   const [typeF, setTypeF] = useState('all');
   const [sort, setSort] = useState('sla');
@@ -320,7 +348,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
 
   return (
     <div className="page page-flush" style={{ padding: '14px 18px 0' }}>
-      <Kpis t={t} orders={orders} />
+      <Kpis t={t} orders={orders} bookingsCount={bookingsCount} />
 
       <div className="filters" style={{ marginBottom: 11 }}>
         <div className="search">
@@ -379,7 +407,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
                     {!list.length && (
                       <div className="empty">
                         <Icon name="box" size={22} />
-                        <span>{c.id === 'way' ? 'Нет заказов в пути' : t('none')}</span>
+                        <span>{c.id === 'new' ? 'Новых заказов нет' : c.id === 'kitchen' ? 'На кухне свободно' : c.id === 'way' ? 'Нет заказов в пути' : 'Выполненных заказов нет'}</span>
                       </div>
                     )}
                   </div>

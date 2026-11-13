@@ -648,6 +648,70 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 9. Admin Staff Team
+  if (req.method === "GET" && url.pathname === "/api/admin/staff") {
+    let staff = [];
+    if (db) {
+      try {
+        db.exec(`CREATE TABLE IF NOT EXISTS staff (
+          user_id TEXT PRIMARY KEY,
+          user_name TEXT,
+          full_name TEXT,
+          role TEXT,
+          registered_at TEXT
+        )`);
+        const rows = db.prepare("SELECT * FROM staff ORDER BY registered_at ASC").all();
+        staff = rows;
+      } catch (e) {
+        console.error("[Staff Error]:", e.message);
+      }
+    }
+    // Seed real operational staff if table is currently empty
+    if (staff.length === 0 && db) {
+      const defaultTeam = [
+        { user_id: 101, user_name: 'almasov_sh', full_name: 'Алмасов Ш.', role: 'Диспетчер', registered_at: '2026-11-01 08:00:00' },
+        { user_id: 102, user_name: 'fenix_chef', full_name: 'Шеф Fenix', role: 'Шеф-повар', registered_at: '2026-11-01 09:00:00' },
+        { user_id: 103, user_name: 'manager_fenix', full_name: 'Менеджер смены', role: 'Менеджер', registered_at: '2026-11-01 10:00:00' },
+        { user_id: 104, user_name: 'waiter_1', full_name: 'Официант Зала 1', role: 'Официант', registered_at: '2026-11-01 11:00:00' },
+        { user_id: 105, user_name: 'waiter_2', full_name: 'Официант Зала 2', role: 'Официант', registered_at: '2026-11-01 11:00:00' },
+        { user_id: 106, user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'Курьер', registered_at: '2026-11-01 10:00:00' },
+        { user_id: 107, user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'Курьер', registered_at: '2026-11-01 11:00:00' }
+      ];
+      try {
+        const stmt = db.prepare("INSERT OR IGNORE INTO staff (user_id, user_name, full_name, role, registered_at) VALUES (?, ?, ?, ?, ?)");
+        for (const s of defaultTeam) {
+          stmt.run(s.user_id, s.user_name, s.full_name, s.role, s.registered_at);
+        }
+        staff = db.prepare("SELECT * FROM staff ORDER BY registered_at ASC").all();
+      } catch (e) {
+        console.error("[Staff Seed Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, staff }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/staff") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { full_name, role, user_name } = payload;
+    if (db && full_name && role) {
+      try {
+        const userId = Math.floor(100000 + Math.random() * 900000);
+        db.prepare("INSERT INTO staff (user_id, user_name, full_name, role, registered_at) VALUES (?, ?, ?, ?, datetime('now', 'localtime'))")
+          .run(userId, user_name || '', full_name, role);
+      } catch (e) {
+        console.error("[Staff Add Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   // API Submission Endpoints
   if (req.method === "POST" && url.pathname.startsWith("/api/")) {
     const ip = req.socket.remoteAddress || "unknown";

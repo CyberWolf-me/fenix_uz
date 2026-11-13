@@ -1,28 +1,62 @@
 /* ═══════════ ANALYTICS · SETTINGS ═══════════ */
 
-function Analytics({ t }) {
-  const hours = FX.revenue.map((_, i) => (11 + i) + ':00');
-  const total = FX.revenue.reduce((a, b) => a + b, 0) * 1000;
-  const prev = FX.prevRevenue.reduce((a, b) => a + b, 0) * 1000;
-  const growth = ((total - prev) / prev) * 100;
+function Analytics({ t, orders = [] }) {
+  const completedOrders = orders.filter((o) => o.col === 'done');
+  const total = orders.reduce((s, o) => s + (o.total || 0), 0);
+  const completedTotal = completedOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const totalOrders = orders.length;
+  const completedCount = completedOrders.length;
+  const cancelledCount = orders.filter((o) => (o.status || '').includes('отмен')).length;
+
+  const avgCheck = totalOrders > 0 ? Math.round(total / totalOrders) : 0;
+  const completionRate = totalOrders > 0 ? Math.round((completedCount / totalOrders) * 100) : 100;
+
+  // Real hourly distribution (from 11:00 to 23:00)
+  const hours = ['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+  const realHourly = hours.map((h) => {
+    const hr = parseInt(h.split(':')[0]);
+    const inHour = orders.filter((o) => {
+      const d = new Date(o.createdAt || Date.now());
+      return d.getHours() === hr;
+    });
+    return Math.round(inHour.reduce((s, o) => s + (o.total || 0), 0) / 1000);
+  });
+
+  // Calculate actual top items from orders
+  const itemCounts = {};
+  orders.forEach((o) => {
+    (o.items || []).forEach((it) => {
+      const n = it.n || 'Блюдо';
+      itemCounts[n] = (itemCounts[n] || 0) + (it.q || 1);
+    });
+  });
+  const topList = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxTop = topList.length > 0 ? Math.max(...topList.map((x) => x[1])) : 1;
+
+  // Order types breakdown
+  const delCount = orders.filter((o) => o.type === 'delivery').length;
+  const pickCount = orders.filter((o) => o.type === 'pickup').length;
+  const hallCount = orders.filter((o) => o.type === 'hall').length;
+  const safeTotal = totalOrders || 1;
 
   return (
     <div className="page">
       <div className="kpis">
         {[
-          { l: 'revenue_today', v: summ(total), f: `${growth > 0 ? '+' : ''}${growth.toFixed(1)}% ${t('compare')}`, icon: 'wallet', delta: growth },
-          { l: 'avg_check', v: summ(186000), f: '−3.2% к прошлой неделе', icon: 'receipt', delta: -3.2 },
-          { l: 'completed', v: 96, f: 'Из 104 заказов · 92%', icon: 'check' },
-          { l: 'cancellations', v: 8, f: '7.7% от всех заказов', icon: 'x', warn: true },
+          { l: 'revenue_today', v: summ(total), f: `${totalOrders} чеков за смену`, icon: 'wallet' },
+          { l: 'avg_check', v: summ(avgCheck), f: 'Средний чек заказа', icon: 'receipt' },
+          { l: 'completed', v: completedCount, f: `Из ${totalOrders} заказов · ${completionRate}%`, icon: 'check' },
+          { l: 'cancellations', v: cancelledCount, f: `${cancelledCount} отмен`, icon: 'x', warn: cancelledCount > 0 },
         ].map((c) => (
           <div className="card kpi" key={c.l}>
-            <div className="kpi-top"><span className="label">{t(c.l)}</span>
+            <div className="kpi-top">
+              <span className="label">{t(c.l)}</span>
               <span className="kpi-ico" style={c.warn ? { color: 'var(--danger)', background: 'var(--danger-soft)' } : undefined}>
-                <Icon name={c.icon} size={14} /></span></div>
+                <Icon name={c.icon} size={14} />
+              </span>
+            </div>
             <div className="kpi-body">
               <div className="stat-num">{c.v}</div>
-              {c.delta != null && <span className="delta" data-up={c.delta > 0 ? '1' : '0'}>
-                <Icon name={c.delta > 0 ? 'arrowUp' : 'arrowDown'} size={10} stroke={2.2} />{Math.abs(c.delta).toFixed(1)}%</span>}
             </div>
             <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
           </div>
@@ -34,56 +68,44 @@ function Analytics({ t }) {
           <div className="row" style={{ marginBottom: 12 }}>
             <div>
               <div className="label">{t('rev_by_hour')}</div>
-              <div className="money-lg" style={{ fontSize: 21, marginTop: 2 }}>{summ(total)} <span style={{ fontSize: 10, fontFamily: 'var(--f-body)', fontWeight: 600, color: 'var(--text-3)' }}>сум</span></div>
+              <div className="money-lg" style={{ fontSize: 21, marginTop: 2 }}>
+                {summ(total)} <span style={{ fontSize: 10, fontFamily: 'var(--f-body)', fontWeight: 600, color: 'var(--text-3)' }}>сум</span>
+              </div>
             </div>
             <span className="grow" />
             <div className="row" style={{ gap: 10, fontSize: 9.5 }}>
               <span className="row" style={{ gap: 4, color: 'var(--text-2)' }}>
                 <span style={{ width: 14, height: 2, background: 'var(--accent)', display: 'block', borderRadius: 2 }} />Сегодня
               </span>
-              <span className="row" style={{ gap: 4, color: 'var(--text-3)' }}>
-                <span style={{ width: 14, height: 2, background: 'var(--text-3)', display: 'block', borderRadius: 2 }} />Неделю назад
-              </span>
             </div>
           </div>
           <LineChart
             labels={hours}
             series={[
-              { data: FX.prevRevenue, color: 'var(--text-3)', dash: true },
-              { data: FX.revenue, color: 'var(--accent)', fill: true },
+              { data: realHourly, color: 'var(--accent)', fill: true },
             ]} height={168} />
         </div>
 
         <div className="card" style={{ padding: 14 }}>
           <div className="label">{t('kitchen_load')}</div>
-          <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>Заказов в час · % загрузки цеха</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {FX.kitchenLoad.slice(-6).map((k) => (
-              <div key={k.h} className="row" style={{ gap: 8 }}>
-                <span className="mono dim" style={{ fontSize: 9.5, width: 38 }}>{k.h}</span>
-                <div style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{
-                    width: k.load + '%', height: '100%', borderRadius: 99,
-                    background: k.load > 85 ? 'var(--danger)' : k.load > 65 ? 'var(--warn)' : 'var(--ok)',
-                    transition: 'width .4s var(--ease)',
-                  }} />
-                </div>
-                <span className="mono" style={{ fontSize: 9.5, width: 22, textAlign: 'right', color: 'var(--text-2)' }}>{k.load}</span>
-              </div>
-            ))}
+          <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>
+            {orders.filter((o) => o.col === 'kitchen').length} готовятся · {orders.filter((o) => o.col === 'way').length} на доставке
           </div>
           <div style={{ marginTop: 13, paddingTop: 11, borderTop: '1px solid var(--line-soft)' }}>
             <div className="label">{t('top_items')}</div>
             <div className="col-flex" style={{ marginTop: 7, gap: 6 }}>
-              {[['Плов «Феникс»', 34], ['Мясо по-французски', 28], ['Сельдерей с мясом', 19], ['Лапша с тефтелькой', 15]].map(([n, v]) => (
+              {topList.map(([n, v]) => (
                 <div key={n} className="row" style={{ gap: 7, fontSize: 10.5 }}>
                   <span className="grow trunc">{n}</span>
                   <div style={{ width: 52, height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ width: (v / 34) * 100 + '%', height: '100%', background: 'var(--accent)', opacity: .8 }} />
+                    <div style={{ width: (v / maxTop) * 100 + '%', height: '100%', background: 'var(--accent)', opacity: 0.8 }} />
                   </div>
                   <span className="mono dim" style={{ fontSize: 9, width: 16, textAlign: 'right' }}>{v}</span>
                 </div>
               ))}
+              {!topList.length && (
+                <div className="dim" style={{ fontSize: 11 }}>Заказов с позициями меню пока нет</div>
+              )}
             </div>
           </div>
         </div>
@@ -91,20 +113,17 @@ function Analytics({ t }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12 }}>
         {[
-          { l: 'delivery', v: 54, c: 'var(--info)', f: '52% заказов · ср. 28 мин' },
-          { l: 'pickup', v: 27, c: 'var(--warn)', f: '26% заказов · ср. 18 мин' },
-          { l: 'hall', v: 23, c: 'var(--violet)', f: '22% заказов · ср. 42 мин' },
+          { l: 'delivery', v: delCount, c: 'var(--info)', f: `${Math.round((delCount / safeTotal) * 100)}% всех заказов` },
+          { l: 'pickup', v: pickCount, c: 'var(--warn)', f: `${Math.round((pickCount / safeTotal) * 100)}% всех заказов` },
+          { l: 'hall', v: hallCount, c: 'var(--violet)', f: `${Math.round((hallCount / safeTotal) * 100)}% всех заказов` },
         ].map((s) => (
           <div key={s.l} className="card" style={{ padding: 13 }}>
             <div className="row">
               <span className="label">{t(s.l)}</span>
               <span className="grow" />
-              <span className="mono" style={{ fontSize: 10, color: 'var(--text-2)' }}>{s.v}%</span>
+              <span className="stat-num" style={{ fontSize: 18, color: s.c }}>{s.v}</span>
             </div>
-            <div style={{ marginTop: 9, height: 5, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ width: s.v + '%', height: '100%', background: s.c, opacity: .85, borderRadius: 99 }} />
-            </div>
-            <div className="dim" style={{ fontSize: 9.5, marginTop: 7 }}>{s.f}</div>
+            <div className="dim trunc" style={{ fontSize: 10, marginTop: 4 }}>{s.f}</div>
           </div>
         ))}
       </div>

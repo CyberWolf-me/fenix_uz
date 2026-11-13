@@ -37,13 +37,7 @@ function Bookings({ t, toast }) {
             };
           });
 
-          setRows((prev) => {
-            const backendCodes = new Set(mapped.map((m) => String(m.code || m.id)));
-            const demoRemaining = FX.bookings.filter(
-              (b) => !backendCodes.has(String(b.id)) && !backendCodes.has(String(b.code))
-            );
-            return [...mapped, ...demoRemaining];
-          });
+          setRows(mapped);
         }
       } catch (e) {
         console.error('Error fetching reservations:', e);
@@ -135,7 +129,7 @@ function Bookings({ t, toast }) {
             {list.map((b) => (
               <tr key={b.id + b.time} style={{ cursor: 'default' }}>
                 <td className="mono dim">#{b.id}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>{b.date === 'today' ? t('today') : t('tomorrow')}, 2026-11-1{b.date === 'today' ? '4' : '5'}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{b.date === 'today' ? t('today') : b.date === 'tomorrow' ? t('tomorrow') : b.date}</td>
                 <td className="mono" style={{ fontWeight: 600 }}>{b.time}</td>
                 <td style={{ fontWeight: 600 }}>{b.client}</td>
                 <td className="mono dim" style={{ fontSize: 10.5 }}>{b.phone}</td>
@@ -153,6 +147,15 @@ function Bookings({ t, toast }) {
                 </td>
               </tr>
             ))}
+            {!list.length && (
+              <tr>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '38px 12px', color: 'var(--text-3)' }}>
+                  <Icon name="calendar" size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>Броней на выбранную дату нет</div>
+                  <div style={{ fontSize: 11, marginTop: 3 }}>Новые заявки на бронирование столов появятся здесь автоматически</div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         {!list.length && <div className="empty" style={{ padding: 40 }}><Icon name="calendar" size={24} /><span>{t('no_bookings')}</span></div>}
@@ -171,7 +174,7 @@ function Banquets({ t, toast }) {
         const res = await fetch('/api/admin/events');
         if (!res.ok) return;
         const data = await res.json();
-        if (active && data && data.ok && Array.isArray(data.events) && data.events.length > 0) {
+        if (active && data && data.ok && Array.isArray(data.events)) {
           const mapped = data.events.map((ev) => ({
             id: ev.eventId ? `BNQ-${ev.eventId}` : `BNQ-${ev.id}`,
             eventId: ev.eventId || ev.id,
@@ -185,10 +188,7 @@ function Banquets({ t, toast }) {
             deposit: 5000000,
             status: (ev.status || '').includes('подтвержд') ? 'confirmed' : 'waiting',
           }));
-          setRows((prev) => {
-            const evIds = new Set(mapped.map((m) => m.id));
-            return [...mapped, ...FX.banquets.filter((b) => !evIds.has(b.id))];
-          });
+          setRows(mapped);
         }
       } catch (e) {
         console.error('Error fetching events:', e);
@@ -268,6 +268,15 @@ function Banquets({ t, toast }) {
                 </td>
               </tr>
             ))}
+            {!rows.length && (
+              <tr>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '38px 12px', color: 'var(--text-3)' }}>
+                  <Icon name="star" size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.5 }} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>Заявок на банкеты пока нет</div>
+                  <div style={{ fontSize: 11, marginTop: 3 }}>Входящие заявки на банкеты и торжества будут отображаться здесь</div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -295,6 +304,27 @@ function Floor({ t, toast }) {
   const [tables, setTables] = useState(FLOOR_TABLES);
   const [sel, setSel] = useState(null);
   const [drag, setDrag] = useState(null);
+  const [liveBookings, setLiveBookings] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/admin/reservations')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && Array.isArray(data.reservations)) {
+          setLiveBookings(data.reservations.map(r => ({
+            id: r.id || r.code,
+            time: r.res_time || '19:00',
+            date: r.res_date || '',
+            client: r.customer_name || 'Гость',
+            guests: r.guests || 2,
+            zone: r.zone || 'Основной зал',
+            table: r.table || r.zone || 'Основной зал',
+            status: r.status || 'confirmed'
+          })));
+        }
+      })
+      .catch(err => console.error('Floor reservations fetch error:', err));
+  }, []);
 
   const onDrop = (e) => {
     if (!drag) return;
@@ -338,7 +368,7 @@ function Floor({ t, toast }) {
             <rect width="100%" height="100%" fill="url(#gridp)" />
           </svg>
           <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', fontSize: 8.5, letterSpacing: 'var(--track-label)', textTransform: 'uppercase', color: 'var(--text-3)', fontWeight: 700 }}>
-            Вход · Юнуса Раджабий, 3 этаж
+            Вход · Яшнабадский район, ул. Хуснобод 5-й проезд, 1
           </div>
           {tables.map((tb) => {
             const tone = 'var(--' + FLOOR_TONE[tb.st] + ')';
@@ -397,14 +427,14 @@ function Floor({ t, toast }) {
                 <div style={{ paddingTop: 9, borderTop: '1px solid var(--line-soft)' }}>
                   <div className="label">{t('today')}</div>
                   <div className="col-flex" style={{ marginTop: 6, gap: 6 }}>
-                    {FX.bookings.filter((b) => b.table && b.table.includes(tb.label)).slice(0, 3).map((b) => (
+                    {liveBookings.filter((b) => (b.table && b.table.includes(tb.label)) || (b.zone && b.zone.includes(tb.label))).slice(0, 3).map((b) => (
                       <div key={b.id} style={{ fontSize: 10.5, display: 'flex', gap: 6 }}>
                         <span className="mono dim">{b.time}</span>
                         <span className="trunc">{b.client}</span>
                         <span className="dim" style={{ marginLeft: 'auto' }}>{b.guests} чел.</span>
                       </div>
                     ))}
-                    {!FX.bookings.filter((b) => b.table && b.table.includes(tb.label)).length && (
+                    {!liveBookings.filter((b) => (b.table && b.table.includes(tb.label)) || (b.zone && b.zone.includes(tb.label))).length && (
                       <span className="dim" style={{ fontSize: 10.5 }}>Броней нет</span>
                     )}
                   </div>

@@ -1,16 +1,19 @@
 /* ═══════════ COURIERS · MENU · STAFF ═══════════ */
 
-function Couriers({ t, toast }) {
+function Couriers({ t, toast, orders = [] }) {
   const [sel, setSel] = useState('C-1');
-  const active = FX.couriers.find((c) => c.id === sel);
+  const deliveringCount = orders.filter((o) => o.type === 'delivery' && o.col === 'way').length;
+  const completedDeliveries = orders.filter((o) => o.type === 'delivery' && o.col === 'done').length;
+
+  const active = FX.couriers.find((c) => c.id === sel) || FX.couriers[0];
   return (
     <div className="page">
       <div className="kpis">
         {[
-          { l: 'couriers', v: FX.couriers.length, f: 'Три на линии · два свободны', icon: 'bike' },
-          { l: 'active_orders', v: 3, f: 'В доставке прямо сейчас', icon: 'truck' },
-          { l: 'sla_avg', v: '28', f: 'мин · цель 35 мин', icon: 'clock' },
-          { l: 'completed', v: 17, f: 'Доставлено за смену', icon: 'check' },
+          { l: 'couriers', v: FX.couriers.length, f: 'Курьерская служба Fenix', icon: 'bike' },
+          { l: 'active_orders', v: deliveringCount, f: 'На доставке прямо сейчас', icon: 'truck' },
+          { l: 'sla_avg', v: '32', f: 'мин · среднее время доставки', icon: 'clock' },
+          { l: 'completed', v: completedDeliveries, f: 'Доставлено заказов', icon: 'check' },
         ].map((c) => (
           <div className="card kpi" key={c.l}>
             <div className="kpi-top"><span className="label">{t(c.l)}</span>
@@ -134,7 +137,7 @@ function Couriers({ t, toast }) {
 
 function MenuScreen({ t, toast }) {
   const [data, setData] = useState(FX.menu);
-  const [openCats, setOpenCats] = useState({ 'Горячее': true, 'Салаты': true });
+  const [openCats, setOpenCats] = useState({ 'Закуски': true, 'Салаты': true, 'Вторые блюда': true });
 
   useEffect(() => {
     fetch('/api/admin/menu/stoplist')
@@ -282,6 +285,55 @@ function MenuScreen({ t, toast }) {
 
 function Staff({ t, toast }) {
   const [tab, setTab] = useState('team');
+  const [team, setTeam] = useState(FX.staff);
+
+  const fetchStaff = () => {
+    fetch('/api/admin/staff')
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && Array.isArray(data.staff) && data.staff.length > 0) {
+          const mapped = data.staff.map(s => {
+            const initials = s.full_name ? s.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '??';
+            return {
+              name: s.full_name,
+              role: s.role,
+              shift: '10:00 – 23:00',
+              status: 'online',
+              initials,
+              phone: s.user_name ? '@' + s.user_name : '+998 97 185 00 10',
+              deliver: s.role === 'Курьер' ? 0 : 0
+            };
+          });
+          setTeam(mapped);
+        }
+      })
+      .catch(err => console.error('Staff fetch error:', err));
+  };
+
+  useEffect(() => {
+    fetchStaff();
+  }, []);
+
+  const handleInvite = () => {
+    const name = window.prompt('Введите ФИО сотрудника (например: Иброхимов А.):');
+    if (!name || !name.trim()) return;
+    const role = window.prompt('Должность (Диспетчер, Шеф-повар, Менеджер, Официант, Курьер):', 'Официант');
+    if (!role || !role.trim()) return;
+    fetch('/api/admin/staff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: name.trim(), role: role.trim() })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          toast(`Сотрудник ${name.trim()} добавлен в смену`, 'ok', 'users');
+          fetchStaff();
+        }
+      })
+      .catch(err => toast('Ошибка добавления: ' + err.message, 'err'));
+  };
+
   const roles = [
     { r: 'Диспетчер', p: ['Заказы', 'Брони', 'Курьеры'] },
     { r: 'Менеджер', p: ['Заказы', 'Брони', 'Банкеты', 'Аналитика', 'Меню'] },
@@ -297,12 +349,12 @@ function Staff({ t, toast }) {
           <button data-on={tab === 'perm' ? '1' : '0'} onClick={() => setTab('perm')}>{t('permissions')}</button>
         </div>
         <span className="grow" />
-        <Btn size="sm" icon="plus" onClick={() => toast('Приглашение отправлено', 'ok', 'users')}>{t('invite')}</Btn>
+        <Btn size="sm" icon="plus" onClick={handleInvite}>{t('invite')}</Btn>
       </div>
 
       {tab === 'team' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(238px, 1fr))', gap: 11 }}>
-          {FX.staff.map((s) => (
+          {team.map((s) => (
             <div key={s.name} className="card" style={{ padding: 12 }}>
               <div className="row" style={{ alignItems: 'flex-start' }}>
                 <span className="avatar" style={{ width: 33, height: 33, fontSize: 11 }} data-tone={s.status === 'online' ? 'accent' : undefined}>{s.initials}</span>
