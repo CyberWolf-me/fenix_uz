@@ -80,7 +80,7 @@
         <div><p class="label">${e(t('footer.find'))}</p><p><a class="link" style="border:0;color:var(--text-dim)" href="${F.maps.yandex}" target="_blank" rel="noopener" data-track="directions">${e(F.address[L()])}<span class="sr-only"> (${e(t('a11y.newTab'))})</span></a></p></div>
         <div><p class="label">${e(t('footer.call'))}</p><ul>${F.phones.map(p => `<li><a href="${p.href}" data-track="call">${p.display}</a></li>`).join('')}</ul></div>
         <div><p class="label">${e(t('footer.hours'))}${S.dot(F.hours.status)}</p><p>${S.hoursCompact()}</p></div>
-        <div><p class="label">${e(t('footer.follow'))}</p><ul><li><a href="${F.telegram.href}" target="_blank" rel="noopener">Telegram · ${F.telegram.display}</a></li><li><a href="${F.bot ? F.bot.href : 'https://t.me/Fenix_restaurant_bot'}" target="_blank" rel="noopener">🤖 Bot · @Fenix_restaurant_bot</a></li><li><a href="${F.instagram.href}" target="_blank" rel="noopener">Instagram · ${F.instagram.display}</a></li><li><a href="#/privacy">${e(t('nav.privacy'))}</a></li></ul></div>
+        <div><p class="label">${e(t('footer.follow'))}</p><ul><li><a href="${F.telegram.href}" target="_blank" rel="noopener">Telegram · ${F.telegram.display}</a></li><li><a href="${F.bot ? F.bot.href : 'https://t.me/Fenix_restaurant_bot'}" target="_blank" rel="noopener">Telegram Bot · @Fenix_restaurant_bot</a></li><li><a href="${F.instagram.href}" target="_blank" rel="noopener">Instagram · ${F.instagram.display}</a></li><li><a href="#/privacy">${e(t('nav.privacy'))}</a></li></ul></div>
       </div>
       <div class="ftr-word">${S.logos.wordmark || ''}</div>
       <div class="ftr-bar"><span>${e(t('footer.rights'))}</span><span>${e(t('footer.city'))}</span></div>
@@ -188,11 +188,7 @@
   S.pages.menu = (p) => {
     const menu = ['europe', 'korea', 'bar'].includes(p[0]) ? p[0] : 'europe';
     const secs = S.sections[menu];
-    const allMenu = S.items.filter(i => i.menu === menu);
-    const countTotal = allMenu.length;
-    const countPhotos = allMenu.filter(i => S.DISH_PHOTOS.has(i.id)).length;
-    const curFilter = S.menuFilter || 'all';
-
+    const count = S.items.filter(i => i.menu === menu).length;
     return `
     <div data-screen-label="Menu">
       ${pageHead('nav.menu', 'menu.title', 'menu.lede', `<div class="menu-tabs" role="tablist">${['europe', 'korea', 'bar'].map(m => `<button role="tab" type="button" aria-selected="${m === menu}" data-menu-tab="${m}">${e(t('menu.tabs.' + m))}</button>`).join('')}</div>`)}
@@ -201,26 +197,23 @@
       </nav></div></div>
       <div class="wrap">
         <div class="menu-tools">
-          <div class="menu-filter-pills" role="radiogroup" aria-label="Menu filter">
-            <button type="button" class="filter-pill ${curFilter !== 'photos' ? 'on' : ''}" data-filter-menu="all">${e(t('menu.allDishes'))} <span class="pill-cnt">${countTotal}</span></button>
-            ${countPhotos ? `<button type="button" class="filter-pill ${curFilter === 'photos' ? 'on' : ''}" data-filter-menu="photos">📷 ${e(t('menu.onlyPhotos'))} <span class="pill-cnt">${countPhotos}</span></button>` : ''}
-          </div>
           <label class="search">${I('search')}<span class="sr-only">${e(t('menu.search'))}</span><input type="search" id="menu-q" placeholder="${e(t('menu.search'))}" autocomplete="off"></label>
+          <p class="small">${count} ${e(t('menu.count'))} · ${e(t('menu.lede').split('. ').pop())}</p>
         </div>
-        <div class="menu-cols" id="menu-list" data-menu="${menu}">${S.menuList(menu, '', curFilter)}</div>
+        <div class="menu-cols" id="menu-list" data-menu="${menu}">${S.menuList(menu, '')}</div>
       </div>
     </div>`;
   };
-  S.menuList = (menu, q, filter) => {
+  S.menuList = (menu, q) => {
     q = (q || '').trim().toLowerCase();
-    filter = filter || S.menuFilter || 'all';
-    const onlyPhotos = filter === 'photos';
     const showAdd = S.tweaks.ordering && menu !== 'bar';
     const html = S.sections[menu].map(s => {
       let items = S.items.filter(i => i.menu === menu && i.section === s.id);
-      if (onlyPhotos) items = items.filter(i => S.DISH_PHOTOS.has(i.id));
       if (q) items = items.filter(i => Object.values(i.name).some(n => n.toLowerCase().includes(q)));
       if (!items.length) return '';
+      // Show items with photos first
+      items.sort((a, b) => (S.DISH_PHOTOS.has(b.id) ? 1 : 0) - (S.DISH_PHOTOS.has(a.id) ? 1 : 0));
+
       return `<section class="mcat" id="m-${menu}-${s.id}" data-sec="${s.id}">
         <div class="mcat-h"><h2>${e(s[L()] || s.ru)}</h2><span>${items.length} ${e(t('menu.items'))}</span></div>
         ${items.map(it => {
@@ -230,7 +223,7 @@
           const size = S.iSize(it);
           const q2 = S.cart[it.id] || 0;
           const ctl = !showAdd ? '' : (q2 ? `<span class="qty"><button type="button" data-qty="${it.id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q2}</span><button type="button" data-qty="${it.id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>` : `<button class="add" type="button" data-qty="${it.id}" data-d="1" aria-label="${e(t('menu.add'))}: ${e(S.iName(it))}">${I('plus')}</button>`);
-          const thumb = hasPhoto ? `<button type="button" class="mi-thumb" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}"><img src="img/dish/${it.id}.webp" width="60" height="60" alt="" loading="lazy" decoding="async"><span class="zoom-icon">${I('search')}</span></button>` : '';
+          const thumb = hasPhoto ? `<button type="button" class="mi-thumb" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}"><img src="img/dish/${it.id}.webp" width="60" height="60" alt="" loading="lazy" decoding="async"></button>` : '';
           return `<div class="mi${hasPhoto ? ' has-thumb' : ''}">${thumb}<div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
         }).join('')}
         ${s.id === 'coffee' || s.id === 'snacks' || (menu === 'bar' && s.id === 'lemonades') ? `<p class="label" style="margin-top:10px">${e(t('menu.srcTg'))}</p>` : ''}

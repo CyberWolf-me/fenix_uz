@@ -69,21 +69,12 @@
   function initMenu() {
     secs = [...document.querySelectorAll('.mcat')];
     const q = $('#menu-q');
-    const updateMenu = () => {
+    q && q.addEventListener('input', () => {
       const ml = $('#menu-list');
       if (!ml) return;
-      ml.innerHTML = S.menuList(ml.dataset.menu, q ? q.value : '', S.menuFilter || 'all');
+      ml.innerHTML = S.menuList(ml.dataset.menu, q.value);
       secs = [...document.querySelectorAll('.mcat')];
       spy();
-    };
-    q && q.addEventListener('input', updateMenu);
-
-    document.querySelectorAll('[data-filter-menu]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        S.menuFilter = btn.dataset.filterMenu;
-        document.querySelectorAll('[data-filter-menu]').forEach(b => b.classList.toggle('on', b === btn));
-        updateMenu();
-      });
     });
     spy();
   }
@@ -264,7 +255,7 @@
     }
   });
   document.addEventListener('fx:cart', () => {
-    if (route === 'menu') { const list = $('#menu-list'); const y = scrollY; list.innerHTML = S.menuList(list.dataset.menu, ($('#menu-q') || {}).value, S.menuFilter || 'all'); secs = [...document.querySelectorAll('.mcat')]; window.scrollTo(0, y); }
+    if (route === 'menu') { const list = $('#menu-list'); const y = scrollY; list.innerHTML = S.menuList(list.dataset.menu, ($('#menu-q') || {}).value); secs = [...document.querySelectorAll('.mcat')]; window.scrollTo(0, y); }
     const hdr = $('#hdr'); const foc = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.qty;
     hdr.innerHTML = S.renderHeader(route); renderFab();
   });

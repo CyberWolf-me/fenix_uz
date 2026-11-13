@@ -262,12 +262,6 @@ main{min-height:70vh}
 .chip:hover{border-color:var(--line-strong);color:var(--ink)}
 .chip[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .menu-tools{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:20px 0 4px;flex-wrap:wrap}
-.menu-tools{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.menu-filter-pills{display:inline-flex;gap:8px;align-items:center}
-.filter-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--line-strong);font:400 12px/1 var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);background:transparent;cursor:pointer;transition:all var(--dur-fast);border-radius:2px}
-.filter-pill:hover{border-color:var(--accent);color:var(--ink)}
-.filter-pill.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:500}
-.filter-pill .pill-cnt{opacity:.85;font-size:11px}
 .search{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line-strong);min-width:min(280px,100%);flex:1;max-width:380px}
 .search svg{width:18px;height:18px;color:var(--text-dim);flex:none}
 .search input{background:none;border:0;min-height:var(--tap-min);flex:1;font:300 19px/1 var(--font-display);color:var(--ink);outline:none}
