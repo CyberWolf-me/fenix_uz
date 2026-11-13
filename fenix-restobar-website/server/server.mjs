@@ -189,6 +189,7 @@ const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
+  ".jsx": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
@@ -461,10 +462,11 @@ const server = http.createServer(async (req, res) => {
 
     if (db) {
       try {
-        if (id) {
+        const num = orderNum || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
+        if (num) {
+          db.prepare("UPDATE orders SET status = ? WHERE order_num = ? OR id = ?").run(status, num, num);
+        } else if (id) {
           db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, id);
-        } else {
-          db.prepare("UPDATE orders SET status = ? WHERE order_num = ?").run(status, orderNum);
         }
         console.log(`[Admin] Updated order ${id || orderNum} status to "${status}"`);
       } catch (err) {
@@ -527,10 +529,11 @@ const server = http.createServer(async (req, res) => {
 
     if (db) {
       try {
-        if (id) {
+        const num = code || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
+        if (num) {
+          db.prepare("UPDATE reservations SET status = ? WHERE code = ? OR id = ?").run(status, num, num);
+        } else if (id) {
           db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(status, id);
-        } else {
-          db.prepare("UPDATE reservations SET status = ? WHERE code = ?").run(status, code);
         }
         console.log(`[Admin] Updated reservation ${id || code} status to "${status}"`);
       } catch (err) {
@@ -606,6 +609,42 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, status }));
+    return;
+  }
+
+  // 8. Admin Menu Stop-List
+  if (req.method === "GET" && url.pathname === "/api/admin/menu/stoplist") {
+    let stopped = [];
+    if (db) {
+      try {
+        db.exec("CREATE TABLE IF NOT EXISTS menu_stoplist (name TEXT PRIMARY KEY, stopped INTEGER, updated_at TEXT)");
+        const rows = db.prepare("SELECT name FROM menu_stoplist WHERE stopped = 1").all();
+        stopped = rows.map(r => r.name);
+      } catch (e) {
+        console.error("[Stoplist Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, stopped }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/menu/toggle") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { name, stop } = payload;
+    if (db && name) {
+      try {
+        db.exec("CREATE TABLE IF NOT EXISTS menu_stoplist (name TEXT PRIMARY KEY, stopped INTEGER, updated_at TEXT)");
+        db.prepare("INSERT OR REPLACE INTO menu_stoplist (name, stopped, updated_at) VALUES (?, ?, datetime('now', 'localtime'))").run(name, stop ? 1 : 0);
+      } catch (e) {
+        console.error("[Stoplist Toggle Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, name, stop }));
     return;
   }
 

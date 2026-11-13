@@ -1,0 +1,250 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ════════════════════════════════════════════════════════════════
+   FENIX — design tokens
+   Themes  = colour only        [data-theme]
+   Directions = form + type     [data-dir]  a=luxury b=hospitality c=console
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ok: #4f9d69;
+  --warn: #c9922f;
+  --danger: #c4483e;
+  --info: #4a7fc1;
+  --violet: #7a6bb5;
+
+  --nav-w: 244px;
+  --nav-w-min: 74px;
+  --pad: 1;
+  --r: 14px;
+  --r-sm: 9px;
+  --r-xs: 6px;
+  --hair: 1px;
+  --dur: .18s;
+  --ease: cubic-bezier(.2, .7, .3, 1);
+
+  --f-display: 'Cormorant Garamond', Georgia, serif;
+  --f-body: 'Manrope', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --track-label: .13em;
+  --display-weight: 600;
+  --num-casing: normal;
+}
+
+/* ── THEME · dark gold (heritage) ─────────────────────────────── */
+[data-theme="gold"] {
+  --bg: #0b0a08;
+  --bg-deep: #070605;
+  --surface: #12110d;
+  --surface-2: #17150f;
+  --surface-3: #1e1b13;
+  --surface-hi: #262117;
+  --line: rgba(201, 168, 106, .13);
+  --line-soft: rgba(201, 168, 106, .07);
+  --line-strong: rgba(201, 168, 106, .3);
+  --text: #f2ebdc;
+  --text-2: #a99f8b;
+  --text-3: #6f6656;
+  --accent: #d3aa63;
+  --accent-2: #efd9a8;
+  --accent-ink: #1a1408;
+  --accent-soft: rgba(211, 170, 99, .13);
+  --accent-glow: rgba(211, 170, 99, .22);
+  --ok: #57a877;
+  --ok-soft: rgba(87, 168, 119, .14);
+  --warn: #d09a3c;
+  --warn-soft: rgba(208, 154, 60, .15);
+  --danger: #d5614f;
+  --danger-soft: rgba(213, 97, 79, .15);
+  --info: #7d9cd0;
+  --info-soft: rgba(125, 156, 208, .15);
+  --violet: #a294d6;
+  --violet-soft: rgba(162, 148, 214, .15);
+  --shadow: 0 1px 0 rgba(255, 240, 210, .03) inset, 0 12px 32px -18px #000;
+  --shadow-pop: 0 32px 80px -24px #000, 0 0 0 1px var(--line-strong);
+  --grain: .04;
+  --scroll: rgba(201, 168, 106, .22);
+}
+
+/* ── THEME · graphite (cool slate) ────────────────────────────── */
+[data-theme="graphite"] {
+  --bg: #0c0f13;
+  --bg-deep: #080a0d;
+  --surface: #12161c;
+  --surface-2: #171c24;
+  --surface-3: #1d232c;
+  --surface-hi: #252d39;
+  --line: rgba(186, 205, 228, .1);
+  --line-soft: rgba(186, 205, 228, .055);
+  --line-strong: rgba(186, 205, 228, .24);
+  --text: #e8eef6;
+  --text-2: #93a1b3;
+  --text-3: #63707f;
+  --accent: #78a6dc;
+  --accent-2: #bcd8f5;
+  --accent-ink: #071019;
+  --accent-soft: rgba(120, 166, 220, .13);
+  --accent-glow: rgba(120, 166, 220, .2);
+  --ok: #4fa88a;
+  --ok-soft: rgba(79, 168, 138, .14);
+  --warn: #d3a04b;
+  --warn-soft: rgba(211, 160, 75, .14);
+  --danger: #d96a5f;
+  --danger-soft: rgba(217, 106, 95, .14);
+  --info: #78a6dc;
+  --info-soft: rgba(120, 166, 220, .14);
+  --violet: #9b90d8;
+  --violet-soft: rgba(155, 144, 216, .14);
+  --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 14px 36px -20px #000;
+  --shadow-pop: 0 36px 90px -26px #000, 0 0 0 1px var(--line-strong);
+  --grain: .03;
+  --scroll: rgba(186, 205, 228, .2);
+}
+
+/* ── THEME · oxblood (copper on wine) ─────────────────────────── */
+[data-theme="oxblood"] {
+  --bg: #100a0b;
+  --bg-deep: #0a0607;
+  --surface: #171011;
+  --surface-2: #1d1415;
+  --surface-3: #251a1b;
+  --surface-hi: #2f2022;
+  --line: rgba(226, 180, 160, .12);
+  --line-soft: rgba(226, 180, 160, .06);
+  --line-strong: rgba(226, 180, 160, .26);
+  --text: #f4e9e4;
+  --text-2: #b09b96;
+  --text-3: #75625e;
+  --accent: #dd9a72;
+  --accent-2: #f3cfb8;
+  --accent-ink: #1d0f09;
+  --accent-soft: rgba(221, 154, 114, .13);
+  --accent-glow: rgba(221, 154, 114, .2);
+  --ok: #5ba57f;
+  --ok-soft: rgba(91, 165, 127, .14);
+  --warn: #d7a154;
+  --warn-soft: rgba(215, 161, 84, .14);
+  --danger: #e0705c;
+  --danger-soft: rgba(224, 112, 92, .15);
+  --info: #8fa4cd;
+  --info-soft: rgba(143, 164, 205, .14);
+  --violet: #b094c8;
+  --violet-soft: rgba(176, 148, 200, .14);
+  --shadow: 0 1px 0 rgba(255, 230, 215, .04) inset, 0 12px 32px -18px #000;
+  --shadow-pop: 0 32px 80px -24px #000, 0 0 0 1px var(--line-strong);
+  --grain: .045;
+  --scroll: rgba(226, 180, 160, .2);
+}
+
+/* ── THEME · cream (daylight) ─────────────────────────────────── */
+[data-theme="cream"] {
+  --bg: #f4f0e6;
+  --bg-deep: #ebe5d7;
+  --surface: #fffdf8;
+  --surface-2: #faf6ec;
+  --surface-3: #f2ecdd;
+  --surface-hi: #eae2cf;
+  --line: rgba(60, 44, 20, .13);
+  --line-soft: rgba(60, 44, 20, .07);
+  --line-strong: rgba(60, 44, 20, .26);
+  --text: #221c12;
+  --text-2: #6e6250;
+  --text-3: #9a8d78;
+  --accent: #9a6f1e;
+  --accent-2: #7d5713;
+  --accent-ink: #fffaf0;
+  --accent-soft: rgba(154, 111, 30, .1);
+  --accent-glow: rgba(154, 111, 30, .16);
+  --ok: #3f7d55;
+  --ok-soft: rgba(63, 125, 85, .1);
+  --warn: #a8741a;
+  --warn-soft: rgba(168, 116, 26, .11);
+  --danger: #b03a2c;
+  --danger-soft: rgba(176, 58, 44, .1);
+  --info: #3a5f96;
+  --info-soft: rgba(58, 95, 150, .1);
+  --violet: #6b5aa8;
+  --violet-soft: rgba(107, 90, 168, .1);
+  --shadow: 0 1px 2px rgba(60, 44, 20, .05), 0 10px 26px -18px rgba(60, 44, 20, .35);
+  --shadow-pop: 0 30px 70px -26px rgba(60, 44, 20, .45), 0 0 0 1px var(--line-strong);
+  --grain: .022;
+  --scroll: rgba(60, 44, 20, .2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DIRECTION A · «Смола» — refined luxury
+   ════════════════════════════════════════════════════════════════ */
+[data-dir="a"] {
+  --r: 13px; --r-sm: 9px; --r-xs: 5px;
+  --f-display: 'Cormorant Garamond', Georgia, serif;
+  --display-weight: 600;
+  --track-label: .16em;
+  --card-shadow: var(--shadow);
+  --num-casing: normal;
+  --kanban-rule: 1px;
+}
+[data-dir="a"] .stat-num,
+[data-dir="a"] .money-lg { font-family: var(--f-display); font-weight: 600; letter-spacing: -.01em; }
+
+/* ════════════════════════════════════════════════════════════════
+   DIRECTION B · «Медь» — modern hospitality, soft & round
+   ════════════════════════════════════════════════════════════════ */
+[data-dir="b"] {
+  --r: 18px; --r-sm: 12px; --r-xs: 8px;
+  --f-display: 'Manrope', system-ui, sans-serif;
+  --display-weight: 800;
+  --track-label: .1em;
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 18px 40px -28px #000;
+  --num-casing: normal;
+  --kanban-rule: 0px;
+}
+[data-dir="b"] .stat-num,
+[data-dir="b"] .money-lg { font-family: var(--f-body); font-weight: 800; letter-spacing: -.035em; }
+[data-dir="b"] .card { background-image: linear-gradient(168deg, var(--surface-2), var(--surface) 55%); }
+
+/* ════════════════════════════════════════════════════════════════
+   DIRECTION C · «Консоль» — technical ops
+   ════════════════════════════════════════════════════════════════ */
+[data-dir="c"] {
+  --r: 4px; --r-sm: 3px; --r-xs: 2px;
+  --f-display: 'JetBrains Mono', ui-monospace, monospace;
+  --display-weight: 700;
+  --track-label: .18em;
+  --card-shadow: none;
+  --num-casing: tabular-nums;
+  --kanban-rule: 2px;
+}
+[data-dir="c"] .stat-num,
+[data-dir="c"] .money-lg { font-family: var(--f-mono); font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+[data-dir="c"] .label { font-family: var(--f-mono); }
+[data-dir="c"] .card { border-color: var(--line-strong); }
+
+/* ════════════════════════════════════════════════════════════════
+   DENSITY
+   ════════════════════════════════════════════════════════════════ */
+[data-density="compact"] { --pad: .78; }
+[data-density="balanced"] { --pad: 1; }
+[data-density="airy"] { --pad: 1.22; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--f-body);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+  overflow: hidden;
+}
+::selection { background: var(--accent-soft); color: var(--text); }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--line-strong); background-clip: content-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
