@@ -66,10 +66,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(10, 9, 7, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--line-subtle);
+  background: #0A0907; /* Solid crisp obsidian, no blur smudge */
+  border-bottom: 1px solid rgba(192, 138, 62, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
   padding: calc(10px + var(--safe-top)) 14px 10px;
 }
 
@@ -306,10 +305,8 @@ body {
   position: sticky;
   top: 134px;
   z-index: 40;
-  background: rgba(10, 9, 7, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--line-subtle);
+  background: #0A0907;
+  border-bottom: 1px solid rgba(192, 138, 62, 0.12);
   padding: 8px 14px 10px;
 }
 
@@ -1403,11 +1400,10 @@ body {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(10, 9, 7, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--line-subtle);
-  padding: 6px 12px calc(6px + var(--safe-bottom));
+  background: #0B0906; /* Solid crisp luxury obsidian, no blur smudge */
+  border-top: 1px solid rgba(192, 138, 62, 0.24);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.75);
+  padding: 8px 12px calc(8px + var(--safe-bottom));
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -1978,11 +1974,11 @@ body {
 
     <div class="pills-scroll-wrap">
       <div class="cuisines-bar" id="cuisines-bar">
-        <button type="button" class="cuisine-chip active" data-cuisine="all">Все блюда</button>
-        <button type="button" class="cuisine-chip" data-cuisine="europe">Европейская</button>
-        <button type="button" class="cuisine-chip" data-cuisine="korea">Корейская</button>
-        <button type="button" class="cuisine-chip" data-cuisine="grill">Мангал & Шашлыки</button>
-        <button type="button" class="cuisine-chip" data-cuisine="bar">Барная карта</button>
+        <button type="button" class="cuisine-chip active" data-cuisine="all" id="chip-cuisine-all">Все блюда</button>
+        <button type="button" class="cuisine-chip" data-cuisine="europe" id="chip-cuisine-europe">Европейская</button>
+        <button type="button" class="cuisine-chip" data-cuisine="korea" id="chip-cuisine-korea">Корейская</button>
+        <button type="button" class="cuisine-chip" data-cuisine="grill" id="chip-cuisine-grill">Мангал & Шашлыки</button>
+        <button type="button" class="cuisine-chip" data-cuisine="bar" id="chip-cuisine-bar">Барная карта</button>
       </div>
       <div class="subcat-bar" id="subcat-bar"></div>
     </div>
@@ -2007,9 +2003,9 @@ body {
           <div>
             <label class="form-label" id="lbl-res-date">Дата визита</label>
             <div class="date-chips" id="res-date-chips">
-              <button type="button" class="date-chip active" data-day="0">Сегодня</button>
-              <button type="button" class="date-chip" data-day="1">Завтра</button>
-              <button type="button" class="date-chip" data-day="2">Послезавтра</button>
+              <button type="button" class="date-chip active" data-day="0" id="res-chip-today">Сегодня</button>
+              <button type="button" class="date-chip" data-day="1" id="res-chip-tomorrow">Завтра</button>
+              <button type="button" class="date-chip" data-day="2" id="res-chip-dayafter">Послезавтра</button>
             </div>
             <input type="date" class="form-input" id="res-date-input">
           </div>
@@ -2043,30 +2039,30 @@ body {
           <div>
             <label class="form-label" id="lbl-res-hall">Выбор зала</label>
             <div class="halls-grid">
-              <div class="hall-card active" data-hall="Основной зал (1 этаж)">
+              <div class="hall-card active" data-hall="Основной зал (1 этаж)" id="hall-card-main">
                 <div class="hall-card-info">
-                  <h4>Основной зал (1-й этаж)</h4>
-                  <p>Уютная атмосфера, сцена, живой звук</p>
+                  <h4 id="txt-hall-main-title">Основной зал (1-й этаж)</h4>
+                  <p id="txt-hall-main-desc">Уютная атмосфера, сцена, живой звук</p>
                 </div>
                 <div class="hall-card-check">
                   <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               </div>
 
-              <div class="hall-card" data-hall="Банкетный зал (2 этаж)">
+              <div class="hall-card" data-hall="Банкетный зал (2 этаж)" id="hall-card-banquet">
                 <div class="hall-card-info">
-                  <h4>Банкетный зал (2-й этаж)</h4>
-                  <p>Просторное пространство для торжеств до 170 гостей</p>
+                  <h4 id="txt-hall-banquet-title">Банкетный зал (2-й этаж)</h4>
+                  <p id="txt-hall-banquet-desc">Просторное пространство для торжеств до 170 гостей</p>
                 </div>
                 <div class="hall-card-check">
                   <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
                 </div>
               </div>
 
-              <div class="hall-card" data-hall="VIP-кабина">
+              <div class="hall-card" data-hall="VIP-кабина" id="hall-card-vip">
                 <div class="hall-card-info">
-                  <h4>VIP-кабина</h4>
-                  <p>Приватный зал, мягкие диваны, караоке</p>
+                  <h4 id="txt-hall-vip-title">VIP-кабина</h4>
+                  <p id="txt-hall-vip-desc">Приватный зал, мягкие диваны, караоке</p>
                 </div>
                 <div class="hall-card-check">
                   <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2142,7 +2138,7 @@ body {
         <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/><polyline points="12 6 12 12 16 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span id="txt-status-title">Проверить статус</span>
       </h2>
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Введите номер заказа/брони (например WEB-1268) или телефон:</p>
+      <p id="txt-status-hint" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Введите номер заказа/брони (например WEB-1268) или телефон:</p>
       <div class="status-lookup-row">
         <input type="text" class="form-input" id="status-query-input" placeholder="WEB-XXXX или +998...">
         <button type="button" class="status-lookup-btn" id="btn-lookup-status">Найти</button>
@@ -2154,7 +2150,7 @@ body {
 
     <!-- User's Recent Submissions -->
     <div id="recent-submissions-section">
-      <h3 style="font-size:14px;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;letter-spacing:0.06em;">Мои недавние заказы и брони</h3>
+      <h3 id="txt-recent-title" style="font-size:14px;color:var(--text-muted);margin:16px 0 10px;text-transform:uppercase;letter-spacing:0.06em;">Мои недавние заказы и брони</h3>
       <div class="recent-cards-list" id="recent-cards-list"></div>
     </div>
   </section>
@@ -2442,6 +2438,8 @@ body {
   let recentHistory = JSON.parse(localStorage.getItem('fenix_user_history') || '[]');
   let activeModalDish = null;
   let modalQty = 1;
+  let reservationGuestCount = 2;
+  let lastTrackedRecord = null;
 
   // Pre-fill user data if available from Telegram
   let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
@@ -2627,12 +2625,105 @@ body {
       resSuccess: 'Столик успешно забронирован!',
       resCodeTxt: 'Код вашей брони:',
       resTrackHint: 'Администратор ресторана Fenix свяжется с вами для подтверждения бронирования.',
+      resBookAnotherBtn: 'Забронировать еще',
       statusTitle: 'Проверка статуса',
       statusLookupPlaceholder: 'WEB-XXXX или +998...',
       findBtn: 'Найти',
       myRecent: 'Мои недавние заказы и брони',
       statusNotFound: 'Заказ или бронь по данному запросу не найдены. Проверьте номер или телефон.',
       callRestaurant: 'Позвонить в ресторан',
+      // Order Statuses
+      statusProcessing: 'В обработке',
+      stOrderNew: 'Новый / Принят',
+      stOrderCooking: 'Готовится на кухне',
+      stOrderInTransit: 'В пути / У курьера',
+      stOrderReadyPickup: 'Готов к выдаче',
+      stOrderCompleted: 'Выполнен',
+      stOrderCancelled: 'Отменен',
+      // Reservation Statuses
+      stResPending: 'Ожидает подтверждения',
+      stResConfirmed: 'Подтверждено',
+      stResReady: 'Стол подготовлен',
+      stResSeated: 'Гости в ресторане',
+      stResCancelled: 'Отменено',
+      // Stepper Order
+      stepOrd1Title: '1. Заказ зарегистрирован',
+      stepOrd1Desc: 'Поступил в ресторан и передан администратору',
+      stepOrd2Title: '2. Готовится на кухне',
+      stepOrd2Desc: 'Шеф-повара Fenix готовят ваши блюда',
+      stepOrd3TitleDelivery: '3. Передан курьеру / В пути',
+      stepOrd3DescDelivery: 'Курьер направляется по вашему адресу',
+      stepOrd3TitlePickup: '3. Готов к выдаче',
+      stepOrd3DescPickup: 'Ожидает вас в ресторане FENIX',
+      stepOrd4Title: '4. Выполнен',
+      stepOrd4Desc: 'Приятного аппетита!',
+      // Stepper Reservation
+      stepRes1Title: '1. Заявка зарегистрирована',
+      stepRes1Desc: 'Данные о дате и гостях сохранены',
+      stepRes2Title: '2. Подтверждено рестораном',
+      stepRes2Desc: 'Столик зарезервирован за вами',
+      stepRes3Title: '3. Стол подготовлен',
+      stepRes3Desc: 'Ждём вас в ресторане FENIX',
+      // Tracking details
+      trackRecipient: 'Получатель:',
+      trackGuest: 'Гость:',
+      trackPhone: 'Телефон:',
+      trackMethod: 'Способ:',
+      trackAddress: 'Адрес:',
+      trackItems: 'Состав заказа:',
+      trackTotal: 'Итого:',
+      trackDateTime: 'Дата и время:',
+      atTime: 'в',
+      trackGuests: 'Гостей:',
+      trackHall: 'Выбранный зал:',
+      trackStatus: 'Статус:',
+      trackTypeOrder: 'Заказ',
+      trackTypeRes: 'Бронь столика',
+      btnCallFenix: 'Позвонить в FENIX',
+      btnRefresh: 'Обновить',
+      checkingStatusMsg: 'Проверяем статус в системе FENIX...',
+      notFoundForMsg: 'По номеру «{q}» данных не найдено.',
+      networkErrorMsg: 'Ошибка связи с сервером при проверке статуса.',
+      recentHistoryTitle: 'Мои недавние заказы и брони',
+      statusSearchPrompt: 'Введите номер заказа/брони (например WEB-1268) или телефон:',
+      statusBtnSearch: 'Найти',
+      // Cart & Checkout
+      cartDeliveryDetailsTitle: 'Детали доставки и получатель',
+      cartChangeAddress: 'Изменить адрес',
+      cartReceiveMethod: 'Способ получения',
+      cartCourierDelivery: 'Доставка курьером',
+      cartTakeaway: 'Самовывоз из ресторана',
+      cartAddressPlaceholder: 'Город, улица, дом, квартира/офис, ориентир',
+      cartRestaurantAddressLabel: 'Адрес ресторана:',
+      cartRestaurantAddressVal: 'г. Ташкент, ул. Хуснабад, 5-й проезд, 1а',
+      cartReadyInLabel: 'Готовность к выдаче:',
+      cartReadyInTime: '~25-35 минут',
+      cartNamePlaceholder: 'Имя получателя',
+      cartPaymentMethod: 'Способ оплаты',
+      cartPayCash: 'Наличными',
+      cartPayCard: 'Картой при получении',
+      cartCommentLabel: 'Комментарий к заказу (необязательно)',
+      cartCommentPlaceholder: 'Код домофона, количество приборов, пожелания...',
+      cartClearBtn: 'Очистить',
+      orderSubmitting: 'Оформляем заказ...',
+      phoneHint9Digits: '9 цифр номера получателя',
+      // Reservation
+      dateToday: 'Сегодня',
+      dateTomorrow: 'Завтра',
+      dateAfterTomorrow: 'Послезавтра',
+      resGuestsCount: (c) => `${c} ${c === 1 ? 'персона' : c < 5 ? 'персоны' : 'персон'}`,
+      hallMainTitle: 'Основной зал (1-й этаж)',
+      hallMainDesc: 'Уютная атмосфера, сцена, живой звук',
+      hallBanquetTitle: 'Банкетный зал (2-й этаж)',
+      hallBanquetDesc: 'Просторное пространство для торжеств до 170 гостей',
+      hallVipTitle: 'VIP-кабина',
+      hallVipDesc: 'Приватный зал, мягкие диваны, караоке',
+      resPhoneHint: '9 цифр номера (например 90 123 45 67)',
+      resCommentPlaceholder: 'Повод, тихий столик, детский стульчик...',
+      resSubmitting: 'Бронируем столик...',
+      // Floating cart & Cuisines
+      btnToCart: 'В корзину',
+      itemsCountWord: (c) => `${c} поз.`,
       // Wizard
       wStep1Badge: 'Шаг 1 из 3',
       wStep2Badge: 'Шаг 2 из 3',
@@ -2696,12 +2787,105 @@ body {
       resSuccess: 'Stol muvaffaqiyatli band qilindi!',
       resCodeTxt: 'Band qilish kodi:',
       resTrackHint: 'Fenix restorani administratori tez orada siz bilan bog‘lanadi.',
+      resBookAnotherBtn: 'Yana stol band qilish',
       statusTitle: 'Holatni tekshirish',
       statusLookupPlaceholder: 'WEB-XXXX yoki +998...',
       findBtn: 'Izlash',
       myRecent: 'Oxirgi buyurtma va bandliklar',
       statusNotFound: 'Ushbu kod yoki telefon bo‘yicha buyurtma topilmadi.',
       callRestaurant: 'Restoranga qo‘ng‘iroq',
+      // Order Statuses
+      statusProcessing: 'Ko‘rib chiqilmoqda',
+      stOrderNew: 'Yangi / Qabul qilindi',
+      stOrderCooking: 'Oshxonada tayyorlanmoqda',
+      stOrderInTransit: 'Yo‘lda / Kuryerda',
+      stOrderReadyPickup: 'Olib ketishga tayyor',
+      stOrderCompleted: 'Bajarildi / Yetkazildi',
+      stOrderCancelled: 'Bekor qilingan',
+      // Reservation Statuses
+      stResPending: 'Tasdiqlash kutilmoqda',
+      stResConfirmed: 'Tasdiqlandi / Stol band',
+      stResReady: 'Stol tayyorlandi',
+      stResSeated: 'Mehmonlar tashrif buyurdi',
+      stResCancelled: 'Bekor qilingan',
+      // Stepper Order
+      stepOrd1Title: '1. Buyurtma qabul qilindi',
+      stepOrd1Desc: 'Restoranga kelib tushdi va administratorga uzatildi',
+      stepOrd2Title: '2. Oshxonada tayyorlanmoqda',
+      stepOrd2Desc: 'Fenix bosh oshpazlari taomingizni tayyorlamoqda',
+      stepOrd3TitleDelivery: '3. Kuryerga berildi / Yo‘lda',
+      stepOrd3DescDelivery: 'Kuryer ko‘rsatilgan manzil tomon yo‘lga chiqdi',
+      stepOrd3TitlePickup: '3. Olib ketishga tayyor',
+      stepOrd3DescPickup: 'FENIX restoranida sizni kutmoqda',
+      stepOrd4Title: '4. Yakunlandi',
+      stepOrd4Desc: 'Yoqimli ishtaha!',
+      // Stepper Reservation
+      stepRes1Title: '1. Ariza qabul qilindi',
+      stepRes1Desc: 'Sana va mehmonlar ma‘lumotlari saqlandi',
+      stepRes2Title: '2. Restoran tomonidan tasdiqlandi',
+      stepRes2Desc: 'Siz uchun stol band qilindi',
+      stepRes3Title: '3. Stol tayyorlandi',
+      stepRes3Desc: 'Sizni FENIX restoranida kutamiz',
+      // Tracking details
+      trackRecipient: 'Qabul qiluvchi:',
+      trackGuest: 'Mehmon:',
+      trackPhone: 'Telefon:',
+      trackMethod: 'Qabul qilish usuli:',
+      trackAddress: 'Manzil:',
+      trackItems: 'Buyurtma tarkibi:',
+      trackTotal: 'Jami to‘lov:',
+      trackDateTime: 'Tashrif sanasi va vaqti:',
+      atTime: 'soat',
+      trackGuests: 'Mehmonlar soni:',
+      trackHall: 'Tanlangan zal:',
+      trackStatus: 'Holat:',
+      trackTypeOrder: 'Buyurtma',
+      trackTypeRes: 'Stol band qilish',
+      btnCallFenix: 'FENIX ga qo‘ng‘iroq',
+      btnRefresh: 'Yangilash',
+      checkingStatusMsg: 'FENIX tizimida holat tekshirilmoqda...',
+      notFoundForMsg: '«{q}» bo‘yicha hech qanday ma‘lumot topilmadi.',
+      networkErrorMsg: 'Holatni tekshirishda server bilan aloqa uzildi.',
+      recentHistoryTitle: 'Mening oxirgi buyurtma va bandliklarim',
+      statusSearchPrompt: 'Buyurtma/bandlik kodi (masalan WEB-1268) yoki telefoningizni kiriting:',
+      statusBtnSearch: 'Izlash',
+      // Cart & Checkout
+      cartDeliveryDetailsTitle: 'Yetkazib berish ma‘lumotlari va qabul qiluvchi',
+      cartChangeAddress: 'Manzilni o‘zgartirish',
+      cartReceiveMethod: 'Qabul qilish usuli',
+      cartCourierDelivery: 'Kuryer orqali yetkazish',
+      cartTakeaway: 'Restorandan olib ketish',
+      cartAddressPlaceholder: 'Shahar, ko‘cha, uy, kvartira/ofis, mo‘ljal',
+      cartRestaurantAddressLabel: 'Restoran manzili:',
+      cartRestaurantAddressVal: 'Toshkent sh., Husnobod 5-tor ko‘chasi, 1a',
+      cartReadyInLabel: 'Tayyor bo‘lish vaqti:',
+      cartReadyInTime: '~25-35 daqiqa',
+      cartNamePlaceholder: 'Qabul qiluvchi ismi',
+      cartPaymentMethod: 'To‘lov usuli',
+      cartPayCash: 'Naqd pulda',
+      cartPayCard: 'Qabul qilganda karta orqali',
+      cartCommentLabel: 'Buyurtmaga izoh (ixtiyoriy)',
+      cartCommentPlaceholder: 'Domofon kodi, asboblar soni, istaklar...',
+      cartClearBtn: 'Tozalash',
+      orderSubmitting: 'Buyurtma rasmiylashtirilmoqda...',
+      phoneHint9Digits: 'Qabul qiluvchining 9 ta raqami',
+      // Reservation
+      dateToday: 'Bugun',
+      dateTomorrow: 'Ertaga',
+      dateAfterTomorrow: 'Indinga',
+      resGuestsCount: (c) => `${c} kishi`,
+      hallMainTitle: 'Asosiy zal (1-qavat)',
+      hallMainDesc: 'Shinam muhit, sahna, jonli ijro',
+      hallBanquetTitle: 'Banket zali (2-qavat)',
+      hallBanquetDesc: '170 tagacha mehmonlar uchun keng tantanalar zali',
+      hallVipTitle: 'VIP kabina',
+      hallVipDesc: 'Maxfiy xona, yumshoq divanlar, karaoke',
+      resPhoneHint: '9 ta raqam (masalan 90 123 45 67)',
+      resCommentPlaceholder: 'Tashrif sababi, sokin stol, bolalar o‘rindig‘i...',
+      resSubmitting: 'Stol band qilinmoqda...',
+      // Floating cart & Cuisines
+      btnToCart: 'Savatga',
+      itemsCountWord: (c) => `${c} ta`,
       // Wizard
       wStep1Badge: '1-qadam (3 dan)',
       wStep2Badge: '2-qadam (3 dan)',
@@ -2765,12 +2949,105 @@ body {
       resSuccess: 'Table reserved successfully!',
       resCodeTxt: 'Reservation Code:',
       resTrackHint: 'Our manager will contact you shortly to confirm your booking.',
+      resBookAnotherBtn: 'Reserve another table',
       statusTitle: 'Check Status',
       statusLookupPlaceholder: 'WEB-XXXX or +998...',
       findBtn: 'Search',
       myRecent: 'My recent orders & bookings',
       statusNotFound: 'No order or booking found for this code or phone number.',
       callRestaurant: 'Call Restaurant',
+      // Order Statuses
+      statusProcessing: 'Processing',
+      stOrderNew: 'New / Received',
+      stOrderCooking: 'Cooking in kitchen',
+      stOrderInTransit: 'On the way / Courier',
+      stOrderReadyPickup: 'Ready for pickup',
+      stOrderCompleted: 'Completed / Delivered',
+      stOrderCancelled: 'Cancelled',
+      // Reservation Statuses
+      stResPending: 'Awaiting confirmation',
+      stResConfirmed: 'Confirmed',
+      stResReady: 'Table is ready',
+      stResSeated: 'Guests seated',
+      stResCancelled: 'Cancelled',
+      // Stepper Order
+      stepOrd1Title: '1. Order registered',
+      stepOrd1Desc: 'Received by restaurant and handed to manager',
+      stepOrd2Title: '2. Cooking in kitchen',
+      stepOrd2Desc: 'Fenix chefs are preparing your dishes',
+      stepOrd3TitleDelivery: '3. Handed to courier / In transit',
+      stepOrd3DescDelivery: 'Courier is heading to your address',
+      stepOrd3TitlePickup: '3. Ready for pickup',
+      stepOrd3DescPickup: 'Waiting for you at FENIX restaurant',
+      stepOrd4Title: '4. Completed',
+      stepOrd4Desc: 'Enjoy your meal!',
+      // Stepper Reservation
+      stepRes1Title: '1. Booking registered',
+      stepRes1Desc: 'Date and guest details saved',
+      stepRes2Title: '2. Confirmed by restaurant',
+      stepRes2Desc: 'Table reserved for you',
+      stepRes3Title: '3. Table is ready',
+      stepRes3Desc: 'Looking forward to welcoming you at FENIX',
+      // Tracking details
+      trackRecipient: 'Recipient:',
+      trackGuest: 'Guest:',
+      trackPhone: 'Phone:',
+      trackMethod: 'Method:',
+      trackAddress: 'Address:',
+      trackItems: 'Order items:',
+      trackTotal: 'Total:',
+      trackDateTime: 'Date & Time:',
+      atTime: 'at',
+      trackGuests: 'Guests:',
+      trackHall: 'Selected hall:',
+      trackStatus: 'Status:',
+      trackTypeOrder: 'Order',
+      trackTypeRes: 'Table Booking',
+      btnCallFenix: 'Call FENIX',
+      btnRefresh: 'Refresh',
+      checkingStatusMsg: 'Checking status in FENIX system...',
+      notFoundForMsg: 'No records found for «{q}».',
+      networkErrorMsg: 'Server communication error while checking status.',
+      recentHistoryTitle: 'My recent orders & bookings',
+      statusSearchPrompt: 'Enter order/booking number (e.g. WEB-1268) or phone number:',
+      statusBtnSearch: 'Search',
+      // Cart & Checkout
+      cartDeliveryDetailsTitle: 'Delivery details & recipient',
+      cartChangeAddress: 'Change address',
+      cartReceiveMethod: 'Receiving method',
+      cartCourierDelivery: 'Courier delivery',
+      cartTakeaway: 'Takeaway from restaurant',
+      cartAddressPlaceholder: 'City, street, house, apt/office, landmark',
+      cartRestaurantAddressLabel: 'Restaurant address:',
+      cartRestaurantAddressVal: 'Tashkent, Husnobod 5th passage, 1a',
+      cartReadyInLabel: 'Ready for pickup:',
+      cartReadyInTime: '~25-35 minutes',
+      cartNamePlaceholder: 'Recipient name',
+      cartPaymentMethod: 'Payment method',
+      cartPayCash: 'Cash',
+      cartPayCard: 'Card on delivery',
+      cartCommentLabel: 'Order comment (optional)',
+      cartCommentPlaceholder: 'Intercom code, cutlery count, preferences...',
+      cartClearBtn: 'Clear',
+      orderSubmitting: 'Placing order...',
+      phoneHint9Digits: '9 digits of recipient phone',
+      // Reservation
+      dateToday: 'Today',
+      dateTomorrow: 'Tomorrow',
+      dateAfterTomorrow: 'Day after tomorrow',
+      resGuestsCount: (c) => `${c} ${c === 1 ? 'guest' : 'guests'}`,
+      hallMainTitle: 'Main Hall (1st floor)',
+      hallMainDesc: 'Cozy atmosphere, stage, live sound',
+      hallBanquetTitle: 'Banquet Hall (2nd floor)',
+      hallBanquetDesc: 'Spacious hall for celebrations up to 170 guests',
+      hallVipTitle: 'VIP Lounge',
+      hallVipDesc: 'Private lounge, soft sofas, karaoke',
+      resPhoneHint: '9 digits (e.g. 90 123 45 67)',
+      resCommentPlaceholder: 'Occasion, quiet table, baby chair...',
+      resSubmitting: 'Reserving table...',
+      // Floating cart & Cuisines
+      btnToCart: 'To Cart',
+      itemsCountWord: (c) => `${c} items`,
       // Wizard
       wStep1Badge: 'Step 1 of 3',
       wStep2Badge: 'Step 2 of 3',
@@ -2795,7 +3072,74 @@ body {
   };
 
   function t(k) {
-    return (I18N[currentLang] && I18N[currentLang][k]) || (I18N.ru && I18N.ru[k]) || k;
+    const entry = (I18N[currentLang] && I18N[currentLang][k] !== undefined) ? I18N[currentLang][k] : ((I18N.ru && I18N.ru[k] !== undefined) ? I18N.ru[k] : k);
+    return entry;
+  }
+
+  function translateStatus(rawStatus, type = 'order') {
+    if (!rawStatus) return t('statusProcessing');
+    const s = String(rawStatus).toLowerCase();
+    
+    if (type === 'order') {
+      if (s.includes('нов') || s.includes('new') || s.includes('принят') || s.includes('yangi')) {
+        return t('stOrderNew');
+      }
+      if (s.includes('готов') || s.includes('кухн') || s.includes('cook') || s.includes('oshxona')) {
+        return t('stOrderCooking');
+      }
+      if (s.includes('пути') || s.includes('достав') || s.includes('курьер') || s.includes('yo‘l') || s.includes('transit')) {
+        return t('stOrderInTransit');
+      }
+      if (s.includes('выдач') || s.includes('olib ket') || s.includes('pickup')) {
+        return t('stOrderReadyPickup');
+      }
+      if (s.includes('выполнен') || s.includes('заверш') || s.includes('оплачен') || s.includes('bajar') || s.includes('complete')) {
+        return t('stOrderCompleted');
+      }
+      if (s.includes('отмен') || s.includes('bekor') || s.includes('cancel')) {
+        return t('stOrderCancelled');
+      }
+      return rawStatus;
+    } else {
+      // Reservation
+      if (s.includes('ожидает') || s.includes('нов') || s.includes('kutil') || s.includes('pending')) {
+        return t('stResPending');
+      }
+      if (s.includes('подтвержд') || s.includes('tasdiq') || s.includes('confirm')) {
+        return t('stResConfirmed');
+      }
+      if (s.includes('готов') || s.includes('стол') || s.includes('tayyor') || s.includes('ready')) {
+        return t('stResReady');
+      }
+      if (s.includes('гости') || s.includes('заверш') || s.includes('mehmon') || s.includes('seated')) {
+        return t('stResSeated');
+      }
+      if (s.includes('отмен') || s.includes('bekor') || s.includes('cancel')) {
+        return t('stResCancelled');
+      }
+      return rawStatus;
+    }
+  }
+
+  function translateDeliveryMode(modeStr) {
+    if (!modeStr) return t('cartCourierDelivery');
+    const s = String(modeStr).toLowerCase();
+    if (s.includes('самовывоз') || s.includes('pickup') || s.includes('olib')) {
+      return t('cartTakeaway');
+    }
+    return t('cartCourierDelivery');
+  }
+
+  function translateHall(hallStr) {
+    if (!hallStr) return t('hallMainTitle');
+    const s = String(hallStr).toLowerCase();
+    if (s.includes('банкет') || s.includes('2') || s.includes('banket')) {
+      return t('hallBanquetTitle');
+    }
+    if (s.includes('vip')) {
+      return t('hallVipTitle');
+    }
+    return t('hallMainTitle');
   }
 
   // ── Render Category Sub-Chips ──
@@ -3064,36 +3408,36 @@ body {
             <svg viewBox="0 0 24 24" fill="none"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <span>${t('cartTitle')} (${count})</span>
           </h2>
-          <button type="button" style="background:transparent;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;" onclick="window.FX_APP.clearCart()">Очистить</button>
+          <button type="button" style="background:transparent;border:none;color:var(--text-faint);font-size:12px;cursor:pointer;" onclick="window.FX_APP.clearCart()">${t('cartClearBtn')}</button>
         </div>
         ${itemsHtml}
       </div>
 
       <div class="card-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <h3 class="card-box-title" style="margin:0;">Детали доставки и получатель</h3>
-          <button type="button" style="background:transparent;border:none;color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;" onclick="window.FX_APP.openWizard(3)">Изменить адрес</button>
+          <h3 class="card-box-title" style="margin:0;">${t('cartDeliveryDetailsTitle')}</h3>
+          <button type="button" style="background:transparent;border:none;color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;" onclick="window.FX_APP.openWizard(3)">${t('cartChangeAddress')}</button>
         </div>
         <div class="form-grid">
           <div>
-            <label class="form-label">Способ получения</label>
+            <label class="form-label">${t('cartReceiveMethod')}</label>
             <div class="mode-toggle" style="margin-bottom:6px;">
-              <button type="button" class="mode-btn ${orderMode === 'delivery' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('delivery')">Доставка курьером</button>
-              <button type="button" class="mode-btn ${orderMode === 'pickup' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('pickup')">Самовывоз</button>
+              <button type="button" class="mode-btn ${orderMode === 'delivery' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('delivery')">${t('cartCourierDelivery')}</button>
+              <button type="button" class="mode-btn ${orderMode === 'pickup' ? 'active' : ''}" onclick="window.FX_APP.setOrderMode('pickup')">${t('cartTakeaway')}</button>
             </div>
             ${orderMode === 'delivery' ? `
-              <input type="text" class="form-input" id="order-addr-input" value="${userAddress}" placeholder="Город, улица, дом, квартира/офис, ориентир" style="margin-top:6px;">
+              <input type="text" class="form-input" id="order-addr-input" value="${userAddress}" placeholder="${t('cartAddressPlaceholder')}" style="margin-top:6px;">
             ` : `
               <div style="font-size:12px;color:var(--text-muted);background:var(--bg-surface);padding:8px 10px;border-radius:6px;border:1px solid var(--line-subtle);line-height:1.5;">
-                <span style="color:var(--gold);font-weight:600;">Адрес ресторана:</span> г. Ташкент, ул. Хуснабад, 5-й проезд, 1а<br>
-                <span style="color:var(--gold-hi);">Готовность к выдаче:</span> ~25-35 минут
+                <span style="color:var(--gold);font-weight:600;">${t('cartRestaurantAddressLabel')}</span> ${t('cartRestaurantAddressVal')}<br>
+                <span style="color:var(--gold-hi);">${t('cartReadyInLabel')}</span> ${t('cartReadyInTime')}
               </div>
             `}
           </div>
 
           <div>
             <label class="form-label">${t('resName')}</label>
-            <input type="text" class="form-input" id="order-name-input" value="${userName}" placeholder="Имя получателя">
+            <input type="text" class="form-input" id="order-name-input" value="${userName}" placeholder="${t('cartNamePlaceholder')}">
           </div>
 
           <div>
@@ -3123,24 +3467,24 @@ body {
               </div>
             </div>
             <div class="phone-hint-text">
-              <span>9 цифр номера получателя</span>
+              <span>${t('phoneHint9Digits')}</span>
               <span id="order-phone-counter">${formatUzPhoneDigits(userPhone).digits.length} / 9</span>
             </div>
           </div>
 
           <div>
-            <label class="form-label">Способ оплаты</label>
+            <label class="form-label">${t('cartPaymentMethod')}</label>
             <div class="payment-grid" id="payment-options">
               <label class="pay-card active"><input type="radio" name="pay-method" value="Payme" checked><span>Payme</span></label>
               <label class="pay-card"><input type="radio" name="pay-method" value="Click"><span>Click</span></label>
-              <label class="pay-card"><input type="radio" name="pay-method" value="Наличными"><span>Наличными</span></label>
-              <label class="pay-card"><input type="radio" name="pay-method" value="Картой при получении"><span>Картой при получении</span></label>
+              <label class="pay-card"><input type="radio" name="pay-method" value="Наличными"><span>${t('cartPayCash')}</span></label>
+              <label class="pay-card"><input type="radio" name="pay-method" value="Картой при получении"><span>${t('cartPayCard')}</span></label>
             </div>
           </div>
 
           <div>
-            <label class="form-label">Комментарий к заказу (необязательно)</label>
-            <textarea class="form-textarea" id="order-comment-input" placeholder="Код домофона, количество приборов, пожелания..."></textarea>
+            <label class="form-label">${t('cartCommentLabel')}</label>
+            <textarea class="form-textarea" id="order-comment-input" placeholder="${t('cartCommentPlaceholder')}"></textarea>
           </div>
 
           <div class="order-calc-table">
@@ -3202,13 +3546,13 @@ body {
     const payment = payRadio ? payRadio.value : 'Payme';
 
     if (!name) {
-      alert('Пожалуйста, укажите имя');
+      alert(currentLang === 'uz' ? 'Iltimos, ismingizni kiriting' : currentLang === 'en' ? 'Please enter your name' : 'Пожалуйста, укажите имя');
       if (nameEl) nameEl.focus();
       return;
     }
 
     if (!parsedPhone.isValid) {
-      alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+      alert(currentLang === 'uz' ? 'Iltimos, O‘zbekiston telefon raqamingizning to‘liq 9 ta raqamini kiriting (masalan: 90 123 45 67)' : currentLang === 'en' ? 'Please enter a valid 9-digit Uzbekistan phone number (e.g. 90 123 45 67)' : 'Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
       if (phoneDigitsEl) phoneDigitsEl.focus();
       return;
     }
@@ -3238,7 +3582,7 @@ body {
 
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `<span>Оформляем заказ...</span>`;
+      btn.innerHTML = `<span>${t('orderSubmitting')}</span>`;
     }
 
     const payload = {
@@ -3268,9 +3612,9 @@ body {
         const historyItem = {
           type: 'order',
           code: orderId,
-          date: new Date().toLocaleString('ru-RU'),
+          date: new Date().toLocaleString(currentLang === 'uz' ? 'uz-UZ' : currentLang === 'en' ? 'en-US' : 'ru-RU'),
           total: data.total || getCartSummary().total,
-          mode: orderMode === 'delivery' ? 'Доставка курьером' : 'Самовывоз',
+          mode: orderMode === 'delivery' ? 'delivery' : 'pickup',
           itemsCount: items.reduce((s, i) => s + i.qty, 0)
         };
         recentHistory.unshift(historyItem);
@@ -3290,7 +3634,7 @@ body {
       }
     } catch (err) {
       console.error('Order error:', err);
-      alert('Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
+      alert(currentLang === 'uz' ? 'Server bilan aloqa uzildi. Qaytadan urinib ko‘ring yoki qo‘ng‘iroq qiling: +998 97 185 00 10' : currentLang === 'en' ? 'Server error. Please try again or call +998 97 185 00 10' : 'Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = `<span>${t('checkoutBtn')}</span>`;
@@ -3372,23 +3716,23 @@ body {
       });
     }
 
-    let guestCount = 2;
     const minusBtn = document.getElementById('btn-guests-minus');
     const plusBtn = document.getElementById('btn-guests-plus');
     const countVal = document.getElementById('val-guests');
     if (minusBtn && plusBtn && countVal) {
+      countVal.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.');
       minusBtn.onclick = () => {
         haptic('light');
-        if (guestCount > 1) {
-          guestCount--;
-          countVal.textContent = `${guestCount} ${guestCount === 1 ? 'персона' : guestCount < 5 ? 'персоны' : 'персон'}`;
+        if (reservationGuestCount > 1) {
+          reservationGuestCount--;
+          countVal.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.');
         }
       };
       plusBtn.onclick = () => {
         haptic('light');
-        if (guestCount < 30) {
-          guestCount++;
-          countVal.textContent = `${guestCount} ${guestCount === 1 ? 'персона' : guestCount < 5 ? 'персоны' : 'персон'}`;
+        if (reservationGuestCount < 30) {
+          reservationGuestCount++;
+          countVal.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.');
         }
       };
     }
@@ -3414,13 +3758,13 @@ body {
         const comment = (document.getElementById('res-comment-input') || {}).value || '';
 
         if (!name) {
-          alert('Пожалуйста, укажите ваше имя');
+          alert(currentLang === 'uz' ? 'Iltimos, ismingizni kiriting' : currentLang === 'en' ? 'Please enter your name' : 'Пожалуйста, укажите ваше имя');
           if (nameEl) nameEl.focus();
           return;
         }
 
         if (!parsedPhone.isValid) {
-          alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+          alert(currentLang === 'uz' ? 'Iltimos, O‘zbekiston telefon raqamingizning to‘liq 9 ta raqamini kiriting (masalan: 90 123 45 67)' : currentLang === 'en' ? 'Please enter a valid 9-digit Uzbekistan phone number (e.g. 90 123 45 67)' : 'Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
           if (phoneDigitsEl) phoneDigitsEl.focus();
           return;
         }
@@ -3432,14 +3776,14 @@ body {
         localStorage.setItem('fx.phone', phone);
 
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span>Бронируем столик...</span>`;
+        submitBtn.innerHTML = `<span>${t('resSubmitting')}</span>`;
 
         const payload = {
           name,
           phone,
           date,
           time,
-          guests: guestCount,
+          guests: reservationGuestCount,
           hall,
           comment,
           telegramUserId: tgUser ? tgUser.id : 0,
@@ -3461,8 +3805,8 @@ body {
             const historyItem = {
               type: 'reservation',
               code: resId,
-              date: `${date} в ${time}`,
-              guests: `${guestCount} чел.`,
+              date: `${date} ${t('atTime') || 'в'} ${time}`,
+              guests: reservationGuestCount,
               hall
             };
             recentHistory.unshift(historyItem);
@@ -3480,14 +3824,14 @@ body {
                 <p style="font-size:12px;color:var(--text-muted);">${t('resCodeTxt')}</p>
                 <div class="success-code">${resId}</div>
                 <div class="details-table" style="max-width:280px;margin:0 auto 20px;">
-                  <div class="details-row"><span>Дата и время:</span><strong>${date} · ${time}</strong></div>
-                  <div class="details-row"><span>Гостей:</span><strong>${guestCount} чел.</strong></div>
-                  <div class="details-row"><span>Зал:</span><strong>${hall}</strong></div>
+                  <div class="details-row"><span>${t('trackDateTime')}</span><strong>${date} · ${time}</strong></div>
+                  <div class="details-row"><span>${t('trackGuests')}</span><strong>${typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.')}</strong></div>
+                  <div class="details-row"><span>${t('trackHall')}</span><strong>${translateHall(hall)}</strong></div>
                 </div>
                 <p class="success-hint">${t('resTrackHint')}</p>
                 <div style="display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto;">
                   <button type="button" class="btn-primary" onclick="window.FX_APP.lookupCode('${resId}')">${t('trackStatusBtn')}</button>
-                  <button type="button" class="btn-outline" onclick="window.FX_APP.resetReservationForm()">Забронировать еще</button>
+                  <button type="button" class="btn-outline" onclick="window.FX_APP.resetReservationForm()">${t('resBookAnotherBtn')}</button>
                 </div>
               </div>
             `;
@@ -3498,7 +3842,7 @@ body {
           }
         } catch (err) {
           console.error('Reservation error:', err);
-          alert('Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
+          alert(currentLang === 'uz' ? 'Server bilan aloqa uzildi. Qaytadan urinib ko‘ring yoki qo‘ng‘iroq qiling: +998 97 185 00 10' : currentLang === 'en' ? 'Server error. Please try again or call +998 97 185 00 10' : 'Сбой связи с сервером. Попробуйте еще раз или позвоните +998 97 185 00 10');
           submitBtn.disabled = false;
           submitBtn.innerHTML = `<span>${t('resSubmit')}</span>`;
         }
@@ -3531,17 +3875,22 @@ body {
     let html = '';
     recentHistory.forEach(item => {
       const isOrder = item.type === 'order';
+      const typeLabel = isOrder ? t('trackTypeOrder') : t('trackTypeRes');
+      const guestsStr = typeof item.guests === 'number' ? 
+        (typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(item.guests) : (item.guests + ' чел.')) : 
+        (item.guests || '');
+      const countLabel = typeof t('itemsCountWord') === 'function' ? t('itemsCountWord')(item.itemsCount || 1) : ((item.itemsCount || 1) + ' поз.');
+      const summary = isOrder ? 
+        `${translateDeliveryMode(item.mode)} • ${countLabel} • ${money(item.total)}` : 
+        `${item.date || ''} • ${guestsStr} • ${translateHall(item.hall)}`;
+
       html += `
         <div class="recent-item-card" onclick="window.FX_APP.lookupCode('${item.code}')">
           <div class="recent-item-top">
             <span class="recent-item-code">${item.code}</span>
-            <span class="recent-item-type">${isOrder ? 'Заказ' : 'Бронь столика'}</span>
+            <span class="recent-item-type">${typeLabel}</span>
           </div>
-          <div class="recent-item-summary">
-            ${isOrder ? 
-              `${item.mode} • ${item.itemsCount} поз. • ${money(item.total)}` : 
-              `${item.date} • ${item.guests} • ${item.hall}`}
-          </div>
+          <div class="recent-item-summary">${summary}</div>
           <div class="recent-item-date">${item.date || ''}</div>
         </div>
       `;
@@ -3561,7 +3910,7 @@ body {
 
     resContainer.innerHTML = `
       <div style="text-align:center;padding:24px;color:var(--text-muted);">
-        <p style="font-size:13px;">Проверяем статус в системе FENIX...</p>
+        <p style="font-size:13px;">${t('checkingStatusMsg')}</p>
       </div>
     `;
 
@@ -3571,12 +3920,15 @@ body {
 
       if (data.ok && data.found && data.record) {
         haptic('success');
+        lastTrackedRecord = data.record;
         renderTrackingCard(data.record);
       } else {
+        lastTrackedRecord = null;
+        const notFoundText = (t('notFoundForMsg') || 'По номеру «{q}» данных не найдено.').replace('{q}', q);
         resContainer.innerHTML = `
           <div class="card-box" style="text-align:center;padding:20px;">
             <p style="font-size:13px;color:var(--danger);margin-bottom:8px;">${t('statusNotFound')}</p>
-            <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">По номеру «${q}» данных не найдено.</p>
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">${notFoundText}</p>
             <a href="tel:+998971850010" class="btn-outline" style="max-width:240px;margin:0 auto;text-decoration:none;">${t('callRestaurant')}</a>
           </div>
         `;
@@ -3585,37 +3937,39 @@ body {
       console.error('Lookup error:', err);
       resContainer.innerHTML = `
         <div class="card-box" style="text-align:center;padding:20px;color:var(--danger);">
-          <p>Ошибка связи с сервером при проверке статуса.</p>
+          <p>${t('networkErrorMsg')}</p>
         </div>
       `;
     }
   }
 
   function renderTrackingCard(record) {
+    lastTrackedRecord = record;
     const resContainer = document.getElementById('tracking-result-container');
     if (!resContainer) return;
 
     const isOrder = record.type === 'order';
     const statusStr = (record.status || '').toLowerCase();
+    const isPickup = (record.orderType && (record.orderType.toLowerCase().includes('самовывоз') || record.orderType.toLowerCase().includes('pickup') || record.orderType.toLowerCase().includes('olib')));
 
     let s1 = 'done', s2 = '', s3 = '', s4 = '';
 
     if (isOrder) {
-      if (statusStr.includes('готов') || statusStr.includes('кухн')) {
+      if (statusStr.includes('готов') || statusStr.includes('кухн') || statusStr.includes('cook') || statusStr.includes('oshxona')) {
         s1 = 'done'; s2 = 'active';
-      } else if (statusStr.includes('пути') || statusStr.includes('достав') || statusStr.includes('выдач')) {
+      } else if (statusStr.includes('пути') || statusStr.includes('достав') || statusStr.includes('выдач') || statusStr.includes('yo‘l') || statusStr.includes('transit')) {
         s1 = 'done'; s2 = 'done'; s3 = 'active';
-      } else if (statusStr.includes('заверш') || statusStr.includes('выполнен') || statusStr.includes('оплачен')) {
+      } else if (statusStr.includes('заверш') || statusStr.includes('выполнен') || statusStr.includes('оплачен') || statusStr.includes('bajar') || statusStr.includes('complete')) {
         s1 = 'done'; s2 = 'done'; s3 = 'done'; s4 = 'done';
       } else {
         s1 = 'active';
       }
     } else {
-      if (statusStr.includes('подтвержд')) {
+      if (statusStr.includes('подтвержд') || statusStr.includes('tasdiq') || statusStr.includes('confirm')) {
         s1 = 'done'; s2 = 'active';
-      } else if (statusStr.includes('готов') || statusStr.includes('стол')) {
+      } else if (statusStr.includes('готов') || statusStr.includes('стол') || statusStr.includes('tayyor') || statusStr.includes('ready')) {
         s1 = 'done'; s2 = 'done'; s3 = 'active';
-      } else if (statusStr.includes('гости') || statusStr.includes('завершен')) {
+      } else if (statusStr.includes('гости') || statusStr.includes('завершен') || statusStr.includes('mehmon') || statusStr.includes('seated')) {
         s1 = 'done'; s2 = 'done'; s3 = 'done';
       } else {
         s1 = 'active';
@@ -3627,22 +3981,22 @@ body {
       const itemsList = Object.entries(record.items || {}).map(([name, qty]) => `${name} × ${qty}`).join(', ');
       detailsHtml = `
         <div class="details-table">
-          <div class="details-row"><span>Получатель:</span><strong>${record.name}</strong></div>
-          <div class="details-row"><span>Телефон:</span><strong>${record.phone}</strong></div>
-          <div class="details-row"><span>Способ:</span><strong>${record.orderType || 'Заказ'}</strong></div>
-          <div class="details-row"><span>Адрес:</span><strong>${record.address || '—'}</strong></div>
-          <div class="details-row"><span>Состав заказа:</span><strong>${itemsList || '—'}</strong></div>
-          <div class="details-row" style="border-top:1px solid var(--line-subtle);padding-top:6px;color:var(--gold-hi);font-weight:600;"><span>Итого:</span><strong>${money(record.total)}</strong></div>
+          <div class="details-row"><span>${t('trackRecipient')}</span><strong>${record.name || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackPhone')}</span><strong>${record.phone || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackMethod')}</span><strong>${translateDeliveryMode(record.orderType)}</strong></div>
+          <div class="details-row"><span>${t('trackAddress')}</span><strong>${record.address || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackItems')}</span><strong>${itemsList || '—'}</strong></div>
+          <div class="details-row" style="border-top:1px solid var(--line-subtle);padding-top:6px;color:var(--gold-hi);font-weight:600;"><span>${t('trackTotal')}</span><strong>${money(record.total)}</strong></div>
         </div>
       `;
     } else {
       detailsHtml = `
         <div class="details-table">
-          <div class="details-row"><span>Гость:</span><strong>${record.name}</strong></div>
-          <div class="details-row"><span>Телефон:</span><strong>${record.phone}</strong></div>
-          <div class="details-row"><span>Дата и время:</span><strong>${record.date} в ${record.time}</strong></div>
-          <div class="details-row"><span>Гостей:</span><strong>${record.guests} чел.</strong></div>
-          <div class="details-row"><span>Выбранный зал:</span><strong>${record.zone || 'Основной зал'}</strong></div>
+          <div class="details-row"><span>${t('trackGuest')}</span><strong>${record.name || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackPhone')}</span><strong>${record.phone || '—'}</strong></div>
+          <div class="details-row"><span>${t('trackDateTime')}</span><strong>${record.date} ${t('atTime') || 'в'} ${record.time}</strong></div>
+          <div class="details-row"><span>${t('trackGuests')}</span><strong>${typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(record.guests) : (record.guests + ' чел.')}</strong></div>
+          <div class="details-row"><span>${t('trackHall')}</span><strong>${translateHall(record.zone)}</strong></div>
         </div>
       `;
     }
@@ -3653,23 +4007,23 @@ body {
         <div class="stepper">
           <div class="step-item ${s1}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">1. Заказ зарегистрирован</div>
-            <div class="step-desc">Поступил в ресторан и передан администратору</div>
+            <div class="step-title">${t('stepOrd1Title')}</div>
+            <div class="step-desc">${t('stepOrd1Desc')}</div>
           </div>
           <div class="step-item ${s2}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">2. Готовится на кухне</div>
-            <div class="step-desc">Шеф-повара Fenix готовят ваши блюда</div>
+            <div class="step-title">${t('stepOrd2Title')}</div>
+            <div class="step-desc">${t('stepOrd2Desc')}</div>
           </div>
           <div class="step-item ${s3}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">3. ${record.orderType && record.orderType.includes('Самовывоз') ? 'Готов к выдаче' : 'Передан курьеру / В пути'}</div>
-            <div class="step-desc">${record.orderType && record.orderType.includes('Самовывоз') ? 'Ожидает вас в ресторане' : 'Курьер направляется по вашему адресу'}</div>
+            <div class="step-title">${isPickup ? t('stepOrd3TitlePickup') : t('stepOrd3TitleDelivery')}</div>
+            <div class="step-desc">${isPickup ? t('stepOrd3DescPickup') : t('stepOrd3DescDelivery')}</div>
           </div>
           <div class="step-item ${s4}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">4. Выполнен</div>
-            <div class="step-desc">Приятного аппетита!</div>
+            <div class="step-title">${t('stepOrd4Title')}</div>
+            <div class="step-desc">${t('stepOrd4Desc')}</div>
           </div>
         </div>
       `;
@@ -3678,18 +4032,18 @@ body {
         <div class="stepper">
           <div class="step-item ${s1}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">1. Заявка зарегистрирована</div>
-            <div class="step-desc">Данные о дате и гостях сохранены</div>
+            <div class="step-title">${t('stepRes1Title')}</div>
+            <div class="step-desc">${t('stepRes1Desc')}</div>
           </div>
           <div class="step-item ${s2}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">2. Подтверждено рестораном</div>
-            <div class="step-desc">Столик зарезервирован за вами</div>
+            <div class="step-title">${t('stepRes2Title')}</div>
+            <div class="step-desc">${t('stepRes2Desc')}</div>
           </div>
           <div class="step-item ${s3}">
             <div class="step-dot"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg></div>
-            <div class="step-title">3. Стол подготовлен</div>
-            <div class="step-desc">Ждём вас в ресторане Fenix</div>
+            <div class="step-title">${t('stepRes3Title')}</div>
+            <div class="step-desc">${t('stepRes3Desc')}</div>
           </div>
         </div>
       `;
@@ -3700,18 +4054,18 @@ body {
         <div class="tracking-header">
           <div>
             <div class="tracking-id">${record.code}</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Статус: <b style="color:var(--gold-hi);">${record.status || 'В обработке'}</b></div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${t('trackStatus')} <b style="color:var(--gold-hi);">${translateStatus(record.status, record.type)}</b></div>
           </div>
-          <span class="tracking-type">${isOrder ? 'Заказ' : 'Бронь стола'}</span>
+          <span class="tracking-type">${isOrder ? t('trackTypeOrder') : t('trackTypeRes')}</span>
         </div>
         ${stepperHtml}
         ${detailsHtml}
         <div style="margin-top:14px;display:flex;gap:10px;">
           <a href="tel:+998971850010" class="btn-outline" style="text-decoration:none;font-size:12px;padding:8px 12px;flex:1;">
             <svg style="width:14px;height:14px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Позвонить в FENIX</span>
+            <span>${t('btnCallFenix')}</span>
           </a>
-          <button type="button" class="btn-outline" style="font-size:12px;padding:8px 12px;" onclick="window.FX_APP.lookupCode('${record.code}')">Обновить</button>
+          <button type="button" class="btn-outline" style="font-size:12px;padding:8px 12px;" onclick="window.FX_APP.lookupCode('${record.code}')">${t('btnRefresh')}</button>
         </div>
       </div>
     `;
@@ -3841,15 +4195,31 @@ body {
       b.classList.toggle('active', b.dataset.lang === lang);
     });
 
-    // Update static labels
+    // Update static header labels
     const tDeliv = document.getElementById('txt-mode-delivery');
     const tPickup = document.getElementById('txt-mode-pickup');
     if (tDeliv) tDeliv.textContent = t('delivery');
     if (tPickup) tPickup.textContent = t('pickup');
 
+    const bannerAction = document.getElementById('address-banner-action');
+    if (bannerAction) bannerAction.textContent = t('change');
+
     const searchInput = document.getElementById('dish-search-input');
     if (searchInput) searchInput.placeholder = t('searchPlaceholder');
 
+    // Cuisine chips
+    const chipAll = document.getElementById('chip-cuisine-all');
+    const chipEu = document.getElementById('chip-cuisine-europe');
+    const chipKr = document.getElementById('chip-cuisine-korea');
+    const chipGr = document.getElementById('chip-cuisine-grill');
+    const chipBr = document.getElementById('chip-cuisine-bar');
+    if (chipAll) chipAll.textContent = t('allDishes');
+    if (chipEu) chipEu.textContent = t('europe');
+    if (chipKr) chipKr.textContent = t('korea');
+    if (chipGr) chipGr.textContent = t('grill');
+    if (chipBr) chipBr.textContent = t('bar');
+
+    // Bottom dock labels
     const navMenu = document.getElementById('nav-lbl-menu');
     const navReserve = document.getElementById('nav-lbl-reserve');
     const navCart = document.getElementById('nav-lbl-cart');
@@ -3858,6 +4228,66 @@ body {
     if (navReserve) navReserve.textContent = t('navReserve');
     if (navCart) navCart.textContent = t('navCart');
     if (navStatus) navStatus.textContent = t('navStatus');
+
+    // Floating cart action text
+    const fcAction = document.getElementById('fc-action-text');
+    if (fcAction) fcAction.textContent = t('btnToCart');
+
+    // Reservation Tab static labels
+    const txtResTitle = document.getElementById('txt-res-title');
+    const lblResDate = document.getElementById('lbl-res-date');
+    const chipToday = document.getElementById('res-chip-today');
+    const chipTmrw = document.getElementById('res-chip-tomorrow');
+    const chipDaft = document.getElementById('res-chip-dayafter');
+    const lblResTime = document.getElementById('lbl-res-time');
+    const lblResGuests = document.getElementById('lbl-res-guests');
+    const valGuests = document.getElementById('val-guests');
+    const lblResHall = document.getElementById('lbl-res-hall');
+    const hallMainT = document.getElementById('txt-hall-main-title');
+    const hallMainD = document.getElementById('txt-hall-main-desc');
+    const hallBanqT = document.getElementById('txt-hall-banquet-title');
+    const hallBanqD = document.getElementById('txt-hall-banquet-desc');
+    const hallVipT = document.getElementById('txt-hall-vip-title');
+    const hallVipD = document.getElementById('txt-hall-vip-desc');
+    const lblResName = document.getElementById('lbl-res-name');
+    const lblResPhone = document.getElementById('lbl-res-phone');
+    const lblResComm = document.getElementById('lbl-res-comment');
+    const inpResComm = document.getElementById('res-comment-input');
+    const txtBtnRes = document.getElementById('txt-btn-submit-res');
+
+    if (txtResTitle) txtResTitle.textContent = t('resTitle');
+    if (lblResDate) lblResDate.textContent = t('resDate');
+    if (chipToday) chipToday.textContent = t('dateToday');
+    if (chipTmrw) chipTmrw.textContent = t('dateTomorrow');
+    if (chipDaft) chipDaft.textContent = t('dateAfterTomorrow');
+    if (lblResTime) lblResTime.textContent = t('resTime');
+    if (lblResGuests) lblResGuests.textContent = t('resGuests');
+    if (valGuests) valGuests.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.');
+    if (lblResHall) lblResHall.textContent = t('resHall');
+    if (hallMainT) hallMainT.textContent = t('hallMainTitle');
+    if (hallMainD) hallMainD.textContent = t('hallMainDesc');
+    if (hallBanqT) hallBanqT.textContent = t('hallBanquetTitle');
+    if (hallBanqD) hallBanqD.textContent = t('hallBanquetDesc');
+    if (hallVipT) hallVipT.textContent = t('hallVipTitle');
+    if (hallVipD) hallVipD.textContent = t('hallVipDesc');
+    if (lblResName) lblResName.textContent = t('resName');
+    if (lblResPhone) lblResPhone.textContent = t('resPhone');
+    if (lblResComm) lblResComm.textContent = t('resComment');
+    if (inpResComm) inpResComm.placeholder = t('resCommentPlaceholder');
+    if (txtBtnRes) txtBtnRes.textContent = t('resSubmit');
+
+    // Status Tab static labels
+    const txtStatusTitle = document.getElementById('txt-status-title');
+    const txtStatusHint = document.getElementById('txt-status-hint');
+    const inpStatusQuery = document.getElementById('status-query-input');
+    const btnLookup = document.getElementById('btn-lookup-status');
+    const txtRecent = document.getElementById('txt-recent-title');
+
+    if (txtStatusTitle) txtStatusTitle.textContent = t('statusTitle');
+    if (txtStatusHint) txtStatusHint.textContent = t('statusSearchPrompt');
+    if (inpStatusQuery) inpStatusQuery.placeholder = t('statusLookupPlaceholder');
+    if (btnLookup) btnLookup.textContent = t('statusBtnSearch');
+    if (txtRecent) txtRecent.textContent = t('recentHistoryTitle');
 
     // Wizard labels
     const wLangT = document.getElementById('w-lang-title');
@@ -3876,14 +4306,21 @@ body {
     const wDelivT = document.getElementById('w-txt-delivery');
     const wPickupT = document.getElementById('w-txt-pickup');
     const wFinish = document.getElementById('btn-wiz-finish');
+    const wNext1 = document.getElementById('txt-wiz-1-next');
+    const wNext2 = document.getElementById('btn-wiz-2-next');
+    const wBack2 = document.getElementById('btn-wiz-2-back');
+    const wBack3 = document.getElementById('btn-wiz-3-back');
 
     if (wLangT) wLangT.textContent = t('wLangTitle');
     if (wLangD) wLangD.textContent = t('wLangDesc');
+    if (wNext1) wNext1.textContent = t('wNext');
     if (wRegT) wRegT.textContent = t('wRegTitle');
     if (wRegD) wRegD.textContent = t('wRegDesc');
     if (wTg) wTg.textContent = t('wTgAutofill');
     if (wPhoneL) wPhoneL.textContent = t('wPhoneLabel');
     if (wNameL) wNameL.textContent = t('wNameLabel');
+    if (wBack2) wBack2.textContent = t('wBack');
+    if (wNext2) wNext2.textContent = t('wNext');
     if (wLocT) wLocT.textContent = t('wLocTitle');
     if (wLocD) wLocD.textContent = t('wLocDesc');
     if (wGps) wGps.textContent = t('wGpsBtn');
@@ -3892,11 +4329,14 @@ body {
     if (wAptL) wAptL.textContent = t('wAptLabel');
     if (wDelivT) wDelivT.textContent = t('delivery');
     if (wPickupT) wPickupT.textContent = t('pickup');
+    if (wBack3) wBack3.textContent = t('wBack');
     if (wFinish) wFinish.textContent = t('wFinish');
 
     updateAddressBanner();
     renderSubcategories();
     renderMenuDishes();
+    renderRecentHistory();
+    if (lastTrackedRecord) renderTrackingCard(lastTrackedRecord);
     if (currentTab === 'tab-cart') renderCartView();
   }
 
@@ -4077,7 +4517,7 @@ body {
         const name = (nameInput ? nameInput.value : '').trim();
 
         if (!parsed.isValid) {
-          alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+          alert(currentLang === 'uz' ? 'Iltimos, O‘zbekiston telefon raqamingizning to‘liq 9 ta raqamini kiriting (masalan: 90 123 45 67)' : currentLang === 'en' ? 'Please enter a valid 9-digit Uzbekistan phone number (e.g. 90 123 45 67)' : 'Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
           if (phoneDigits) phoneDigits.focus();
           return;
         }
@@ -4161,7 +4601,7 @@ body {
           const apt = aptEl ? aptEl.value.trim() : '';
 
           if (!street) {
-            alert('Пожалуйста, укажите улицу и номер дома для доставки');
+            alert(currentLang === 'uz' ? 'Iltimos, yetkazib berish uchun ko‘cha va uy raqamini kiriting' : currentLang === 'en' ? 'Please enter street and house number for delivery' : 'Пожалуйста, укажите улицу и номер дома для доставки');
             if (streetEl) streetEl.focus();
             return;
           }
@@ -4336,11 +4776,9 @@ body {
     initWizardEvents();
 
     // Init components
-    setLanguage(currentLang);
-    setOrderMode(orderMode);
     initReservation();
-    renderSubcategories();
-    renderMenuDishes();
+    setOrderMode(orderMode);
+    setLanguage(currentLang);
     renderRecentHistory();
 
     // If user is not yet registered, auto-launch Step 1 of the Onboarding Wizard!
