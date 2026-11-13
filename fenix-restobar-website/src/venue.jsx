@@ -475,7 +475,7 @@ function Floor({ t, toast }) {
             onClick={() => { setCurrentFloor(1); setSel(null); }}
             style={{ fontWeight: 700 }}
           >
-            🏛️ 1-й этаж · Основной зал (120 мест)
+            1-й этаж · Основной зал (120 мест)
           </button>
           <button
             className="chip"
@@ -483,7 +483,7 @@ function Floor({ t, toast }) {
             onClick={() => { setCurrentFloor(2); setSel(null); }}
             style={{ fontWeight: 700 }}
           >
-            🎉 2-й этаж · Банкетный зал & VIP (170 мест)
+            2-й этаж · Банкетный зал & VIP (170 мест)
           </button>
         </div>
 
@@ -572,7 +572,8 @@ function Floor({ t, toast }) {
               gap: 6,
             }}
           >
-            <span>🚪 Главный вход · ул. Хуснобод 5-й проезд, 1</span>
+            <Icon name="door" size={11} />
+            <span>Главный вход · ул. Хуснобод 5-й проезд, 1</span>
           </div>
 
           {/* Render All Tables on Current Floor */}
@@ -626,8 +627,8 @@ function Floor({ t, toast }) {
               >
                 {isStage ? (
                   <>
-                    <span style={{ fontSize: 16 }}>🎷</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-2)' }}>Сцена & DJ</span>
+                    <Icon name="music" size={18} style={{ color: 'var(--accent-2)' }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-2)', marginTop: 2 }}>Сцена & DJ</span>
                     <span style={{ fontSize: 8.5, color: 'var(--text-3)' }}>Живой звук</span>
                   </>
                 ) : (
@@ -732,8 +733,8 @@ function Floor({ t, toast }) {
                             </span>
                           </div>
                           {b.phone && (
-                            <div className="mono dim" style={{ fontSize: 10.5 }}>
-                              📞 {b.phone}
+                            <div className="mono dim" style={{ fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Icon name="phone" size={10} /> {b.phone}
                             </div>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-3)' }}>

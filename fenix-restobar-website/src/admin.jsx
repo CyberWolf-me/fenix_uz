@@ -74,9 +74,10 @@ function Couriers({ t, toast, orders = [] }) {
             width: 38px; height: 38px; border-radius: 50%;
             background: linear-gradient(135deg, #d3aa63, #b8860b);
             border: 2px solid #fff; box-shadow: 0 0 16px rgba(211, 170, 99, 0.7);
-            display: flex; align-items: center; justify-content: center; color: #000;
-            font-size: 18px; font-weight: bold; cursor: pointer;
-          ">🔥</div>
+            display: flex; align-items: center; justify-content: center; color: #111;
+            font-size: 13px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
+            font-family: var(--f-display, sans-serif);
+          ">FX</div>
         `,
         iconSize: [38, 38],
         iconAnchor: [19, 19],
@@ -86,7 +87,7 @@ function Couriers({ t, toast, orders = [] }) {
         .addTo(map)
         .bindPopup(`
           <div style="font-family: sans-serif; color: #111; padding: 4px;">
-            <b style="color: #b8860b;">🔥 FENIX Restobar & Lounge</b><br/>
+            <b style="color: #b8860b;">FENIX Restobar & Lounge</b><br/>
             <span>Яшнабадский район, 5-й проезд Хуснобод, 1</span><br/>
             <small style="color: #666;">Центр отправки заказов</small>
           </div>
@@ -115,9 +116,12 @@ function Couriers({ t, toast, orders = [] }) {
             background: ${isDone ? '#57a877' : isSel ? '#d3aa63' : '#4a7fc1'};
             border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: center; color: #fff;
-            font-size: ${isSel ? 13 : 11}px; font-weight: bold; cursor: pointer;
-            transition: all 0.2s ease;
-          ">🛵</div>
+            cursor: pointer; transition: all 0.2s ease;
+          ">
+            <svg width="${isSel ? 18 : 14}" height="${isSel ? 18 : 14}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M14 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M6 13l3.5-5.5H13 M9.5 7.5 12 13 M13 5h3"/>
+            </svg>
+          </div>
         `,
         iconSize: [isSel ? 36 : 28, isSel ? 36 : 28],
         iconAnchor: [isSel ? 18 : 14, isSel ? 18 : 14],
@@ -399,8 +403,9 @@ function MenuScreen({ t, toast }) {
     );
 
     toast(
-      willStop ? `⛔ "${dish.n}" добавлен в стоп-лист кухни` : `✅ "${dish.n}" снова доступен для заказа`,
-      willStop ? 'warn' : 'ok'
+      willStop ? `"${dish.n}" добавлен в стоп-лист кухни` : `"${dish.n}" возвращён в меню`,
+      willStop ? 'warn' : 'ok',
+      willStop ? 'alert' : 'check'
     );
 
     fetch('/api/admin/menu/toggle', {
