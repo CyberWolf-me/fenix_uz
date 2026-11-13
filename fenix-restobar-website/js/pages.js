@@ -28,7 +28,8 @@
     'dance': V('Танцпол', 'Raqs maydoni', 'Dance floor', 'music', 720, 1200),
     'bar-glow': V('Бар', 'Bar', 'The bar', 'bar', 720, 1200),
     'bottles': V('Барная полка', 'Bar javoni', 'Back bar', 'bar', 720, 1200),
-    'beer-set': V('Пивной сет', 'Pivo seti', 'Beer set', 'bar', 451, 800)
+    'beer-set': V('Пивной сет', 'Pivo seti', 'Beer set', 'bar', 451, 800),
+    'hero-bg': V('Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'Fenix Restaurant & Bar', 'rooms', 1864, 844)
   };
   /* dish photos (owner-supplied, t.me/realfeniximages) are added to the gallery as "food" */
   S.DISH_PHOTOS.forEach(id => { const it = S.byId[id]; if (it) IMG['dish/' + id] = { ru: it.name.ru, uz: it.name.uz, en: it.name.en, cat: 'food', w: 560, h: 560 }; });
@@ -90,13 +91,13 @@
   const SIGS = ['europe-043', 'korea-129', 'korea-142', 'europe-025', 'korea-146', 'europe-059'];
   const H = {};
   H.hero = () => {
-    const v = S.tweaks.hero || 'triptych';
+    const v = S.tweaks.hero || 'single';
     const wm = S.tweaks.wordmark === 'serif'
       ? `<span class="wordmark" aria-hidden="true">FENI<em>X</em></span>`
       : `<span class="wordmark-logo" aria-hidden="true" style="display:block;width:min(720px,88vw);color:var(--ink)">${S.logos.wordmark || ''}</span>`;
     return `
     <section class="hero" data-variant="${v}" data-screen-label="Home · hero">
-      <div class="hero-media" aria-hidden="true"><figure>${img('sign-hall', '', true)}</figure><figure>${img('hall-red')}</figure><figure>${img('bar-glow')}</figure></div>
+      <div class="hero-media hero-single" aria-hidden="true"><figure>${img('hero-bg', '', true)}</figure></div>
       <div class="halo halo1" aria-hidden="true"></div><div class="halo halo2" aria-hidden="true"></div>
       <div class="hero-in">
         <div class="hero-mid">
