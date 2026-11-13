@@ -689,16 +689,20 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--line-subtle);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 11px 14px;
   color: var(--text-main);
-  font-size: 13px;
+  font-size: 16px; /* Mandatory >= 16px to prevent iOS Safari auto-zoom inside Telegram WebApp */
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease;
+  min-height: 46px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+  box-sizing: border-box;
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(192, 138, 62, 0.35);
 }
 
 .form-textarea {
@@ -1821,6 +1825,102 @@ body {
 .wizard-nav-row .btn-primary {
   flex: 1;
 }
+
+/* ── UZBEKISTAN PHONE INPUT (Anti-Zoom, Locked Prefix, Live Mask) ── */
+.phone-field-box {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  min-height: 48px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.phone-field-box:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(192, 138, 62, 0.35);
+  background: rgba(192, 138, 62, 0.04);
+}
+
+.phone-prefix-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-right: 1px solid var(--line-subtle);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gold-hi);
+  letter-spacing: 0.02em;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.uz-flag-svg {
+  display: block;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.phone-digits-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 12px 14px;
+  color: var(--text-main);
+  font-size: 17px !important; /* >= 16px prevents iOS Safari/Telegram auto-zoom */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  font-family: inherit;
+  -webkit-appearance: none;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.phone-digits-input::placeholder {
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.phone-check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: auto;
+  margin-right: 8px;
+  color: var(--gold-hi);
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.phone-check-icon.valid {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.phone-hint-text {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;
+}
 </style>
 </head>
 <body>
@@ -1872,7 +1972,7 @@ body {
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <input type="text" id="dish-search-input" placeholder="Поиск блюд (рибай, кимпаб, шашлык...)" autocomplete="off">
-        <button type="button" class="search-clear" id="search-clear-btn" aria-label="Clear">✕</button>
+        <button type="button" class="search-clear" id="search-clear-btn" aria-label="Clear"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
     </div>
 
@@ -1983,7 +2083,33 @@ body {
 
           <div>
             <label class="form-label" id="lbl-res-phone">Номер телефона</label>
-            <input type="tel" class="form-input" id="res-phone-input" placeholder="+998 90 123 45 67">
+            <div class="phone-field-box">
+              <div class="phone-prefix-badge">
+                <svg class="uz-flag-svg" viewBox="0 0 32 20" width="22" height="14">
+                  <rect width="32" height="6.6" fill="#0099b5"/>
+                  <rect y="6.6" width="32" height="0.7" fill="#ce1126"/>
+                  <rect y="7.3" width="32" height="5.4" fill="#ffffff"/>
+                  <rect y="12.7" width="32" height="0.7" fill="#ce1126"/>
+                  <rect y="13.4" width="32" height="6.6" fill="#1eb53a"/>
+                </svg>
+                <span>+998</span>
+              </div>
+              <input type="tel" 
+                     class="phone-digits-input" 
+                     id="res-phone-digits" 
+                     inputmode="numeric" 
+                     pattern="[0-9]*" 
+                     maxlength="12" 
+                     placeholder="90 123 45 67" 
+                     autocomplete="tel-national">
+              <div class="phone-check-icon" id="res-phone-check">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div class="phone-hint-text">
+              <span>9 цифр номера (например 90 123 45 67)</span>
+              <span id="res-phone-counter">0 / 9</span>
+            </div>
           </div>
 
           <div>
@@ -2082,7 +2208,7 @@ body {
           <span class="step-indicator-dot" id="wiz-dot-3"></span>
         </div>
       </div>
-      <button type="button" class="wizard-close-btn" id="wizard-close-btn" aria-label="Close">✕</button>
+      <button type="button" class="wizard-close-btn" id="wizard-close-btn" aria-label="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- STEP 1: LANGUAGE SELECTION -->
@@ -2136,13 +2262,39 @@ body {
 
       <button type="button" class="tg-autofill-btn" id="btn-tg-autofill">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-        <span id="txt-tg-autofill">Заполнить данные из Telegram</span>
+        <span id="txt-tg-autofill">Поделиться номером через Telegram</span>
       </button>
 
       <div class="form-grid">
         <div>
-          <label class="form-label" id="lbl-w-phone">Номер телефона (+998)</label>
-          <input type="tel" class="form-input" id="w-phone-input" placeholder="+998 90 123 45 67">
+          <label class="form-label" id="lbl-w-phone">Номер телефона</label>
+          <div class="phone-field-box" id="w-phone-box">
+            <div class="phone-prefix-badge">
+              <svg class="uz-flag-svg" viewBox="0 0 32 20" width="22" height="14">
+                <rect width="32" height="6.6" fill="#0099b5"/>
+                <rect y="6.6" width="32" height="0.7" fill="#ce1126"/>
+                <rect y="7.3" width="32" height="5.4" fill="#ffffff"/>
+                <rect y="12.7" width="32" height="0.7" fill="#ce1126"/>
+                <rect y="13.4" width="32" height="6.6" fill="#1eb53a"/>
+              </svg>
+              <span>+998</span>
+            </div>
+            <input type="tel" 
+                   class="phone-digits-input" 
+                   id="w-phone-digits" 
+                   inputmode="numeric" 
+                   pattern="[0-9]*" 
+                   maxlength="12" 
+                   placeholder="90 123 45 67" 
+                   autocomplete="tel-national">
+            <div class="phone-check-icon" id="w-phone-check">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+          <div class="phone-hint-text">
+            <span>Введите 9 цифр (например 90 123 45 67)</span>
+            <span id="w-phone-digit-counter">0 / 9</span>
+          </div>
         </div>
         <div>
           <label class="form-label" id="lbl-w-name">Ваше имя</label>
@@ -2215,11 +2367,11 @@ body {
 
       <!-- Takeaway Section -->
       <div id="w-pickup-box" style="display:none;">
-        <div style="background:var(--bg-surface);border:1px solid var(--line-subtle);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+        <div style="background:var(--bg-surface);border:1px solid var(--line-subtle);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;line-height:1.5;">
           <h4 style="font-size:14px;color:var(--gold-hi);margin-bottom:6px;">FENIX Restaurant & Bar</h4>
-          <p style="font-size:12px;color:var(--text-main);line-height:1.45;margin-bottom:6px;">📍 г. Ташкент, Яшнабадский район, ул. Хуснабад, 5-й проезд, дом 1а</p>
-          <p style="font-size:11px;color:var(--text-muted);">⏰ Время работы: Ежедневно с 11:00 до 23:00</p>
-          <p style="font-size:11px;color:var(--text-muted);margin-top:2px;">⚡ Готовность к выдаче: ~25-35 минут</p>
+          <p style="font-size:12px;color:var(--text-main);margin-bottom:6px;"><span style="color:var(--gold);font-weight:600;">Адрес:</span> г. Ташкент, Яшнабадский район, ул. Хуснабад, 5-й проезд, дом 1а</p>
+          <p style="font-size:11px;color:var(--text-muted);"><span style="color:var(--gold-hi);">Время работы:</span> Ежедневно с 11:00 до 23:00</p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:3px;"><span style="color:var(--gold-hi);">Готовность к выдаче:</span> ~25-35 минут</p>
         </div>
       </div>
 
@@ -2295,6 +2447,47 @@ body {
   let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
   let userName = localStorage.getItem('fx.name') || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : '');
   let userPhone = localStorage.getItem('fx.phone') || '';
+
+  // ── Uzbekistan Phone Utility Helpers ──
+  function cleanTo9Digits(val) {
+    if (!val) return '';
+    let digits = String(val).replace(/[^0-9]/g, '');
+    if (digits.startsWith('998') && digits.length > 9) {
+      digits = digits.slice(3);
+    } else if (digits.length > 9 && (digits.startsWith('8') || digits.startsWith('7'))) {
+      digits = digits.slice(-9);
+    }
+    return digits.slice(0, 9);
+  }
+
+  function formatUzPhoneDigits(raw) {
+    const d = cleanTo9Digits(raw);
+    let out = '';
+    if (d.length > 0) out = d.slice(0, 2);
+    if (d.length > 2) out += ' ' + d.slice(2, 5);
+    if (d.length > 5) out += ' ' + d.slice(5, 7);
+    if (d.length > 7) out += ' ' + d.slice(7, 9);
+    return {
+      digits: d,
+      formatted: out,
+      isValid: d.length === 9,
+      fullNumber: d.length === 9 ? `+998${d}` : ''
+    };
+  }
+
+  function bindPhoneInput(inputEl, checkEl, counterEl, onValid) {
+    if (!inputEl) return;
+    const handler = () => {
+      const parsed = formatUzPhoneDigits(inputEl.value);
+      inputEl.value = parsed.formatted;
+      if (checkEl) checkEl.classList.toggle('valid', parsed.isValid);
+      if (counterEl) counterEl.textContent = `${parsed.digits.length} / 9`;
+      if (parsed.isValid && onValid) onValid(parsed.fullNumber);
+    };
+    inputEl.addEventListener('input', handler);
+    inputEl.addEventListener('paste', () => setTimeout(handler, 20));
+    inputEl.addEventListener('blur', handler);
+  }
 
   // Dish Images Map
   const DISH_PHOTO_MAP = {
@@ -2450,8 +2643,8 @@ body {
       wBack: 'Назад',
       wRegTitle: 'Ваш контактный номер',
       wRegDesc: 'Номер используется для подтверждения заказов, доставки и брони столиков',
-      wTgAutofill: 'Заполнить данные из Telegram',
-      wPhoneLabel: 'Номер телефона (+998)',
+      wTgAutofill: 'Поделиться номером через Telegram',
+      wPhoneLabel: 'Номер телефона',
       wNameLabel: 'Ваше имя',
       wLocTitle: 'Адрес и способ получения',
       wLocDesc: 'Выберите доставку по Ташкенту или самовывоз из FENIX',
@@ -2519,8 +2712,8 @@ body {
       wBack: 'Orqaga',
       wRegTitle: 'Telefon raqamingiz',
       wRegDesc: 'Raqam buyurtmani tasdiqlash va kuryer bilan aloqa uchun zarur',
-      wTgAutofill: 'Telegram orqali to‘ldirish',
-      wPhoneLabel: 'Telefon raqami (+998)',
+      wTgAutofill: 'Telegram orqali raqamni ulashish',
+      wPhoneLabel: 'Telefon raqami',
       wNameLabel: 'Ismingiz',
       wLocTitle: 'Manzil va qabul qilish usuli',
       wLocDesc: 'Toshkent bo‘ylab yetkazib berish yoki restorandan olib ketishni tanlang',
@@ -2588,8 +2781,8 @@ body {
       wBack: 'Back',
       wRegTitle: 'Your Contact Phone',
       wRegDesc: 'Your number is used for order verification, delivery, and table booking',
-      wTgAutofill: 'Auto-fill from Telegram',
-      wPhoneLabel: 'Phone number (+998)',
+      wTgAutofill: 'Share phone via Telegram',
+      wPhoneLabel: 'Phone number',
       wNameLabel: 'Your name',
       wLocTitle: 'Delivery method & location',
       wLocDesc: 'Choose fast courier delivery across Tashkent or takeaway from FENIX',
@@ -2891,9 +3084,9 @@ body {
             ${orderMode === 'delivery' ? `
               <input type="text" class="form-input" id="order-addr-input" value="${userAddress}" placeholder="Город, улица, дом, квартира/офис, ориентир" style="margin-top:6px;">
             ` : `
-              <div style="font-size:12px;color:var(--text-muted);background:var(--bg-surface);padding:8px 10px;border-radius:6px;border:1px solid var(--line-subtle);">
-                📍 Адрес ресторана: г. Ташкент, ул. Хуснабад, 5-й проезд, 1а<br>
-                ⏰ Готовность к выдаче: ~25-35 минут
+              <div style="font-size:12px;color:var(--text-muted);background:var(--bg-surface);padding:8px 10px;border-radius:6px;border:1px solid var(--line-subtle);line-height:1.5;">
+                <span style="color:var(--gold);font-weight:600;">Адрес ресторана:</span> г. Ташкент, ул. Хуснабад, 5-й проезд, 1а<br>
+                <span style="color:var(--gold-hi);">Готовность к выдаче:</span> ~25-35 минут
               </div>
             `}
           </div>
@@ -2905,7 +3098,34 @@ body {
 
           <div>
             <label class="form-label">${t('resPhone')}</label>
-            <input type="tel" class="form-input" id="order-phone-input" value="${userPhone}" placeholder="+998 90 123 45 67">
+            <div class="phone-field-box">
+              <div class="phone-prefix-badge">
+                <svg class="uz-flag-svg" viewBox="0 0 32 20" width="22" height="14">
+                  <rect width="32" height="6.6" fill="#0099b5"/>
+                  <rect y="6.6" width="32" height="0.7" fill="#ce1126"/>
+                  <rect y="7.3" width="32" height="5.4" fill="#ffffff"/>
+                  <rect y="12.7" width="32" height="0.7" fill="#ce1126"/>
+                  <rect y="13.4" width="32" height="6.6" fill="#1eb53a"/>
+                </svg>
+                <span>+998</span>
+              </div>
+              <input type="tel" 
+                     class="phone-digits-input" 
+                     id="order-phone-digits" 
+                     value="${formatUzPhoneDigits(userPhone).formatted}" 
+                     inputmode="numeric" 
+                     pattern="[0-9]*" 
+                     maxlength="12" 
+                     placeholder="90 123 45 67" 
+                     autocomplete="tel-national">
+              <div class="phone-check-icon ${formatUzPhoneDigits(userPhone).isValid ? 'valid' : ''}" id="order-phone-check">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div class="phone-hint-text">
+              <span>9 цифр номера получателя</span>
+              <span id="order-phone-counter">${formatUzPhoneDigits(userPhone).digits.length} / 9</span>
+            </div>
           </div>
 
           <div>
@@ -2954,19 +3174,29 @@ body {
         if (radio) radio.checked = true;
       });
     });
+
+    const orderPhoneInput = container.querySelector('#order-phone-digits');
+    const orderPhoneCheck = container.querySelector('#order-phone-check');
+    const orderPhoneCounter = container.querySelector('#order-phone-counter');
+    if (orderPhoneInput) {
+      bindPhoneInput(orderPhoneInput, orderPhoneCheck, orderPhoneCounter, (fullNumber) => {
+        userPhone = fullNumber;
+        localStorage.setItem('fx.phone', fullNumber);
+      });
+    }
   }
 
   // ── Submit Order to Backend API ──
   async function submitOrder() {
     const btn = document.getElementById('btn-submit-order');
     const nameEl = document.getElementById('order-name-input');
-    const phoneEl = document.getElementById('order-phone-input');
+    const phoneDigitsEl = document.getElementById('order-phone-digits');
     const addrEl = document.getElementById('order-addr-input');
     const commentEl = document.getElementById('order-comment-input');
     const payRadio = document.querySelector('input[name="pay-method"]:checked');
 
     const name = (nameEl ? nameEl.value : userName || 'Гость').trim();
-    let phone = (phoneEl ? phoneEl.value : userPhone || '').trim();
+    const parsedPhone = formatUzPhoneDigits(phoneDigitsEl ? phoneDigitsEl.value : userPhone);
     const address = addrEl ? addrEl.value.trim() : (orderMode === 'delivery' ? (userAddress || 'Уточняется оператором') : 'Самовывоз из ресторана');
     const comment = commentEl ? commentEl.value.trim() : '';
     const payment = payRadio ? payRadio.value : 'Payme';
@@ -2977,17 +3207,13 @@ body {
       return;
     }
 
-    if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
-      alert('Пожалуйста, укажите контактный телефон (+998...)');
-      if (phoneEl) phoneEl.focus();
+    if (!parsedPhone.isValid) {
+      alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+      if (phoneDigitsEl) phoneDigitsEl.focus();
       return;
     }
 
-    if (!phone.startsWith('+')) {
-      const cleanDigits = phone.replace(/[^0-9]/g, '');
-      phone = cleanDigits.startsWith('998') ? `+${cleanDigits}` : `+998${cleanDigits}`;
-    }
-
+    const phone = parsedPhone.fullNumber;
     userName = name;
     userPhone = phone;
     userAddress = address;
@@ -3102,9 +3328,24 @@ body {
     }
 
     const nameEl = document.getElementById('res-name-input');
-    const phoneEl = document.getElementById('res-phone-input');
+    const phoneDigitsEl = document.getElementById('res-phone-digits');
+    const phoneCheckEl = document.getElementById('res-phone-check');
+    const phoneCounterEl = document.getElementById('res-phone-counter');
+
     if (nameEl && userName) nameEl.value = userName;
-    if (phoneEl && userPhone) phoneEl.value = userPhone;
+    if (phoneDigitsEl && userPhone) {
+      const parsed = formatUzPhoneDigits(userPhone);
+      phoneDigitsEl.value = parsed.formatted;
+      if (phoneCheckEl) phoneCheckEl.classList.toggle('valid', parsed.isValid);
+      if (phoneCounterEl) phoneCounterEl.textContent = `${parsed.digits.length} / 9`;
+    }
+
+    if (phoneDigitsEl) {
+      bindPhoneInput(phoneDigitsEl, phoneCheckEl, phoneCounterEl, (fullNumber) => {
+        userPhone = fullNumber;
+        localStorage.setItem('fx.phone', fullNumber);
+      });
+    }
 
     const dateChips = document.getElementById('res-date-chips');
     if (dateChips) {
@@ -3164,7 +3405,7 @@ body {
     if (submitBtn) {
       submitBtn.onclick = async () => {
         const name = (nameEl ? nameEl.value : userName || '').trim();
-        let phone = (phoneEl ? phoneEl.value : userPhone || '').trim();
+        const parsedPhone = formatUzPhoneDigits(phoneDigitsEl ? phoneDigitsEl.value : userPhone);
         const date = dateInput ? dateInput.value : '';
         const activeTimeChip = document.querySelector('#res-time-slots .slot-chip.active');
         const time = activeTimeChip ? activeTimeChip.dataset.time : '18:30';
@@ -3178,17 +3419,13 @@ body {
           return;
         }
 
-        if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
-          alert('Пожалуйста, укажите контактный телефон (+998...)');
-          if (phoneEl) phoneEl.focus();
+        if (!parsedPhone.isValid) {
+          alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+          if (phoneDigitsEl) phoneDigitsEl.focus();
           return;
         }
 
-        if (!phone.startsWith('+')) {
-          const cleanDigits = phone.replace(/[^0-9]/g, '');
-          phone = cleanDigits.startsWith('998') ? `+${cleanDigits}` : `+998${cleanDigits}`;
-        }
-
+        const phone = parsedPhone.fullNumber;
         userName = name;
         userPhone = phone;
         localStorage.setItem('fx.name', name);
@@ -3673,13 +3910,22 @@ body {
     const closeBtn = document.getElementById('wizard-close-btn');
 
     // Pre-populate input fields
-    const phoneInput = document.getElementById('w-phone-input');
+    const phoneDigits = document.getElementById('w-phone-digits');
+    const phoneCheck = document.getElementById('w-phone-check');
+    const phoneCounter = document.getElementById('w-phone-digit-counter');
     const nameInput = document.getElementById('w-name-input');
     const districtSelect = document.getElementById('w-district-select');
     const streetInput = document.getElementById('w-street-input');
 
-    if (phoneInput && userPhone) phoneInput.value = userPhone;
-    if (nameInput && userName) nameInput.value = userName;
+    if (phoneDigits && userPhone) {
+      const parsed = formatUzPhoneDigits(userPhone);
+      phoneDigits.value = parsed.formatted;
+      if (phoneCheck) phoneCheck.classList.toggle('valid', parsed.isValid);
+      if (phoneCounter) phoneCounter.textContent = `${parsed.digits.length} / 9`;
+    }
+    if (nameInput) {
+      nameInput.value = userName || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : '');
+    }
     if (districtSelect && userDistrict) districtSelect.value = userDistrict;
     if (streetInput && userAddress) {
       // If userAddress contains street portion
@@ -3721,6 +3967,20 @@ body {
       if (dot) dot.classList.toggle('active', i === stepNum);
       if (step) step.classList.toggle('active', i === stepNum);
     }
+
+    // When Step 2 is shown, auto-focus phone input and ensure name is prefilled
+    if (stepNum === 2) {
+      setTimeout(() => {
+        const phoneDigits = document.getElementById('w-phone-digits');
+        if (phoneDigits) phoneDigits.focus();
+      }, 220);
+
+      const nameInput = document.getElementById('w-name-input');
+      if (nameInput && !nameInput.value.trim() && tgUser) {
+        const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
+        if (fullName) nameInput.value = fullName;
+      }
+    }
   }
 
   function initWizardEvents() {
@@ -3745,19 +4005,63 @@ body {
       };
     }
 
-    // Step 2 Telegram auto-fill
+    // Bind Phone Input Mask for Step 2
+    const wPhoneDigits = document.getElementById('w-phone-digits');
+    const wPhoneCheck = document.getElementById('w-phone-check');
+    const wPhoneCounter = document.getElementById('w-phone-digit-counter');
+    if (wPhoneDigits) {
+      bindPhoneInput(wPhoneDigits, wPhoneCheck, wPhoneCounter, (fullNumber) => {
+        userPhone = fullNumber;
+        localStorage.setItem('fx.phone', fullNumber);
+      });
+    }
+
+    // Step 2 Telegram contact share
     const btnTgAutofill = document.getElementById('btn-tg-autofill');
     if (btnTgAutofill) {
       btnTgAutofill.onclick = () => {
-        haptic('light');
+        haptic('medium');
+        if (tg && typeof tg.requestContact === 'function') {
+          try {
+            tg.requestContact((granted, res) => {
+              if (granted) {
+                haptic('success');
+                if (res && res.responseUnsafe && res.responseUnsafe.contact) {
+                  const c = res.responseUnsafe.contact;
+                  if (c.phone_number) {
+                    const parsed = formatUzPhoneDigits(c.phone_number);
+                    if (wPhoneDigits) {
+                      wPhoneDigits.value = parsed.formatted;
+                      wPhoneDigits.dispatchEvent(new Event('input'));
+                    }
+                  }
+                  if (c.first_name) {
+                    const nameInput = document.getElementById('w-name-input');
+                    if (nameInput) nameInput.value = [c.first_name, c.last_name].filter(Boolean).join(' ');
+                  }
+                } else {
+                  alert('Запрос контакта отправлен в Telegram. Если номер не подставился автоматически, введите 9 цифр в поле.');
+                  if (wPhoneDigits) wPhoneDigits.focus();
+                }
+              } else {
+                if (wPhoneDigits) wPhoneDigits.focus();
+              }
+            });
+            return;
+          } catch (e) {
+            console.warn('requestContact failed:', e);
+          }
+        }
+
         if (tgUser) {
           const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
           const nameInput = document.getElementById('w-name-input');
           if (nameInput) nameInput.value = fullName;
-          alert(`Данные получены: ${fullName}`);
+          alert(`Имя из Telegram (${fullName}) подставлено. Пожалуйста, введите 9 цифр номера телефона.`);
         } else {
-          alert('Данные пользователя Telegram не найдены, введите имя вручную.');
+          alert('Пожалуйста, введите номер телефона и имя.');
         }
+        if (wPhoneDigits) wPhoneDigits.focus();
       };
     }
 
@@ -3767,31 +4071,32 @@ body {
     if (btnWiz2Back) btnWiz2Back.onclick = () => goToWizardStep(1);
     if (btnWiz2Next) {
       btnWiz2Next.onclick = () => {
-        const phoneInput = document.getElementById('w-phone-input');
+        const phoneDigits = document.getElementById('w-phone-digits');
         const nameInput = document.getElementById('w-name-input');
-        let phone = (phoneInput ? phoneInput.value : '').trim();
+        const parsed = formatUzPhoneDigits(phoneDigits ? phoneDigits.value : '');
         const name = (nameInput ? nameInput.value : '').trim();
 
-        if (!phone || phone.replace(/[^0-9]/g, '').length < 9) {
-          alert('Пожалуйста, укажите контактный телефон (+998...)');
-          if (phoneInput) phoneInput.focus();
+        if (!parsed.isValid) {
+          alert('Пожалуйста, укажите полный 9-значный номер телефона Узбекистана (например: 90 123 45 67)');
+          if (phoneDigits) phoneDigits.focus();
           return;
         }
 
-        if (!phone.startsWith('+')) {
-          const clean = phone.replace(/[^0-9]/g, '');
-          phone = clean.startsWith('998') ? `+${clean}` : `+998${clean}`;
-        }
-
-        userPhone = phone;
-        userName = name || 'Гость';
+        userPhone = parsed.fullNumber;
+        userName = name || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : 'Гость');
         localStorage.setItem('fx.phone', userPhone);
         localStorage.setItem('fx.name', userName);
 
         // Update other input fields across tabs
-        const resPhone = document.getElementById('res-phone-input');
+        const resDigits = document.getElementById('res-phone-digits');
         const resName = document.getElementById('res-name-input');
-        if (resPhone) resPhone.value = userPhone;
+        const resCheck = document.getElementById('res-phone-check');
+        const resCounter = document.getElementById('res-phone-counter');
+        if (resDigits) {
+          resDigits.value = parsed.formatted;
+          if (resCheck) resCheck.classList.add('valid');
+          if (resCounter) resCounter.textContent = '9 / 9';
+        }
         if (resName) resName.value = userName;
 
         goToWizardStep(3);
