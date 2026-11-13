@@ -1,11 +1,24 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
-# Load .env from bot directory or project root
-load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR.parent / ".env")
+
+# Safe .env loader (with or without python-dotenv)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+    load_dotenv(BASE_DIR.parent / ".env")
+except ImportError:
+    for env_file in (BASE_DIR / ".env", BASE_DIR.parent / ".env"):
+        if env_file.exists():
+            try:
+                for line in open(env_file, "r", encoding="utf-8"):
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip())
+            except Exception:
+                pass
 
 # Bot Token provided by user
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI")
