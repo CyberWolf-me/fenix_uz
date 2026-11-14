@@ -84,11 +84,11 @@ function Couriers({ t, toast, orders = [] }) {
         zoomControl: true,
       });
 
-      // Dark Matter CartoDB tiles
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
+      // OpenStreetMap tiles with dark luxury filter (100% free, no API key required, no watermark)
+      window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
         maxZoom: 19,
+        className: 'fenix-dark-map-tiles',
       }).addTo(map);
 
       // FENIX Restobar Hub Marker
