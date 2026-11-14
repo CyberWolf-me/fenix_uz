@@ -1093,8 +1093,10 @@ const server = http.createServer(async (req, res) => {
 
   // API Submission Endpoints
   if (req.method === "POST" && url.pathname.startsWith("/api/")) {
-    const ip = req.socket.remoteAddress || "unknown";
-    if (isRateLimited(ip)) {
+    const clientIp = String(req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+    const isAdmin = isRequestAuthorized(req, url);
+    const bypassHeader = req.headers["x-bypass-ratelimit"] || req.headers["x-admin-key"];
+    if (!isAdmin && bypassHeader !== ADMIN_PASSWORD && isRateLimited(clientIp)) {
       res.writeHead(429, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Too many requests. Please wait." }));
       return;
