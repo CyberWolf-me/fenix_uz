@@ -24,7 +24,7 @@ from aiogram.types import (
 )
 from aiogram.filters import CommandStart, Command
 
-from config import COURIER_BOT_TOKEN, COURIER_BOT_USERNAME, WEBSITE_URL
+from config import COURIER_BOT_TOKEN, COURIER_BOT_USERNAME, WEBSITE_URL, BOT_TOKEN
 import db
 
 logging.basicConfig(
@@ -35,6 +35,16 @@ logging.basicConfig(
 logger = logging.getLogger("fenix_courier_bot")
 
 router = Router()
+
+async def notify_customer_direct(chat_id: int | str, text: str):
+    """Direct status push notification to guest/customer via Customer Bot (@FenixRestaurantBot)"""
+    try:
+        if not BOT_TOKEN:
+            return
+        async with Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)) as c_bot:
+            await c_bot.send_message(chat_id=int(chat_id), text=text)
+    except Exception as e:
+        logger.debug(f"Could not push to customer {chat_id}: {e}")
 
 FENIX_HUB_COORDS = (41.2858, 69.3402)
 FENIX_HUB_ADDRESS = "г. Ташкент, Яшнабадский район, ул. Хуснабад, 5 проезд, Дом 1а"
@@ -232,6 +242,20 @@ async def callback_courier_claim(callback: CallbackQuery, bot: Bot):
             except Exception:
                 pass
 
+    # Notify guest/customer via Customer Bot (@FenixRestaurantBot) that courier is en route
+    if ord_data and ord_data.get("user_id"):
+        cust_uid = str(ord_data.get("user_id")).strip()
+        if cust_uid.isdigit() and int(cust_uid) > 1000:
+            cust_msg = (
+                f"🛵 <b>Ваш заказ #WEB-{order_num} передан курьеру!</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 <b>Курьер:</b> {username_tag}\n"
+                f"📍 <b>Адрес доставки:</b> <code>{address}</code>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"Курьер уже в пути к вам! Пожалуйста, оставайтесь на связи."
+            )
+            asyncio.create_task(notify_customer_direct(cust_uid, cust_msg))
+
 # ── 4. Inline Delivery Callback: courier_delivered:{order_num} ────────
 @router.callback_query(F.data.startswith("courier_delivered:"))
 async def callback_courier_delivered(callback: CallbackQuery, bot: Bot):
@@ -292,6 +316,21 @@ async def callback_courier_delivered(callback: CallbackQuery, bot: Bot):
                 )
             except Exception:
                 pass
+
+    # Notify guest/customer via Customer Bot (@FenixRestaurantBot) that order was successfully delivered
+    ord_data = db.get_order(order_num)
+    if ord_data and ord_data.get("user_id"):
+        cust_uid = str(ord_data.get("user_id")).strip()
+        if cust_uid.isdigit() and int(cust_uid) > 1000:
+            cust_msg = (
+                f"🎉 <b>Ваш заказ #WEB-{order_num} успешно доставлен!</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 Доставил курьер: <b>{username_tag}</b>\n"
+                f"🕒 Время вручения: <code>{now_str}</code>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"Благодарим за заказ в FENIX Restobar! Желаем вам приятного аппетита!"
+            )
+            asyncio.create_task(notify_customer_direct(cust_uid, cust_msg))
 
 # ── 5. Couriers Replying in Group Chat ("взял", "доставил") ────────────
 @router.message(F.chat.type.in_({"group", "supergroup"}), F.reply_to_message)

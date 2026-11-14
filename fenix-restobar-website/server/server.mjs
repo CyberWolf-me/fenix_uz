@@ -400,6 +400,55 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetC
   }
 }
 
+// Push status notifications to customer via Customer Bot (@FenixRestaurantBot)
+async function notifyCustomerOrderStatus(order, newStatus, courierName = null) {
+  if (!order || !order.user_id) return;
+  const uid = String(order.user_id).trim();
+  if (!/^\d+$/.test(uid) || Number(uid) < 1000) return; // Ignore synthetic non-Telegram IDs
+
+  const num = order.order_num || order.id;
+  const statusLower = String(newStatus || '').toLowerCase();
+  let msg = '';
+
+  if (statusLower.includes('пути') || statusLower.includes('курьер')) {
+    const cName = courierName || order.courier_name || 'Курьер FENIX';
+    msg = [
+      `🛵 <b>Ваш заказ #WEB-${num} передан курьеру!</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `👤 <b>Курьер:</b> <b>${cName}</b>`,
+      `📍 <b>Адрес доставки:</b> <code>${order.address || 'Ташкент'}</code>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Курьер уже выехал к вам. Пожалуйста, оставайтесь на связи!`
+    ].join('\n');
+  } else if (statusLower.includes('готов')) {
+    msg = [
+      `👨‍🍳 <b>Ваш заказ #WEB-${num} приготовлен!</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Блюда упакованы и передаются в службу доставки FENIX.`
+    ].join('\n');
+  } else if (statusLower.includes('выполнен') || statusLower.includes('доставлен')) {
+    msg = [
+      `🎉 <b>Ваш заказ #WEB-${num} успешно доставлен!</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Благодарим за заказ в FENIX Restobar!`,
+      `Приятного вам аппетита! Будем рады вашему отзыву.`
+    ].join('\n');
+  } else if (statusLower.includes('отменен')) {
+    msg = [
+      `⚠️ <b>Ваш заказ #WEB-${num} отменен.</b>`,
+      `Если у вас есть вопросы, вы всегда можете написать нам здесь.`
+    ].join('\n');
+  }
+
+  if (msg) {
+    try {
+      await sendTelegramNotification(msg, null, [uid], TELEGRAM_BOT_TOKEN);
+    } catch (e) {
+      console.warn(`[Customer Notification Note]: Could not push to TG user ${uid}: ${e.message}`);
+    }
+  }
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -780,13 +829,14 @@ const server = http.createServer(async (req, res) => {
 
         // Option A: If order is set to "в пути", automatically send delivery card to Telegram courier bot
         const statusLower = String(status).toLowerCase();
-        if (statusLower.includes('пути') || statusLower.includes('курьер')) {
-          const row = num
-            ? db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num)
-            : db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
-          if (row) {
+        const row = num
+          ? db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num)
+          : db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
+        if (row) {
+          if (statusLower.includes('пути') || statusLower.includes('курьер')) {
             notifyCourierDeliveryOrder(row, payload.courierId);
           }
+          notifyCustomerOrderStatus(row, status, payload.courierName);
         }
       } catch (err) {
         console.error("[Admin Order Status Error]:", err.message);
@@ -832,6 +882,7 @@ const server = http.createServer(async (req, res) => {
         const row = db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num);
         if (row) {
           await notifyCourierDeliveryOrder(row, actualTelegramTargetId, courierName);
+          await notifyCustomerOrderStatus(row, 'в пути', courierName);
         }
       } catch (err) {
         console.error("[Courier Dispatch Error]:", err.message);
