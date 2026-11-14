@@ -2349,28 +2349,39 @@ body {
       </div>
     </div>
 
-    <!-- Cashback & Loyalty Wallet Card -->
-    <div class="profile-cashback-card">
-      <div class="cashback-card-top">
-        <span class="cashback-label" id="txt-cb-label">Накопительный кэшбэк (5%)</span>
-        <span class="cashback-tier">VIP Рестобар</span>
-      </div>
-      <div class="cashback-amount-row">
-        <span class="cashback-val serif" id="profile-cashback-val">0 сум</span>
-      </div>
-      <p class="cashback-desc" id="txt-cb-desc">5% от каждого выполненного заказа доставки начисляются на ваш персональный баланс.</p>
-    </div>
-
-    <!-- Saved Delivery Address Card -->
+    <!-- Personal Settings & Information Form -->
     <div class="profile-section-card">
-      <div class="card-box-header">
+      <div class="card-box-header" style="margin-bottom:12px;">
         <div class="card-box-title">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="10" r="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span id="txt-prof-addr-title">Адрес доставки по умолчанию</span>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="txt-prof-settings-title">Личные данные и настройки</span>
         </div>
-        <button type="button" class="btn-text-gold" id="btn-edit-profile-addr">Изменить</button>
       </div>
-      <div class="profile-addr-text" id="profile-saved-addr">г. Ташкент (не указан)</div>
+
+      <div class="profile-settings-form">
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;" id="lbl-prof-name">Ваше имя:</label>
+          <input type="text" class="form-input" id="profile-edit-name" placeholder="Введите имя">
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;" id="lbl-prof-phone">Номер телефона (+998):</label>
+          <input type="tel" class="form-input" id="profile-edit-phone" placeholder="+998 90 123 45 67">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="font-size:12px;color:var(--text-muted);" id="lbl-prof-addr">Адрес доставки по умолчанию:</label>
+            <button type="button" class="btn-text-gold" id="btn-prof-use-wizard" style="font-size:11px;">Выбрать район</button>
+          </div>
+          <input type="text" class="form-input" id="profile-edit-addr" placeholder="г. Ташкент, район, улица, дом">
+        </div>
+
+        <button type="button" class="btn-primary" id="btn-save-profile" style="width:100%;padding:11px 16px;font-size:13px;font-weight:600;">
+          <span id="txt-btn-save-profile">Сохранить изменения</span>
+        </button>
+        <div id="profile-save-status" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px;"></div>
+      </div>
     </div>
 
     <!-- Preferences & Quick Mode Switcher -->
@@ -4475,27 +4486,92 @@ body {
   async function renderProfileView() {
     const nameEl = document.getElementById('profile-user-name');
     const phoneEl = document.getElementById('profile-user-phone');
-    const addrEl = document.getElementById('profile-saved-addr');
     const initialEl = document.getElementById('profile-avatar-initial');
-    const cbValEl = document.getElementById('profile-cashback-val');
     const ordersListEl = document.getElementById('profile-orders-list');
     const resListEl = document.getElementById('profile-reservations-list');
+
+    const editNameInp = document.getElementById('profile-edit-name');
+    const editPhoneInp = document.getElementById('profile-edit-phone');
+    const editAddrInp = document.getElementById('profile-edit-addr');
+    const saveBtn = document.getElementById('btn-save-profile');
+    const saveStatus = document.getElementById('profile-save-status');
+    const useWizardBtn = document.getElementById('btn-prof-use-wizard');
 
     const displayName = userName || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : 'Гость FENIX');
     if (nameEl) nameEl.textContent = displayName;
     if (phoneEl) phoneEl.textContent = userPhone || 'Телефон не указан';
-    if (addrEl) addrEl.textContent = userAddress || (orderMode === 'pickup' ? t('pickupAddress') : 'г. Ташкент (не указан)');
     if (initialEl) initialEl.textContent = (displayName[0] || 'F').toUpperCase();
+
+    if (editNameInp && !editNameInp.value) editNameInp.value = userName || '';
+    if (editPhoneInp && !editPhoneInp.value) editPhoneInp.value = userPhone || '';
+    if (editAddrInp && !editAddrInp.value) editAddrInp.value = userAddress || '';
 
     // Highlight active language button
     document.querySelectorAll('.prof-lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.lang === currentLang);
     });
 
-    // Wire edit address button
-    const editAddrBtn = document.getElementById('btn-edit-profile-addr');
-    if (editAddrBtn) {
-      editAddrBtn.onclick = () => openWizard(3);
+    if (useWizardBtn) {
+      useWizardBtn.onclick = () => openWizard(3);
+    }
+
+    // Wire Save Profile Changes button
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        haptic('medium');
+        const newName = (editNameInp?.value || '').trim();
+        let newPhone = (editPhoneInp?.value || '').trim();
+        const newAddr = (editAddrInp?.value || '').trim();
+
+        if (newPhone) {
+          if (!newPhone.startsWith('+')) {
+            if (newPhone.startsWith('998')) newPhone = '+' + newPhone;
+            else if (newPhone.length === 9) newPhone = '+998' + newPhone;
+          }
+        }
+
+        if (newName) {
+          userName = newName;
+          localStorage.setItem('fx.name', newName);
+        }
+        if (newPhone) {
+          userPhone = newPhone;
+          localStorage.setItem('fx.phone', newPhone);
+        }
+        if (newAddr) {
+          userAddress = newAddr;
+          localStorage.setItem('fx.addr', newAddr);
+          updateAddressBanner();
+        }
+
+        localStorage.setItem('fx.registered', '1');
+        isRegistered = true;
+
+        if (nameEl) nameEl.textContent = newName || 'Гость FENIX';
+        if (phoneEl) phoneEl.textContent = newPhone || 'Телефон не указан';
+        if (initialEl) initialEl.textContent = (newName[0] || 'F').toUpperCase();
+
+        const uid = tgUser ? tgUser.id : (localStorage.getItem('fx.uid') || 0);
+        try {
+          await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: uid,
+              full_name: newName,
+              phone: newPhone,
+              default_address: newAddr,
+              language: currentLang
+            })
+          });
+        } catch (_) {}
+
+        if (saveStatus) {
+          saveStatus.innerHTML = '<span style="color:var(--gold-hi);font-weight:600;">Данные успешно сохранены!</span>';
+          setTimeout(() => { if (saveStatus) saveStatus.innerHTML = ''; }, 3000);
+        }
+        haptic('success');
+      };
     }
 
     // Fetch live profile from backend if user_id or phone is known
@@ -4509,10 +4585,17 @@ body {
         if (data.ok) {
           if (data.profile) {
             const p = data.profile;
-            if (p.full_name && nameEl) nameEl.textContent = p.full_name;
-            if (p.phone && phoneEl) phoneEl.textContent = p.phone;
-            if (p.default_address && addrEl && orderMode !== 'pickup') addrEl.textContent = p.default_address;
-            if (cbValEl) cbValEl.textContent = money(p.bonus_points || 0);
+            if (p.full_name) {
+              if (nameEl) nameEl.textContent = p.full_name;
+              if (editNameInp && !editNameInp.value) editNameInp.value = p.full_name;
+            }
+            if (p.phone) {
+              if (phoneEl) phoneEl.textContent = p.phone;
+              if (editPhoneInp && !editPhoneInp.value) editPhoneInp.value = p.phone;
+            }
+            if (p.default_address) {
+              if (editAddrInp && !editAddrInp.value) editAddrInp.value = p.default_address;
+            }
           }
 
           // Render Recent Orders with Repeat Order button
