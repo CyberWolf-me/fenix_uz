@@ -135,8 +135,8 @@ try {
   console.warn(`[DB] SQLite integration note: ${err.message}`);
 }
 
-// Fetch staff chat IDs to notify
-function getStaffChatIds() {
+// Fetch staff chat IDs to notify (managers & dispatchers for general alerts)
+function getStaffChatIds(forRoles = ['admin', 'manager', 'dispatcher', 'менеджер', 'диспетчер', 'управляющий', 'администратор']) {
   const ids = new Set();
   if (TELEGRAM_CHAT_ID) {
     for (const part of TELEGRAM_CHAT_ID.split(",")) {
@@ -146,13 +146,16 @@ function getStaffChatIds() {
   }
   if (db) {
     try {
-      const rows = db.prepare("SELECT user_id FROM staff").all();
+      const rows = db.prepare("SELECT user_id, role FROM staff").all();
       for (const r of rows) {
         if (r && r.user_id) {
           const num = Number(r.user_id);
           // Only notify valid Telegram IDs (skip dummy/seeded IDs 101-107)
           if (!isNaN(num) && Math.abs(num) > 100000) {
-            ids.add(String(r.user_id));
+            const roleLower = String(r.role || '').toLowerCase().trim();
+            if (!forRoles || forRoles.length === 0 || forRoles.some((f) => roleLower.includes(f))) {
+              ids.add(String(r.user_id));
+            }
           }
         }
       }
