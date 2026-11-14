@@ -1587,6 +1587,27 @@ const server = http.createServer(async (req, res) => {
       msg += `\n\n💰 <b>ИТОГО К ОПЛАТЕ: ${formatPrice(finalTotal)}</b>`;
 
       await sendTelegramNotification(msg);
+
+      // Auto-dispatch delivery orders directly to the Telegram Courier Group
+      if (isDelivery) {
+        try {
+          const orderRow = {
+            order_num: orderNum,
+            customer_name: data.name,
+            customer_phone: data.phone,
+            address: address,
+            payment_method: paymentMethod,
+            items_json: JSON.stringify(itemsObj),
+            total_price: finalTotal,
+            status: "новый (с сайта)"
+          };
+          await notifyCourierDeliveryOrder(orderRow, "group");
+          console.log(`[Auto-Courier] Automatically dispatched delivery order #WEB-${orderNum} to courier group!`);
+        } catch (err) {
+          console.error("[Auto Courier Dispatch Error]:", err.message);
+        }
+      }
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, id: `WEB-${orderNum}`, orderNum, total: finalTotal }));
       return;

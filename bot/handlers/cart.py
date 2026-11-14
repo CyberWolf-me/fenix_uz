@@ -15,7 +15,7 @@ from keyboards import (
     order_type_keyboard
 )
 from states import OrderState
-from utils import safe_edit_or_send, is_restaurant_open, notify_all_admins
+from utils import safe_edit_or_send, is_restaurant_open, notify_all_admins, notify_courier_group_new_order
 import db
 
 router = Router()
@@ -325,3 +325,18 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
     # Notify staff & admins
     admin_alert = f"🔔 <b>НОВЫЙ ЗАКАЗ В РЕСТОРАНЕ!</b>\n\n{summary_text}"
     await notify_all_admins(callback.bot, admin_alert)
+
+    # Auto-dispatch to Courier Group if delivery
+    if "доставка" in str(data.get("order_type", "")).lower():
+        try:
+            await notify_courier_group_new_order(
+                order_num=order_num,
+                customer_name=data.get("customer_name", "Клиент"),
+                phone=data.get("customer_phone", ""),
+                address=data.get("customer_address", "Ташкент"),
+                items=named_items,
+                total_price=total,
+                pay_method=payment
+            )
+        except Exception:
+            pass
