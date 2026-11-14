@@ -52,6 +52,7 @@ function Couriers({ t, toast, orders = [] }) {
   const mapRef = useRef(null);
   const leafletInstance = useRef(null);
   const markersRef = useRef([]);
+  const lastPannedIdRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/admin/couriers')
@@ -167,10 +168,19 @@ function Couriers({ t, toast, orders = [] }) {
       markersRef.current.push(marker);
     });
 
-    // If current order selected, pan to it
-    if (currentOrder && currentOrder.addr) {
+    // Only pan/fly to order when user explicitly clicks a different order in the list
+    if (selId && selId !== lastPannedIdRef.current) {
+      lastPannedIdRef.current = selId;
+      const target = deliveryOrders.find((o) => o.id === selId);
+      if (target && target.addr) {
+        const targetCoords = getCoordsForAddress(target.addr);
+        map.flyTo(targetCoords, Math.max(map.getZoom(), 14), { duration: 0.8 });
+      }
+    } else if (!lastPannedIdRef.current && currentOrder && currentOrder.addr) {
+      // One-time initial centering on first load
+      lastPannedIdRef.current = currentOrder.id;
       const targetCoords = getCoordsForAddress(currentOrder.addr);
-      map.setView(targetCoords, 14, { animate: true });
+      map.setView(targetCoords, 13);
     }
   }, [deliveryOrders, selId, currentOrder]);
 
@@ -252,6 +262,33 @@ function Couriers({ t, toast, orders = [] }) {
           }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 8px var(--accent)' }} />
             <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>Ташкент · Карта логистики Fenix</span>
+            <button
+              type="button"
+              title="Показать Fenix Hub и все точки доставок на одной карте"
+              onClick={() => {
+                if (leafletInstance.current && markersRef.current.length) {
+                  const group = window.L.featureGroup([
+                    window.L.marker(TASHKENT_DISTRICT_COORDS.yashnabad),
+                    ...markersRef.current
+                  ]);
+                  leafletInstance.current.fitBounds(group.getBounds().pad(0.2));
+                }
+              }}
+              style={{
+                marginLeft: 6,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--line)',
+                borderRadius: '6px',
+                color: 'var(--ink)',
+                padding: '3px 9px',
+                fontSize: 10.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              Обзор города
+            </button>
           </div>
 
           {/* Leaflet DOM container */}
