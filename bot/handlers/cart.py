@@ -197,11 +197,11 @@ async def fast_checkout_selected(callback: CallbackQuery, state: FSMContext):
         return
 
     if action == "delivery":
-        await state.update_data(order_type="🛵 Доставка курьером")
+        await state.update_data(order_type="Доставка курьером")
         await state.set_state(OrderState.waiting_for_payment)
         await callback.message.edit_text(
-            "Способ получения: <b>🛵 Доставка курьером (быстрый заказ)</b>\n\n"
-            "Шаг 2 из 2: Выберите удобный способ оплаты:",
+            "Способ получения: <b>Доставка курьером (быстрый заказ)</b>\n\n"
+            "Шаг 2 из 2: Подтвердите способ оплаты (наличными при получении):",
             parse_mode="HTML",
             reply_markup=order_payment_keyboard()
         )
@@ -210,13 +210,13 @@ async def fast_checkout_selected(callback: CallbackQuery, state: FSMContext):
 
     if action == "pickup":
         await state.update_data(
-            order_type="🛍 Самовывоз из ресторана",
+            order_type="Самовывоз из ресторана",
             customer_address="Самовывоз из ресторана (ул. Хуснабад, 5 проезд, 1а)"
         )
         await state.set_state(OrderState.waiting_for_payment)
         await callback.message.edit_text(
-            "Способ получения: <b>🛍 Самовывоз из ресторана (быстрый заказ)</b>\n\n"
-            "Шаг 2 из 2: Выберите удобный способ оплаты:",
+            "Способ получения: <b>Самовывоз из ресторана (быстрый заказ)</b>\n\n"
+            "Шаг 2 из 2: Подтвердите способ оплаты (наличными при получении):",
             parse_mode="HTML",
             reply_markup=order_payment_keyboard()
         )
@@ -278,7 +278,7 @@ async def order_phone_received(message: Message, state: FSMContext):
         await state.update_data(customer_address="Самовывоз из ресторана (ул. Хуснабад, 5 проезд, 1а)")
         await state.set_state(OrderState.waiting_for_payment)
         await message.answer(
-            "Шаг 4 из 5: Выберите удобный способ оплаты:",
+            "Шаг 4 из 5: Подтвердите способ оплаты (наличными при получении):",
             reply_markup=order_payment_keyboard()
         )
     else:
@@ -308,7 +308,7 @@ async def order_address_received(message: Message, state: FSMContext):
     await state.update_data(customer_address=address)
     await state.set_state(OrderState.waiting_for_payment)
     await message.answer(
-        "Шаг 5 из 5: Выберите способ оплаты:",
+        "Шаг 5 из 5: Подтвердите способ оплаты (наличными при получении):",
         reply_markup=order_payment_keyboard()
     )
 
@@ -370,45 +370,37 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
         pass
     
     summary = [
-        f"🎉 <b>ЗАКАЗ №{order_num} ПРИНЯТ В ОБРАБОТКУ!</b>\n",
-        f"👤 <b>Клиент:</b> {data.get('customer_name')}",
-        f"📞 <b>Телефон:</b> {data.get('customer_phone')}",
-        f"🛵 <b>Способ получения:</b> {data.get('order_type')}",
-        f"📍 <b>Адрес:</b> {data.get('customer_address')}",
-        f"💳 <b>Оплата:</b> {payment}\n",
-        "📋 <b>Состав заказа:</b>"
+        f"<b>ЗАКАЗ №{order_num} ПРИНЯТ В ОБРАБОТКУ!</b>\n",
+        f"<b>Клиент:</b> {data.get('customer_name')}",
+        f"<b>Телефон:</b> {data.get('customer_phone')}",
+        f"<b>Способ получения:</b> {data.get('order_type')}",
+        f"<b>Адрес:</b> {data.get('customer_address')}",
+        f"<b>Оплата:</b> Наличными при получении\n",
+        "<b>Состав заказа:</b>"
     ]
     for dish_id, qty in cart.items():
         it = ITEMS_BY_ID.get(dish_id)
         if it:
-            summary.append(f"▫️ {it['name']} × {qty} = {format_price(it['price'] * qty)}")
+            summary.append(f"- {it['name']} x {qty} = {format_price(it['price'] * qty)}")
             
-    summary.append(f"\n💰 <b>ИТОГО К ОПЛАТЕ: {format_price(total)}</b>")
+    summary.append(f"\n<b>ИТОГО К ОПЛАТЕ: {format_price(total)}</b>")
+    summary.append("Информация: Оплата принимается наличными курьеру или при самовывозе.")
     summary.append("━━━━━━━━━━━━━━━━━━━━")
     summary.append("Наш менеджер свяжется с вами для подтверждения и отправки на кухню.")
-    summary.append("📞 Горячая линия ресторана: <b>97 185 00 10 • 97 185 00 20</b>")
+    summary.append("Горячая линия ресторана: <b>97 185 00 10 • 97 185 00 20</b>")
     if hours_note:
         summary.append(hours_note)
     
     summary_text = "\n".join(summary)
     
-    import base64
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-    payment_buttons = []
-    if payment == "Click":
-        click_url = f"https://my.click.uz/services/pay?service_id=32541&merchant_id=24150&amount={total}&transaction_param=WEB-{order_num}"
-        payment_buttons.append([InlineKeyboardButton(text="💳 Оплатить через Click (онлайн)", url=click_url)])
-    elif payment == "Payme":
-        payme_raw = f"m=64f1d4f208c900e527d2c3e1;ac.order_id=WEB-{order_num};a={total*100}"
-        payme_b64 = base64.b64encode(payme_raw.encode()).decode()
-        payme_url = f"https://checkout.paycom.uz/{payme_b64}"
-        payment_buttons.append([InlineKeyboardButton(text="💳 Оплатить через Payme (онлайн)", url=payme_url)])
-
-    payment_buttons.append([
-        InlineKeyboardButton(text="👤 Мой профиль / Заказы", callback_data="view_profile"),
-        InlineKeyboardButton(text="📖 Меню ресторана", callback_data="cuisines_menu")
-    ])
+    payment_buttons = [
+        [
+            InlineKeyboardButton(text="Мой профиль / Заказы", callback_data="view_profile"),
+            InlineKeyboardButton(text="Меню ресторана", callback_data="cuisines_menu")
+        ]
+    ]
 
     # Clear user's cart in DB
     db.clear_user_cart(user_id)

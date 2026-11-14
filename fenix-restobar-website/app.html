@@ -2988,6 +2988,8 @@ body {
       cartNamePlaceholder: 'Имя получателя',
       cartPaymentMethod: 'Способ оплаты',
       cartPayCash: 'Наличными',
+      cartPayCashOnly: 'Оплата наличными при получении',
+      cashOnlyNotice: 'Временно принимается только наличными курьеру или при самовывозе',
       cartPayCard: 'Картой при получении',
       cartCommentLabel: 'Комментарий к заказу (необязательно)',
       cartCommentPlaceholder: 'Код домофона, количество приборов, пожелания...',
@@ -3151,6 +3153,8 @@ body {
       cartNamePlaceholder: 'Qabul qiluvchi ismi',
       cartPaymentMethod: 'To‘lov usuli',
       cartPayCash: 'Naqd pulda',
+      cartPayCashOnly: 'Qabul qilinganda naqd pulda',
+      cashOnlyNotice: 'To‘lov vaqtincha faqat kuryerga yoki olib ketishda naqd pulda qabul qilinadi',
       cartPayCard: 'Qabul qilganda karta orqali',
       cartCommentLabel: 'Buyurtmaga izoh (ixtiyoriy)',
       cartCommentPlaceholder: 'Domofon kodi, asboblar soni, istaklar...',
@@ -3314,6 +3318,8 @@ body {
       cartNamePlaceholder: 'Recipient name',
       cartPaymentMethod: 'Payment method',
       cartPayCash: 'Cash',
+      cartPayCashOnly: 'Cash on delivery / pickup',
+      cashOnlyNotice: 'Payment is temporarily accepted in cash only upon delivery or pickup',
       cartPayCard: 'Card on delivery',
       cartCommentLabel: 'Order comment (optional)',
       cartCommentPlaceholder: 'Intercom code, cutlery count, preferences...',
@@ -3801,11 +3807,12 @@ body {
           <div>
             <label class="form-label">${t('cartPaymentMethod')}</label>
             <div class="payment-grid" id="payment-options">
-              <label class="pay-card active"><input type="radio" name="pay-method" value="Payme" checked><span>Payme</span></label>
-              <label class="pay-card"><input type="radio" name="pay-method" value="Click"><span>Click</span></label>
-              <label class="pay-card"><input type="radio" name="pay-method" value="Наличными"><span>${t('cartPayCash')}</span></label>
-              <label class="pay-card"><input type="radio" name="pay-method" value="Картой при получении"><span>${t('cartPayCard')}</span></label>
+              <label class="pay-card active" style="grid-column: span 2;">
+                <input type="radio" name="pay-method" value="Наличными" checked>
+                <span>${t('cartPayCashOnly')}</span>
+              </label>
             </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px;line-height:1.4;">${t('cashOnlyNotice')}</div>
           </div>
 
           <div>
@@ -3869,7 +3876,7 @@ body {
     const parsedPhone = formatUzPhoneDigits(phoneDigitsEl ? phoneDigitsEl.value : userPhone);
     const address = addrEl ? addrEl.value.trim() : (orderMode === 'delivery' ? (userAddress || 'Уточняется оператором') : 'Самовывоз из ресторана');
     const comment = commentEl ? commentEl.value.trim() : '';
-    const payment = payRadio ? payRadio.value : 'Payme';
+    const payment = payRadio ? payRadio.value : 'Наличными';
 
     if (!name) {
       alert(currentLang === 'uz' ? 'Iltimos, ismingizni kiriting' : currentLang === 'en' ? 'Please enter your name' : 'Пожалуйста, укажите имя');

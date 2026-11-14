@@ -282,14 +282,9 @@ def share_location_keyboard() -> ReplyKeyboardMarkup:
 def order_payment_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [
-            InlineKeyboardButton(text="💳 Click", callback_data="pay:Click"),
-            InlineKeyboardButton(text="💳 Payme", callback_data="pay:Payme")
+            InlineKeyboardButton(text="Оплата наличными при получении", callback_data="pay:Наличные")
         ],
-        [
-            InlineKeyboardButton(text="💵 Наличными курьеру", callback_data="pay:Наличные"),
-            InlineKeyboardButton(text="💳 Картой курьеру (терминал)", callback_data="pay:Карта курьеру")
-        ],
-        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_action")]
+        [InlineKeyboardButton(text="Отмена", callback_data="cancel_action")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

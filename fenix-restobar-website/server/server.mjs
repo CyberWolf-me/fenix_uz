@@ -2101,7 +2101,7 @@ const server = http.createServer(async (req, res) => {
       if (finalTotal === 0 && calculatedItemsTotal > 0) finalTotal = calculatedItemsTotal + deliveryFee;
 
       const address = data.address || (isDelivery ? "Уточняется" : orderType === "Заказ в зале" ? "В зале" : "Самовывоз");
-      const paymentMethod = data.paymentMethod || (data.payment === "cash" ? "Наличными" : "Онлайн / Карта");
+      const paymentMethod = data.paymentMethod || data.payment || "Наличными";
 
       // Save to SQLite orders table
       if (db) {
