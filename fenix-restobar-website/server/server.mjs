@@ -126,6 +126,11 @@ try {
   `);
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_name TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_id TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE staff ADD COLUMN phone TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE staff ADD COLUMN shift TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE staff ADD COLUMN status TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE staff ADD COLUMN telegram_id TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE staff ADD COLUMN vehicle TEXT;"); } catch (_) {}
 } catch (err) {
   console.warn(`[DB] SQLite integration note: ${err.message}`);
 }
@@ -811,15 +816,22 @@ const server = http.createServer(async (req, res) => {
     if (db) {
       try {
         const isGroup = !courierId || courierId === 'group' || courierId === 'all';
+        let actualTelegramTargetId = courierId;
         if (isGroup) {
           db.prepare("UPDATE orders SET status = 'в пути' WHERE order_num = ? OR id = ?").run(num, num);
         } else {
           db.prepare("UPDATE orders SET status = 'в пути', courier_id = ?, courier_name = ? WHERE order_num = ? OR id = ?")
             .run(String(courierId), courierName || 'Курьер Fenix', num, num);
+          try {
+            const sRow = db.prepare("SELECT user_id, telegram_id FROM staff WHERE user_id = ?").get(String(courierId));
+            if (sRow && sRow.telegram_id && /^\d+$/.test(String(sRow.telegram_id).trim())) {
+              actualTelegramTargetId = String(sRow.telegram_id).trim();
+            }
+          } catch (_) {}
         }
         const row = db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num);
         if (row) {
-          await notifyCourierDeliveryOrder(row, courierId, courierName);
+          await notifyCourierDeliveryOrder(row, actualTelegramTargetId, courierName);
         }
       } catch (err) {
         console.error("[Courier Dispatch Error]:", err.message);
@@ -838,7 +850,10 @@ const server = http.createServer(async (req, res) => {
     let courierGroupTitle = null;
     if (db) {
       try {
-        couriers = db.prepare("SELECT user_id, user_name, full_name, role FROM staff").all();
+        couriers = db.prepare("SELECT user_id, user_name, full_name, role, phone, shift, status, telegram_id, vehicle FROM staff WHERE LOWER(role) LIKE '%курьер%' OR LOWER(role) LIKE '%courier%' OR role = 'Курьер'").all();
+        if (couriers.length === 0) {
+          couriers = db.prepare("SELECT user_id, user_name, full_name, role, phone, shift, status, telegram_id, vehicle FROM staff").all();
+        }
       } catch (_) {}
       try {
         const row = db.prepare("SELECT value FROM app_settings WHERE key = 'courier_group_id'").get();
@@ -849,8 +864,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (couriers.length === 0) {
       couriers = [
-        { user_id: 106, user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'courier' },
-        { user_id: 107, user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'courier' },
+        { user_id: 106, user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'Курьер', phone: '+998 91 234 56 78', shift: '10:00 – 22:00', status: 'online', vehicle: 'Автомобиль' },
+        { user_id: 107, user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'Курьер', phone: '+998 97 876 54 32', shift: '11:00 – 23:00', status: 'online', vehicle: 'Скутер' },
       ];
     }
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -1174,7 +1189,20 @@ const server = http.createServer(async (req, res) => {
           role TEXT,
           registered_at TEXT
         )`);
-        const rows = db.prepare("SELECT * FROM staff ORDER BY registered_at ASC").all();
+        try { db.exec("ALTER TABLE staff ADD COLUMN phone TEXT;"); } catch (_) {}
+        try { db.exec("ALTER TABLE staff ADD COLUMN shift TEXT;"); } catch (_) {}
+        try { db.exec("ALTER TABLE staff ADD COLUMN status TEXT;"); } catch (_) {}
+        try { db.exec("ALTER TABLE staff ADD COLUMN telegram_id TEXT;"); } catch (_) {}
+        try { db.exec("ALTER TABLE staff ADD COLUMN vehicle TEXT;"); } catch (_) {}
+
+        // Backfill existing rows if missing phone/shift/status
+        try {
+          db.prepare("UPDATE staff SET phone = '+998 90 019 57 65' WHERE phone IS NULL OR phone = ''").run();
+          db.prepare("UPDATE staff SET shift = '11:00 – 23:00' WHERE shift IS NULL OR shift = ''").run();
+          db.prepare("UPDATE staff SET status = 'online' WHERE status IS NULL OR status = ''").run();
+        } catch (_) {}
+
+        const rows = db.prepare("SELECT user_id, user_name, full_name, role, registered_at, phone, shift, status, telegram_id, vehicle FROM staff ORDER BY registered_at ASC").all();
         staff = rows;
       } catch (e) {
         console.error("[Staff Error]:", e.message);
@@ -1183,20 +1211,20 @@ const server = http.createServer(async (req, res) => {
     // Seed real operational staff if table is currently empty
     if (staff.length === 0 && db) {
       const defaultTeam = [
-        { user_id: 101, user_name: 'almasov_sh', full_name: 'Алмасов Ш.', role: 'Диспетчер', registered_at: '2026-11-01 08:00:00' },
-        { user_id: 102, user_name: 'fenix_chef', full_name: 'Шеф Fenix', role: 'Шеф-повар', registered_at: '2026-11-01 09:00:00' },
-        { user_id: 103, user_name: 'manager_fenix', full_name: 'Менеджер смены', role: 'Менеджер', registered_at: '2026-11-01 10:00:00' },
-        { user_id: 104, user_name: 'waiter_1', full_name: 'Официант Зала 1', role: 'Официант', registered_at: '2026-11-01 11:00:00' },
-        { user_id: 105, user_name: 'waiter_2', full_name: 'Официант Зала 2', role: 'Официант', registered_at: '2026-11-01 11:00:00' },
-        { user_id: 106, user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'Курьер', registered_at: '2026-11-01 10:00:00' },
-        { user_id: 107, user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'Курьер', registered_at: '2026-11-01 11:00:00' }
+        { user_id: '101', user_name: 'almasov_sh', full_name: 'Алмасов Ш.', role: 'Диспетчер', phone: '+998 90 123 45 67', shift: '08:00 – 23:00', status: 'online', telegram_id: '101', vehicle: '', registered_at: '2026-11-01 08:00:00' },
+        { user_id: '102', user_name: 'fenix_chef', full_name: 'Шеф Fenix', role: 'Шеф-повар', phone: '+998 90 987 65 43', shift: '09:00 – 22:00', status: 'online', telegram_id: '102', vehicle: '', registered_at: '2026-11-01 09:00:00' },
+        { user_id: '103', user_name: 'manager_fenix', full_name: 'Менеджер смены', role: 'Менеджер', phone: '+998 93 555 44 33', shift: '10:00 – 23:00', status: 'online', telegram_id: '103', vehicle: '', registered_at: '2026-11-01 10:00:00' },
+        { user_id: '104', user_name: 'waiter_1', full_name: 'Официант Зала 1', role: 'Официант', phone: '+998 91 111 22 33', shift: '11:00 – 23:00', status: 'online', telegram_id: '104', vehicle: '', registered_at: '2026-11-01 11:00:00' },
+        { user_id: '105', user_name: 'waiter_2', full_name: 'Официант Зала 2', role: 'Официант', phone: '+998 91 222 33 44', shift: '11:00 – 23:00', status: 'online', telegram_id: '105', vehicle: '', registered_at: '2026-11-01 11:00:00' },
+        { user_id: '106', user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'Курьер', phone: '+998 91 234 56 78', shift: '10:00 – 22:00', status: 'online', telegram_id: '106', vehicle: 'Автомобиль', registered_at: '2026-11-01 10:00:00' },
+        { user_id: '107', user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'Курьер', phone: '+998 97 876 54 32', shift: '11:00 – 23:00', status: 'online', telegram_id: '107', vehicle: 'Скутер', registered_at: '2026-11-01 11:00:00' }
       ];
       try {
-        const stmt = db.prepare("INSERT OR IGNORE INTO staff (user_id, user_name, full_name, role, registered_at) VALUES (?, ?, ?, ?, ?)");
+        const stmt = db.prepare("INSERT OR IGNORE INTO staff (user_id, user_name, full_name, role, phone, shift, status, telegram_id, vehicle, registered_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         for (const s of defaultTeam) {
-          stmt.run(s.user_id, s.user_name, s.full_name, s.role, s.registered_at);
+          stmt.run(s.user_id, s.user_name, s.full_name, s.role, s.phone, s.shift, s.status, s.telegram_id, s.vehicle, s.registered_at);
         }
-        staff = db.prepare("SELECT * FROM staff ORDER BY registered_at ASC").all();
+        staff = db.prepare("SELECT user_id, user_name, full_name, role, registered_at, phone, shift, status, telegram_id, vehicle FROM staff ORDER BY registered_at ASC").all();
       } catch (e) {
         console.error("[Staff Seed Error]:", e.message);
       }
@@ -1206,23 +1234,101 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Add or Update Staff Member
   if (req.method === "POST" && url.pathname === "/api/admin/staff") {
     let rawBody = "";
     for await (const chunk of req) rawBody += chunk;
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
-    const { full_name, role, user_name } = payload;
+    let { full_name, role, user_name, telegram_id, phone, shift, status, vehicle, user_id } = payload;
     if (db && full_name && role) {
       try {
-        const userId = Math.floor(100000 + Math.random() * 900000);
-        db.prepare("INSERT INTO staff (user_id, user_name, full_name, role, registered_at) VALUES (?, ?, ?, ?, datetime('now', 'localtime'))")
-          .run(userId, user_name || '', full_name, role);
+        let cleanUsername = (user_name || '').trim();
+        if (cleanUsername.startsWith('@')) cleanUsername = cleanUsername.slice(1);
+
+        let cleanTgId = (telegram_id ? String(telegram_id).trim() : '');
+        let assignedId = user_id || cleanTgId || (cleanUsername && /^\d+$/.test(cleanUsername) ? cleanUsername : String(Math.floor(100000 + Math.random() * 900000)));
+
+        const cleanPhone = (phone || '').trim();
+        const cleanShift = (shift || '11:00 – 23:00').trim();
+        const cleanStatus = (status || 'online').trim();
+        const cleanVehicle = (vehicle || '').trim();
+
+        // Check if member exists by user_id or username
+        const existing = db.prepare("SELECT user_id FROM staff WHERE user_id = ? OR (user_name != '' AND user_name = ?)").get(String(assignedId), cleanUsername);
+        if (existing) {
+          db.prepare(`
+            UPDATE staff
+            SET full_name = ?, role = ?, phone = ?, shift = ?, status = ?, telegram_id = ?, vehicle = ?, user_name = ?
+            WHERE user_id = ?
+          `).run(full_name.trim(), role.trim(), cleanPhone, cleanShift, cleanStatus, cleanTgId, cleanVehicle, cleanUsername, existing.user_id);
+          console.log(`[Admin Staff] Updated staff member: ${full_name} (${role}), user_id: ${existing.user_id}`);
+        } else {
+          db.prepare(`
+            INSERT INTO staff (user_id, user_name, full_name, role, registered_at, phone, shift, status, telegram_id, vehicle)
+            VALUES (?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?, ?, ?)
+          `).run(
+            String(assignedId),
+            cleanUsername,
+            full_name.trim(),
+            role.trim(),
+            cleanPhone,
+            cleanShift,
+            cleanStatus,
+            cleanTgId,
+            cleanVehicle
+          );
+          console.log(`[Admin Staff] Added staff member: ${full_name} (${role}), user_id: ${assignedId}, TG: @${cleanUsername} (ID: ${cleanTgId})`);
+        }
       } catch (e) {
-        console.error("[Staff Add Error]:", e.message);
+        console.error("[Staff Add/Update Error]:", e.message);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: e.message }));
+        return;
       }
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // Delete Staff Member
+  if ((req.method === "POST" || req.method === "DELETE") && (url.pathname === "/api/admin/staff/delete" || (req.method === "DELETE" && url.pathname === "/api/admin/staff"))) {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const userId = payload.user_id || payload.userId || url.searchParams.get("userId");
+    if (db && userId) {
+      try {
+        db.prepare("DELETE FROM staff WHERE user_id = ?").run(String(userId));
+        console.log(`[Admin Staff] Deleted member with user_id: ${userId}`);
+      } catch (e) {
+        console.error("[Staff Delete Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // Toggle or Update Staff Status (online / off)
+  if (req.method === "POST" && url.pathname === "/api/admin/staff/status") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { userId, status } = payload;
+    if (db && userId && status) {
+      try {
+        db.prepare("UPDATE staff SET status = ? WHERE user_id = ?").run(status, String(userId));
+        console.log(`[Admin Staff] Updated status for user_id ${userId} to "${status}"`);
+      } catch (e) {
+        console.error("[Staff Status Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, status }));
     return;
   }
 

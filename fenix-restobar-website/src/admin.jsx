@@ -832,10 +832,434 @@ function MenuScreen({ t, toast }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   3. STAFF (Operational Team)
+   3. STAFF (Operational Team & Telegram Integration)
    ───────────────────────────────────────────────────────────────────────────── */
+const STAFF_ROLE_OPTIONS = [
+  { value: 'Курьер', label: 'Курьер (Служба доставки)', icon: 'bike', group: 'courier' },
+  { value: 'Диспетчер', label: 'Диспетчер смены', icon: 'sliders', group: 'mgmt' },
+  { value: 'Шеф-повар', label: 'Шеф-повар кухни', icon: 'flame', group: 'kitchen' },
+  { value: 'Официант', label: 'Официант зала', icon: 'door', group: 'hall' },
+  { value: 'Бармен', label: 'Бармен', icon: 'palette', group: 'hall' },
+  { value: 'Менеджер', label: 'Менеджер смены', icon: 'users', group: 'mgmt' },
+  { value: 'Администратор', label: 'Администратор', icon: 'star', group: 'mgmt' },
+];
+
+const STAFF_SHIFT_OPTIONS = [
+  '11:00 – 23:00 (Основная ресторанная)',
+  '09:00 – 18:00 (Утренняя смена)',
+  '18:00 – 02:00 (Вечерняя / Ночная)',
+  'Свободный график'
+];
+
+const STAFF_VEHICLE_OPTIONS = [
+  'Автомобиль',
+  'Скутер / Мотоцикл',
+  'Электровелосипед',
+  'Пеший курьер'
+];
+
+function getRoleIcon(roleName = '') {
+  const r = String(roleName).toLowerCase();
+  if (r.includes('курьер') || r === 'courier') return 'bike';
+  if (r.includes('повар') || r.includes('шеф')) return 'flame';
+  if (r.includes('официант') || r.includes('бар')) return 'door';
+  if (r.includes('диспетчер')) return 'sliders';
+  if (r.includes('менеджер') || r.includes('админ')) return 'users';
+  return 'users';
+}
+
+function AddStaffModal({ isOpen, onClose, onSave, toast }) {
+  const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState('Курьер');
+  const [userName, setUserName] = useState('');
+  const [telegramId, setTelegramId] = useState('');
+  const [phone, setPhone] = useState('+998 ');
+  const [shift, setShift] = useState('11:00 – 23:00');
+  const [status, setStatus] = useState('online');
+  const [vehicle, setVehicle] = useState('Автомобиль');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFullName('');
+      setRole('Курьер');
+      setUserName('');
+      setTelegramId('');
+      setPhone('+998 ');
+      setShift('11:00 – 23:00');
+      setStatus('online');
+      setVehicle('Автомобиль');
+      setSubmitting(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const isCourier = role === 'Курьер' || role.toLowerCase().includes('курьер') || role === 'courier';
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!fullName.trim()) {
+      toast('Укажите ФИО сотрудника', 'warn', 'alert');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const cleanShift = shift.split(' (')[0].trim();
+      const res = await fetch('/api/admin/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          role: role.trim(),
+          user_name: userName.replace(/^@/, '').trim(),
+          telegram_id: telegramId.trim(),
+          phone: phone.trim(),
+          shift: cleanShift,
+          status,
+          vehicle: isCourier ? vehicle : '',
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`Сотрудник ${fullName.trim()} успешно добавлен`, 'ok', 'check');
+        onSave && onSave();
+        onClose();
+      } else {
+        toast('Ошибка сохранения: ' + (data.error || 'Сбой сервера'), 'danger', 'alert');
+      }
+    } catch (err) {
+      toast('Ошибка сети: ' + err.message, 'danger', 'alert');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="scrim" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
+      <div
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 560,
+          maxWidth: '95vw',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--line-strong)',
+          boxShadow: 'var(--shadow-pop)',
+          borderRadius: 14,
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--surface)',
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+              Новый сотрудник смены
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+              Штатное расписание Fenix & интеграция с Telegram-ботом
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={onClose}
+            style={{ width: 32, height: 32, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+          <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }}>
+
+            {/* Row 1: Full Name & Role */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  ФИО сотрудника *
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Иброхимов Алишер"
+                  autoFocus
+                  required
+                  style={{
+                    width: '100%', height: 40, padding: '0 12px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Должность *
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  style={{
+                    width: '100%', height: 40, padding: '0 12px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    outline: 'none', boxSizing: 'border-box', cursor: 'pointer'
+                  }}
+                >
+                  {STAFF_ROLE_OPTIONS.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Courier Telegram Notice & Detailed Connection Card */}
+            {isCourier && (
+              <div style={{
+                background: 'rgba(212, 175, 55, 0.06)',
+                border: '1px solid rgba(212, 175, 55, 0.28)',
+                borderRadius: 10,
+                padding: '14px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-2)' }}>
+                  <Icon name="bike" size={16} />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '0.02em' }}>
+                    Синхронизация с ботом @FenixRestaurantCourierBot
+                  </span>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-2)', lineHeight: 1.45 }}>
+                  Для курьеров Telegram критически важен: через бота приходят персональные карточки доставки с адресом, составом блюд, суммой и быстрой кнопкой "Заказ доставлен", а также синхронизируется назначение заказов из админ-панели.
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>
+                      Telegram @username
+                    </label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span style={{ position: 'absolute', left: 10, color: 'var(--text-3)', fontSize: 13, fontFamily: 'var(--f-mono)' }}>@</span>
+                      <input
+                        type="text"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="courier_username"
+                        style={{
+                          width: '100%', height: 38, padding: '0 12px 0 24px',
+                          background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                          borderRadius: 8, color: 'var(--text)', fontSize: 12.5, fontFamily: 'var(--f-mono)',
+                          outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>
+                      Telegram Chat ID (числовой)
+                    </label>
+                    <input
+                      type="text"
+                      value={telegramId}
+                      onChange={(e) => setTelegramId(e.target.value)}
+                      placeholder="Например: 682194812"
+                      style={{
+                        width: '100%', height: 38, padding: '0 12px',
+                        background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                        borderRadius: 8, color: 'var(--text)', fontSize: 12.5, fontFamily: 'var(--f-mono)',
+                        outline: 'none', boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ fontSize: 9.5, color: 'var(--text-3)', marginTop: 4 }}>
+                      Курьер узнает свой ID командой /start в боте
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>
+                    Транспорт курьера
+                  </label>
+                  <select
+                    value={vehicle}
+                    onChange={(e) => setVehicle(e.target.value)}
+                    style={{
+                      width: '100%', height: 38, padding: '0 12px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 12.5,
+                      outline: 'none', boxSizing: 'border-box', cursor: 'pointer'
+                    }}
+                  >
+                    {STAFF_VEHICLE_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Non-courier Telegram field */}
+            {!isCourier && (
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Telegram аккаунт (@username или числовой ID)
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: 10, color: 'var(--text-3)', fontSize: 13, fontFamily: 'var(--f-mono)' }}>@</span>
+                  <input
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="username"
+                    style={{
+                      width: '100%', height: 40, padding: '0 12px 0 24px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 13, fontFamily: 'var(--f-mono)',
+                      outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Phone & Shift */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Контактный телефон *
+                </label>
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+998 90 123 45 67"
+                  style={{
+                    width: '100%', height: 40, padding: '0 12px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13, fontFamily: 'var(--f-mono)',
+                    outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  График / Смена
+                </label>
+                <select
+                  value={shift}
+                  onChange={(e) => setShift(e.target.value)}
+                  style={{
+                    width: '100%', height: 40, padding: '0 12px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 12.5,
+                    outline: 'none', boxSizing: 'border-box', cursor: 'pointer'
+                  }}
+                >
+                  {STAFF_SHIFT_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Shift Status */}
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-2)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Статус сотрудника
+              </label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setStatus('online')}
+                  style={{
+                    flex: 1, height: 38, borderRadius: 8,
+                    border: status === 'online' ? '1px solid var(--ok)' : '1px solid var(--line)',
+                    background: status === 'online' ? 'var(--ok-soft)' : 'var(--surface)',
+                    color: status === 'online' ? 'var(--ok)' : 'var(--text-2)',
+                    fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok)' }} />
+                  На смене (Активен)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatus('off')}
+                  style={{
+                    flex: 1, height: 38, borderRadius: 8,
+                    border: status === 'off' ? '1px solid var(--line-strong)' : '1px solid var(--line)',
+                    background: status === 'off' ? 'var(--surface-3)' : 'var(--surface)',
+                    color: status === 'off' ? 'var(--text)' : 'var(--text-3)',
+                    fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--text-3)' }} />
+                  Выходной
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: '14px 20px',
+            borderTop: '1px solid var(--line)',
+            background: 'var(--surface)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 10
+          }}>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              Отмена
+            </button>
+            <Btn
+              type="submit"
+              size="sm"
+              variant="accent"
+              icon="check"
+              disabled={submitting}
+            >
+              {submitting ? 'Сохранение...' : 'Сохранить сотрудника'}
+            </Btn>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function Staff({ t, toast }) {
   const [team, setTeam] = useState(FX.staff);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [filterRole, setFilterRole] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchStaff = () => {
     fetch('/api/admin/staff')
@@ -847,12 +1271,16 @@ function Staff({ t, toast }) {
               ? s.full_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
               : '??';
             return {
+              id: s.user_id,
               name: s.full_name,
               role: s.role,
-              shift: '11:00 – 23:00',
-              status: 'online',
+              shift: s.shift || '11:00 – 23:00',
+              status: s.status || 'online',
               initials,
-              phone: s.user_name ? '@' + s.user_name : '+998 90 019 57 65',
+              phone: s.phone || '+998 90 019 57 65',
+              user_name: s.user_name || '',
+              telegram_id: s.telegram_id || s.user_id,
+              vehicle: s.vehicle || '',
             };
           });
           setTeam(mapped);
@@ -865,39 +1293,91 @@ function Staff({ t, toast }) {
     fetchStaff();
   }, []);
 
-  const handleInvite = () => {
-    const name = window.prompt('Введите ФИО сотрудника (например: Иброхимов А.):');
-    if (!name || !name.trim()) return;
-    const role = window.prompt('Должность (Диспетчер, Шеф-повар, Менеджер, Официант, Курьер):', 'Официант');
-    if (!role || !role.trim()) return;
-
-    fetch('/api/admin/staff', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: name.trim(), role: role.trim() }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          toast(`Сотрудник ${name.trim()} добавлен в смену`, 'ok', 'users');
-          fetchStaff();
-        }
-      })
-      .catch((err) => toast('Ошибка добавления: ' + err.message, 'err'));
+  const toggleStatus = async (m) => {
+    const nextStatus = m.status === 'online' ? 'off' : 'online';
+    try {
+      const res = await fetch('/api/admin/staff/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: m.id, status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`Статус сотрудника ${m.name} изменён на "${nextStatus === 'online' ? 'На смене' : 'Выходной'}"`, 'ok', 'check');
+        fetchStaff();
+      }
+    } catch (e) {
+      toast('Ошибка обновления статуса: ' + e.message, 'danger', 'alert');
+    }
   };
+
+  const handleDelete = async (m) => {
+    if (!window.confirm(`Удалить сотрудника ${m.name} (${m.role}) из штата ресторана?`)) return;
+    try {
+      const res = await fetch('/api/admin/staff/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: m.id })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`Сотрудник ${m.name} удалён из смены`, 'ok', 'trash');
+        fetchStaff();
+      }
+    } catch (e) {
+      toast('Ошибка удаления сотрудника: ' + e.message, 'danger', 'alert');
+    }
+  };
+
+  const filteredTeam = useMemo(() => {
+    return team.filter((m) => {
+      // Role tab filter
+      if (filterRole === 'courier') {
+        const isC = m.role.toLowerCase().includes('курьер') || m.role === 'courier';
+        if (!isC) return false;
+      } else if (filterRole === 'kitchen') {
+        const isK = m.role.toLowerCase().includes('повар') || m.role.toLowerCase().includes('шеф');
+        if (!isK) return false;
+      } else if (filterRole === 'hall') {
+        const isH = m.role.toLowerCase().includes('официант') || m.role.toLowerCase().includes('бармен');
+        if (!isH) return false;
+      } else if (filterRole === 'mgmt') {
+        const isM = m.role.toLowerCase().includes('диспетчер') || m.role.toLowerCase().includes('менеджер') || m.role.toLowerCase().includes('админ');
+        if (!isM) return false;
+      }
+
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = m.name.toLowerCase().includes(q);
+        const matchRole = m.role.toLowerCase().includes(q);
+        const matchUser = m.user_name && m.user_name.toLowerCase().includes(q);
+        const matchPhone = m.phone && m.phone.toLowerCase().includes(q);
+        if (!matchName && !matchRole && !matchUser && !matchPhone) return false;
+      }
+      return true;
+    });
+  }, [team, filterRole, searchQuery]);
+
+  const couriersOnline = team.filter((m) => (m.role.toLowerCase().includes('курьер') || m.role === 'courier') && m.status === 'online').length;
+  const staffOnline = team.filter((m) => m.status === 'online').length;
 
   return (
     <div className="page">
+      {/* KPIs */}
       <div className="kpis">
         {[
-          { l: 'Сотрудников на смене', v: team.length, f: 'Персонал Fenix Restobar', icon: 'users' },
+          { l: 'Всего в штате', v: team.length, f: 'Персонал Fenix Restobar', icon: 'users' },
+          { l: 'На смене сейчас', v: staffOnline, f: 'Активный рабочий состав', icon: 'check' },
+          { l: 'Курьеров активно', v: couriersOnline, f: 'Служба доставки на линии', icon: 'bike', warn: couriersOnline === 0 },
           { l: 'Статус смены', v: '11:00 – 23:00', f: 'Основная смена ресторана', icon: 'clock' },
-          { l: 'Кухня & Сервис', v: 'Активны', f: 'Все цеха работают', icon: 'check' },
         ].map((c) => (
           <div className="card kpi" key={c.l}>
             <div className="kpi-top">
               <span className="label">{c.l}</span>
-              <span className="kpi-ico"><Icon name={c.icon} size={14} /></span>
+              <span className="kpi-ico" style={c.warn ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
+                <Icon name={c.icon} size={14} />
+              </span>
             </div>
             <div className="kpi-body"><div className="stat-num">{c.v}</div></div>
             <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
@@ -905,48 +1385,204 @@ function Staff({ t, toast }) {
         ))}
       </div>
 
-      <div className="filters">
-        <span className="label">Персонал смены Fenix</span>
+      {/* Filter toolbar */}
+      <div className="filters" style={{ flexWrap: 'wrap', gap: 10 }}>
+        {/* Role tabs */}
+        <div style={{ display: 'inline-flex', gap: 6, background: 'var(--surface)', padding: 4, borderRadius: 8, border: '1px solid var(--line)' }}>
+          {[
+            { id: 'all', label: 'Все' },
+            { id: 'courier', label: 'Курьеры' },
+            { id: 'hall', label: 'Зал & Бар' },
+            { id: 'kitchen', label: 'Кухня' },
+            { id: 'mgmt', label: 'Менеджмент' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilterRole(tab.id)}
+              style={{
+                background: filterRole === tab.id ? 'var(--accent)' : 'transparent',
+                color: filterRole === tab.id ? '#0b0a08' : 'var(--text-2)',
+                fontWeight: filterRole === tab.id ? 700 : 500,
+                fontSize: 11.5,
+                border: 'none',
+                borderRadius: 6,
+                padding: '5px 11px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--surface)', border: '1px solid var(--line-strong)',
+          borderRadius: 8, padding: '0 10px', height: 34, minWidth: 200
+        }}>
+          <Icon name="search" size={13} style={{ color: 'var(--text-3)' }} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по ФИО, телефону, TG..."
+            style={{
+              border: 'none', background: 'transparent', outline: 'none',
+              color: 'var(--text)', fontSize: 11.5, width: '100%'
+            }}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-3)', padding: 0 }}
+            >
+              <Icon name="x" size={11} />
+            </button>
+          )}
+        </div>
+
         <span className="grow" />
-        <Btn size="sm" variant="accent" icon="plus" onClick={handleInvite}>Добавить сотрудника</Btn>
+
+        {/* Add staff button */}
+        <Btn size="sm" variant="accent" icon="plus" onClick={() => setAddModalOpen(true)}>
+          Добавить сотрудника
+        </Btn>
       </div>
 
+      {/* Staff Table */}
       <div className="card" style={{ overflow: 'hidden' }}>
-        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
-          <colgroup>
-            <col style={{ width: '35%' }} />
-            <col style={{ width: '25%' }} />
-            <col style={{ width: '25%' }} />
-            <col style={{ width: '15%' }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th style={{ paddingLeft: 24, textAlign: 'left' }}>Сотрудник</th>
-              <th style={{ textAlign: 'left' }}>Должность</th>
-              <th style={{ textAlign: 'left' }}>График / Смена</th>
-              <th style={{ textAlign: 'center' }}>Статус</th>
-            </tr>
-          </thead>
-          <tbody>
-            {team.map((m) => (
-              <tr key={m.name}>
-                <td style={{ paddingLeft: 24 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="avatar" data-tone="accent">{m.initials}</span>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{m.name}</div>
-                      <div className="dim mono" style={{ fontSize: 10.5 }}>{m.phone}</div>
-                    </div>
-                  </div>
-                </td>
-                <td><span style={{ fontWeight: 500 }}>{m.role}</span></td>
-                <td><span className="mono dim">{m.shift}</span></td>
-                <td style={{ textAlign: 'center' }}><Pill tone="ok" dot>На смене</Pill></td>
+        <div className="tbl-wrap">
+          <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
+            <colgroup>
+              <col style={{ width: '32%' }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '12%' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={{ paddingLeft: 20, textAlign: 'left' }}>Сотрудник & Telegram</th>
+                <th style={{ textAlign: 'left' }}>Должность & Транспорт</th>
+                <th style={{ textAlign: 'left' }}>Контакт</th>
+                <th style={{ textAlign: 'left' }}>График / Смена</th>
+                <th style={{ textAlign: 'center' }}>Статус / Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredTeam.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-3)' }}>
+                    Сотрудники не найдены
+                  </td>
+                </tr>
+              ) : (
+                filteredTeam.map((m) => {
+                  const isCourier = m.role.toLowerCase().includes('курьер') || m.role === 'courier';
+                  return (
+                    <tr key={m.id || m.name}>
+                      <td style={{ paddingLeft: 20 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span className="avatar" data-tone={isCourier ? 'info' : 'accent'}>{m.initials}</span>
+                          <div>
+                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              {m.user_name ? (
+                                <a
+                                  href={`https://t.me/${m.user_name}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mono"
+                                  style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 10.5 }}
+                                >
+                                  @{m.user_name}
+                                </a>
+                              ) : (
+                                <span className="dim mono" style={{ fontSize: 10.5 }}>Без юзернейма</span>
+                              )}
+                              {m.telegram_id && String(m.telegram_id) !== String(m.id) && (
+                                <span className="mono dim" style={{ fontSize: 9.5, background: 'var(--surface-3)', padding: '1px 5px', borderRadius: 4 }}>
+                                  TG ID: {m.telegram_id}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: isCourier ? 'var(--info)' : 'var(--text-2)' }}>
+                            <Icon name={getRoleIcon(m.role)} size={13} />
+                          </span>
+                          <span style={{ fontWeight: 500, color: 'var(--text)' }}>{m.role}</span>
+                        </div>
+                        {isCourier && m.vehicle && (
+                          <div className="dim mono" style={{ fontSize: 10, marginTop: 3 }}>
+                            {m.vehicle}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <a
+                          href={`tel:${m.phone}`}
+                          className="mono"
+                          style={{
+                            color: 'var(--text-2)',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            fontSize: 11
+                          }}
+                        >
+                          <Icon name="phone" size={11} />
+                          {m.phone}
+                        </a>
+                      </td>
+                      <td>
+                        <span className="mono dim" style={{ fontSize: 11 }}>{m.shift}</span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleStatus(m)}
+                            title="Нажмите для переключения статуса смены"
+                            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+                          >
+                            <Pill tone={m.status === 'online' ? 'ok' : 'muted'} dot>
+                              {m.status === 'online' ? 'На смене' : 'Выходной'}
+                            </Pill>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
+                            title="Удалить сотрудника"
+                            onClick={() => handleDelete(m)}
+                            style={{ width: 28, height: 28, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Icon name="trash" size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Add Staff Modal */}
+      <AddStaffModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSave={fetchStaff}
+        toast={toast}
+      />
     </div>
   );
 }
