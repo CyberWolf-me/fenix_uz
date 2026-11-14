@@ -561,14 +561,16 @@ function MenuScreen({ t, toast }) {
                 </button>
 
                 {open && (
-                  <table
-                    className="tbl"
-                    style={{
-                      tableLayout: 'fixed',
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                    }}
-                  >
+                  <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <table
+                      className="tbl"
+                      style={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: 540,
+                        borderCollapse: 'collapse',
+                      }}
+                    >
                     <colgroup>
                       <col style={{ width: '42%' }} />
                       <col style={{ width: '20%' }} />
@@ -673,7 +675,8 @@ function MenuScreen({ t, toast }) {
                       ))}
                     </tbody>
                   </table>
-                )}
+                </div>
+              )}
               </div>
             );
           })
