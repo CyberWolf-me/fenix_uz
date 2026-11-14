@@ -202,6 +202,90 @@ function extractCoords(addr) {
   return [41.3111, 69.2797];
 }
 
+function syncMenuFiles(dbInstance) {
+  if (!dbInstance) return;
+  try {
+    const filePath = path.join(PUBLIC_DIR, "data/menu-data.js");
+    let sections = {
+      europe: [
+        { id: "starters", ru: "Закуски", uz: "Salqin taomlar", en: "Starters" },
+        { id: "salads", ru: "Салаты", uz: "Salatlar", en: "Salads" },
+        { id: "soups", ru: "Первые блюда", uz: "Birinchi taomlar", en: "Soups" },
+        { id: "mains", ru: "Вторые блюда", uz: "Asosiy taomlar", en: "Main courses" },
+        { id: "kebabs", ru: "Шашлыки кавказские", uz: "Kavkaz shashliklari", en: "Caucasian kebabs" },
+        { id: "mini-kebabs", ru: "Маленькие шашлыки", uz: "Kichik shashliklar", en: "Small kebabs" },
+        { id: "fish", ru: "Рыбные", uz: "Baliq", en: "Grilled fish" },
+        { id: "grilled-veg", ru: "Овощные", uz: "Sabzavotlar", en: "Grilled vegetables" },
+        { id: "sides", ru: "Гарниры", uz: "Garnirlar", en: "Sides" },
+        { id: "bread", ru: "Хлеба", uz: "Nonlar", en: "Bread" },
+        { id: "soft", ru: "Напитки", uz: "Ichimliklar", en: "Soft drinks" }
+      ],
+      korea: [
+        { id: "starters", ru: "Закуски", uz: "Salqin taomlar", en: "Starters" },
+        { id: "salads", ru: "Салаты", uz: "Salatlar", en: "Salads" },
+        { id: "soups", ru: "Первые блюда", uz: "Birinchi taomlar", en: "Soups" },
+        { id: "mains", ru: "Вторые блюда", uz: "Asosiy taomlar", en: "Main courses" },
+        { id: "flour", ru: "Мучные изделия", uz: "Un mahsulotlari", en: "Flour dishes" },
+        { id: "tea", ru: "Чай", uz: "Choy", en: "Tea" }
+      ],
+      bar: [
+        { id: "cocktails", ru: "Коктейли", uz: "Kokteyllar", en: "Cocktails" },
+        { id: "lemonades", ru: "Лимонады", uz: "Limonadlar", en: "House lemonades" },
+        { id: "coffee", ru: "Кофе", uz: "Qahva", en: "Coffee" },
+        { id: "whisky", ru: "Виски", uz: "Viski", en: "Whisky" },
+        { id: "vodka", ru: "Водка", uz: "Aroq", en: "Vodka" },
+        { id: "beer", ru: "Пиво", uz: "Pivo", en: "Beer" },
+        { id: "tequila", ru: "Текила", uz: "Tekila", en: "Tequila" },
+        { id: "rum", ru: "Ром", uz: "Rom", en: "Rum" },
+        { id: "cognac", ru: "Коньяк", uz: "Konyak", en: "Cognac" },
+        { id: "wine", ru: "Вино", uz: "Vino", en: "Wine" },
+        { id: "snacks", ru: "Снеки", uz: "Gazaklar", en: "Bar snacks" }
+      ]
+    };
+
+    if (fs.existsSync(filePath)) {
+      try {
+        const raw = fs.readFileSync(filePath, "utf-8");
+        const match = raw.match(/window\.FENIX_MENU\s*=\s*(\{[\s\S]*\});?\s*$/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          if (parsed && parsed.sections) sections = parsed.sections;
+        }
+      } catch (_) {}
+    }
+
+    const rows = dbInstance.prepare(`
+      SELECT id, cuisine, category, name, name_uz, name_en, price, price_alt, size, note 
+      FROM menu_items 
+      WHERE is_active = 1 
+      ORDER BY rowid ASC
+    `).all();
+
+    const items = rows.map((r) => [
+      r.id,
+      r.cuisine,
+      r.category,
+      r.name,
+      r.name_uz || "",
+      r.name_en || "",
+      r.price,
+      r.price_alt || null,
+      r.size || null,
+      r.note || null,
+      null,
+      null,
+      [],
+      "db"
+    ]);
+
+    const fileContent = `/* FENIX RESTAURANT — Auto-synced from SQLite menu_items */\nwindow.FENIX_MENU = ${JSON.stringify({ sections, items })};\n`;
+    fs.writeFileSync(filePath, fileContent, "utf-8");
+    console.log(`[Menu Sync] Successfully wrote ${items.length} items to data/menu-data.js`);
+  } catch (err) {
+    console.error("[Menu Sync Error]:", err.message);
+  }
+}
+
 async function sendTelegramNotification(text, replyMarkup = null, targetChatIds = null, tokenOverride = null) {
   const token = tokenOverride || TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -1035,7 +1119,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const rows = db.prepare(`
           SELECT id, code, user_id, user_name, customer_name, customer_phone, 
-                 res_date, res_time, guests, zone, created_at, status 
+                 res_date, res_time, guests, zone, created_at, status, table_assigned 
           FROM reservations 
           ORDER BY id DESC LIMIT 200
         `).all();
@@ -1051,7 +1135,8 @@ const server = http.createServer(async (req, res) => {
           guests: r.guests,
           zone: r.zone,
           createdAt: r.created_at,
-          status: r.status
+          status: r.status,
+          table: r.table_assigned || '—'
         }));
       } catch (err) {
         console.error("[Admin Reservations Error]:", err.message);
@@ -1069,10 +1154,10 @@ const server = http.createServer(async (req, res) => {
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
 
-    const { id, code, status } = payload;
-    if (!status || (!id && !code)) {
+    const { id, code, status, table } = payload;
+    if ((!status && !table) || (!id && !code)) {
       res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/code, status)" }));
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/code, status/table)" }));
       return;
     }
 
@@ -1080,18 +1165,30 @@ const server = http.createServer(async (req, res) => {
       try {
         const num = code || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
         if (num) {
-          db.prepare("UPDATE reservations SET status = ? WHERE code = ? OR id = ?").run(status, num, num);
+          if (status && table) {
+            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE code = ? OR id = ?").run(status, table, num, num);
+          } else if (status) {
+            db.prepare("UPDATE reservations SET status = ? WHERE code = ? OR id = ?").run(status, num, num);
+          } else if (table) {
+            db.prepare("UPDATE reservations SET table_assigned = ? WHERE code = ? OR id = ?").run(table, num, num);
+          }
         } else if (id) {
-          db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(status, id);
+          if (status && table) {
+            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE id = ?").run(status, table, id);
+          } else if (status) {
+            db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(status, id);
+          } else if (table) {
+            db.prepare("UPDATE reservations SET table_assigned = ? WHERE id = ?").run(table, id);
+          }
         }
-        console.log(`[Admin] Updated reservation ${id || code} status to "${status}"`);
+        console.log(`[Admin] Updated reservation ${id || code} status="${status}", table="${table}"`);
       } catch (err) {
         console.error("[Admin Reservation Status Error]:", err.message);
       }
     }
 
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, status }));
+    res.end(JSON.stringify({ ok: true, status, table }));
     return;
   }
 
@@ -1195,6 +1292,115 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, name: itemName, stop: isStop }));
+    return;
+  }
+
+  // 8a. Admin Menu Items Management & Price Sync
+  if (req.method === "GET" && url.pathname === "/api/admin/menu/items") {
+    let items = [];
+    if (db) {
+      try {
+        items = db.prepare(`
+          SELECT id, cuisine, category, name, name_uz, name_en, price, price_alt, size, note, is_active 
+          FROM menu_items 
+          WHERE is_active = 1 
+          ORDER BY rowid ASC
+        `).all();
+      } catch (e) {
+        console.error("[Admin Menu Items Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: true, items }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/menu/price") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { id, name, price } = payload;
+    const priceNum = parseInt(price, 10);
+    if (!priceNum || (!id && !name)) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id or name, price)" }));
+      return;
+    }
+    if (db) {
+      try {
+        if (id) {
+          db.prepare("UPDATE menu_items SET price = ? WHERE id = ?").run(priceNum, id);
+        } else {
+          db.prepare("UPDATE menu_items SET price = ? WHERE name = ?").run(priceNum, name);
+        }
+        syncMenuFiles(db);
+        console.log(`[Admin Menu] Updated price for ${name || id} to ${priceNum} UZS`);
+      } catch (e) {
+        console.error("[Admin Menu Price Update Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: true, id, name, price: priceNum }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/menu/add") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { name, name_uz, name_en, cuisine, category, price, size, note } = payload;
+    const priceNum = parseInt(price, 10);
+    if (!name || !priceNum || !cuisine || !category) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (name, price, cuisine, category)" }));
+      return;
+    }
+    const newId = `${cuisine}-${Date.now().toString(36)}`;
+    if (db) {
+      try {
+        db.prepare(`
+          INSERT INTO menu_items (id, cuisine, category, name, name_uz, name_en, price, size, note, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        `).run(newId, cuisine, category, name.trim(), (name_uz || "").trim(), (name_en || "").trim(), priceNum, size || null, note || null);
+        syncMenuFiles(db);
+        console.log(`[Admin Menu] Added new dish ${name} (${newId})`);
+      } catch (e) {
+        console.error("[Admin Menu Add Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: true, item: { id: newId, name, cuisine, category, price: priceNum } }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/admin/menu/delete") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { id, name } = payload;
+    if (!id && !name) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({ ok: false, error: "Missing required fields (id or name)" }));
+      return;
+    }
+    if (db) {
+      try {
+        if (id) {
+          db.prepare("UPDATE menu_items SET is_active = 0 WHERE id = ?").run(id);
+        } else {
+          db.prepare("UPDATE menu_items SET is_active = 0 WHERE name = ?").run(name);
+        }
+        syncMenuFiles(db);
+        console.log(`[Admin Menu] Deactivated dish ${name || id}`);
+      } catch (e) {
+        console.error("[Admin Menu Delete Error]:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: true, id, name }));
     return;
   }
 

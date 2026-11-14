@@ -518,6 +518,17 @@ function MenuScreen({ t, toast }) {
   const [activeCuisine, setActiveCuisine] = useState('all'); // all | europe | korea | bar
   const [editDish, setEditDish] = useState(null);
   const [newPrice, setNewPrice] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newDishData, setNewDishData] = useState({
+    name: '',
+    nameUz: '',
+    nameEn: '',
+    cuisine: 'europe',
+    category: 'starters',
+    price: '',
+    size: '',
+    note: ''
+  });
 
   // Sync stop-list from SQLite backend
   useEffect(() => {
@@ -590,8 +601,97 @@ function MenuScreen({ t, toast }) {
       }))
     );
 
-    toast(`Цена "${editDish.n}" изменена на ${summ(priceNum)} сум`, 'ok', 'check');
+    fetch('/api/admin/menu/price', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editDish.id, name: editDish.n, price: priceNum })
+    }).catch(() => {});
+
+    toast(`Цена "${editDish.n}" сохранена: ${summ(priceNum)} сум`, 'ok', 'check');
     setEditDish(null);
+  };
+
+  const handleCreateDish = async () => {
+    if (!newDishData.name || !newDishData.price) {
+      toast('Укажите название и цену блюда', 'err');
+      return;
+    }
+    const priceNum = parseInt(String(newDishData.price).replace(/\D/g, ''), 10);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      toast('Введите корректную сумму', 'err');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/menu/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newDishData.name,
+          name_uz: newDishData.nameUz,
+          name_en: newDishData.nameEn,
+          cuisine: newDishData.cuisine,
+          category: newDishData.category,
+          price: priceNum,
+          size: newDishData.size,
+          note: newDishData.note
+        })
+      });
+      const dataRes = await res.json();
+      if (dataRes && dataRes.ok) {
+        toast(`Блюдо "${newDishData.name}" успешно добавлено в меню!`, 'ok', 'check');
+        setIsAddModalOpen(false);
+        const addedName = newDishData.name;
+        const addedUz = newDishData.nameUz;
+        const addedEn = newDishData.nameEn;
+        const cuisineLabel = newDishData.cuisine === 'europe' ? 'Европейская кухня' : newDishData.cuisine === 'korea' ? 'Корейская кухня' : 'Барная карта';
+        const catMap = {
+          starters: 'Закуски', salads: 'Салаты', soups: 'Первые блюда', mains: 'Вторые блюда',
+          kebabs: 'Шашлыки кавказские', 'mini-kebabs': 'Маленькие шашлыки', fish: 'Рыбные',
+          'grilled-veg': 'Овощные', sides: 'Гарниры', bread: 'Хлеба', soft: 'Напитки',
+          flour: 'Мучные изделия', tea: 'Чай', cocktails: 'Коктейли', lemonades: 'Лимонады',
+          coffee: 'Кофе', whisky: 'Виски', vodka: 'Водка', beer: 'Пиво', tequila: 'Текила',
+          rum: 'Ром', cognac: 'Коньяк', wine: 'Вино', snacks: 'Снеки'
+        };
+        const secRu = catMap[newDishData.category] || 'Другое';
+        const groupKey = `${cuisineLabel} · ${secRu}`;
+
+        const newDishObj = {
+          id: dataRes.item?.id || `d-${Date.now()}`,
+          n: addedName,
+          nUz: addedUz,
+          nEn: addedEn,
+          p: priceNum,
+          cuisine: cuisineLabel,
+          section: secRu,
+          on: true,
+          stop: false
+        };
+
+        setData((prev) => {
+          const found = prev.find((c) => c.cat === groupKey);
+          if (found) {
+            return prev.map((c) => (c.cat === groupKey ? { ...c, items: [newDishObj, ...c.items] } : c));
+          }
+          return [{ cat: groupKey, section: secRu, cuisine: cuisineLabel, menuType: newDishData.cuisine, items: [newDishObj] }, ...prev];
+        });
+
+        setNewDishData({
+          name: '',
+          nameUz: '',
+          nameEn: '',
+          cuisine: 'europe',
+          category: 'starters',
+          price: '',
+          size: '',
+          note: ''
+        });
+      } else {
+        toast(dataRes?.error || 'Ошибка при добавлении блюда', 'err');
+      }
+    } catch (err) {
+      toast('Ошибка соединения с сервером', 'err');
+    }
   };
 
   // Filtered categories and dishes
@@ -664,6 +764,11 @@ function MenuScreen({ t, toast }) {
         </div>
 
         <span className="grow" />
+
+        {/* Add Dish Button */}
+        <Btn size="sm" variant="accent" icon="plus" onClick={() => setIsAddModalOpen(true)}>
+          Добавить блюдо
+        </Btn>
 
         {/* Real-time Search */}
         <div style={{ position: 'relative', width: 260 }}>
@@ -875,6 +980,217 @@ function MenuScreen({ t, toast }) {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="btn btn-sm btn-ghost" onClick={() => setEditDish(null)}>Отмена</button>
               <Btn size="sm" variant="accent" icon="check" onClick={handleSavePrice}>Сохранить цену</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Dish Modal */}
+      {isAddModalOpen && (
+        <div className="scrim" onClick={() => setIsAddModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 440, maxWidth: '90vw', padding: 22, background: 'var(--surface-2)', border: '1px solid var(--line-strong)', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent-2)' }}>Добавить блюдо в меню</div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                style={{ background: 'none', border: 0, color: 'var(--text-3)', cursor: 'pointer', padding: 4 }}
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                  Название блюда (RU) *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Например: Стейк Нью-Йорк"
+                  value={newDishData.name}
+                  onChange={(e) => setNewDishData({ ...newDishData, name: e.target.value })}
+                  style={{
+                    width: '100%', height: 38, padding: '0 10px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: '8px', color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Название (UZ)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="O'zbekcha"
+                    value={newDishData.nameUz}
+                    onChange={(e) => setNewDishData({ ...newDishData, nameUz: e.target.value })}
+                    style={{
+                      width: '100%', height: 36, padding: '0 10px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Название (EN)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="English"
+                    value={newDishData.nameEn}
+                    onChange={(e) => setNewDishData({ ...newDishData, nameEn: e.target.value })}
+                    style={{
+                      width: '100%', height: 36, padding: '0 10px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Кухня / Раздел *
+                  </label>
+                  <select
+                    value={newDishData.cuisine}
+                    onChange={(e) => {
+                      const c = e.target.value;
+                      const defaultCat = c === 'europe' ? 'starters' : c === 'korea' ? 'starters' : 'cocktails';
+                      setNewDishData({ ...newDishData, cuisine: c, category: defaultCat });
+                    }}
+                    style={{
+                      width: '100%', height: 36, padding: '0 8px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="europe">Европейская кухня</option>
+                    <option value="korea">Корейская кухня</option>
+                    <option value="bar">Барная карта & Напитки</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Категория *
+                  </label>
+                  <select
+                    value={newDishData.category}
+                    onChange={(e) => setNewDishData({ ...newDishData, category: e.target.value })}
+                    style={{
+                      width: '100%', height: 36, padding: '0 8px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  >
+                    {newDishData.cuisine === 'europe' && [
+                      ['starters', 'Закуски'],
+                      ['salads', 'Салаты'],
+                      ['soups', 'Первые блюда'],
+                      ['mains', 'Вторые блюда'],
+                      ['kebabs', 'Шашлыки кавказские'],
+                      ['mini-kebabs', 'Маленькие шашлыки'],
+                      ['fish', 'Рыбные'],
+                      ['grilled-veg', 'Овощные'],
+                      ['sides', 'Гарниры'],
+                      ['bread', 'Хлеба'],
+                      ['soft', 'Напитки']
+                    ].map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
+
+                    {newDishData.cuisine === 'korea' && [
+                      ['starters', 'Закуски'],
+                      ['salads', 'Салаты'],
+                      ['soups', 'Первые блюда'],
+                      ['mains', 'Вторые блюда'],
+                      ['flour', 'Мучные изделия'],
+                      ['tea', 'Чай']
+                    ].map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
+
+                    {newDishData.cuisine === 'bar' && [
+                      ['cocktails', 'Коктейли'],
+                      ['lemonades', 'Лимонады'],
+                      ['coffee', 'Кофе'],
+                      ['whisky', 'Виски'],
+                      ['vodka', 'Водка'],
+                      ['beer', 'Пиво'],
+                      ['tequila', 'Текила'],
+                      ['rum', 'Ром'],
+                      ['cognac', 'Коньяк'],
+                      ['wine', 'Вино'],
+                      ['snacks', 'Снеки']
+                    ].map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Стоимость (в сумах) *
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Например: 120000"
+                    value={newDishData.price}
+                    onChange={(e) => setNewDishData({ ...newDishData, price: e.target.value })}
+                    style={{
+                      width: '100%', height: 36, padding: '0 10px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--f-mono)',
+                      outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                    Порция / Размер
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="1 порция / 300 гр / 0.5 л"
+                    value={newDishData.size}
+                    onChange={(e) => setNewDishData({ ...newDishData, size: e.target.value })}
+                    style={{
+                      width: '100%', height: 36, padding: '0 10px',
+                      background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                      borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>
+                  Описание / Состав
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ингредиенты, особенности подачи"
+                  value={newDishData.note}
+                  onChange={(e) => setNewDishData({ ...newDishData, note: e.target.value })}
+                  style={{
+                    width: '100%', height: 36, padding: '0 10px',
+                    background: 'var(--surface)', border: '1px solid var(--line-strong)',
+                    borderRadius: '8px', color: 'var(--text)', fontSize: 12, outline: 'none', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                <button className="btn btn-sm btn-ghost" onClick={() => setIsAddModalOpen(false)}>Отмена</button>
+                <Btn size="sm" variant="accent" icon="check" onClick={handleCreateDish}>Добавить в меню</Btn>
+              </div>
             </div>
           </div>
         </div>

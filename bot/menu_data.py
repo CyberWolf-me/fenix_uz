@@ -301,3 +301,24 @@ for _cat in MENU["categories"]:
 
 def format_price(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " сум"
+
+def refresh_menu_from_db():
+    try:
+        from db import get_menu_price_map
+        price_map = get_menu_price_map()
+        if not price_map:
+            return
+        for cat in MENU["categories"]:
+            for it in cat["items"]:
+                name_key = it.get("name", "").strip().lower()
+                id_key = it.get("id", "").strip().lower()
+                if name_key in price_map:
+                    it["price"] = price_map[name_key]
+                elif id_key in price_map:
+                    it["price"] = price_map[id_key]
+                ITEMS_BY_ID[it["id"]] = it
+    except Exception as e:
+        print("[Menu Data Sync Error]:", e)
+
+# Initial sync
+refresh_menu_from_db()

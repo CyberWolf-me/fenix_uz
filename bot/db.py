@@ -420,5 +420,26 @@ def get_stoplist():
     conn.close()
     return set(r["name"] for r in rows)
 
+def get_menu_price_map() -> dict:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS menu_items (id TEXT PRIMARY KEY, cuisine TEXT, category TEXT, name TEXT, name_uz TEXT, name_en TEXT, price INTEGER, price_alt INTEGER, size TEXT, note TEXT, image TEXT, is_active INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    rows = c.execute("SELECT id, name, price FROM menu_items WHERE is_active = 1").fetchall()
+    conn.close()
+    result = {}
+    for r in rows:
+        result[r["name"].strip().lower()] = r["price"]
+        if r["id"]:
+            result[r["id"].strip().lower()] = r["price"]
+    return result
+
+def get_all_menu_items() -> list:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS menu_items (id TEXT PRIMARY KEY, cuisine TEXT, category TEXT, name TEXT, name_uz TEXT, name_en TEXT, price INTEGER, price_alt INTEGER, size TEXT, note TEXT, image TEXT, is_active INTEGER DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    rows = c.execute("SELECT id, cuisine, category, name, name_uz, name_en, price, size, note FROM menu_items WHERE is_active = 1").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 # Initialize on import
 init_db()

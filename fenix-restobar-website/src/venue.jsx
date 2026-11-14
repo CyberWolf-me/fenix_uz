@@ -31,6 +31,7 @@ function Bookings({ t, toast }) {
   const [zone, setZone] = useState('all');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState(FX.bookings);
+  const [actionMenuBooking, setActionMenuBooking] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -58,7 +59,7 @@ function Bookings({ t, toast }) {
               zone: r.zone || 'Основной зал',
               time: r.time || '19:00',
               status,
-              table: r.zone === 'VIP-кабина' ? 'VIP 1' : 'Стол 9',
+              table: r.table || '—',
             };
           });
 
@@ -95,14 +96,24 @@ function Bookings({ t, toast }) {
   const pending = rows.filter((b) => b.status === 'pending').length;
   const bookingsTodayCount = rows.filter((b) => isTodayDate(b.date)).length;
 
-  const act = async (id, status) => {
-    setRows((r) => r.map((b) => (b.id === id ? { ...b, status } : b)));
-    toast(
-      status === 'confirmed' ? 'Бронь подтверждена' : status === 'seated' ? 'Гости посажены' : 'Бронь отменена',
-      status === 'cancelled' ? 'warn' : 'ok'
-    );
+  const act = async (id, status, newTable = null) => {
+    setRows((r) => r.map((b) => (b.id === id ? { ...b, status, ...(newTable ? { table: newTable } : {}) } : b)));
+    const msg = status === 'confirmed'
+      ? 'Бронь подтверждена'
+      : status === 'seated'
+      ? 'Гости посажены'
+      : status === 'pending'
+      ? 'Бронь возвращена в ожидание'
+      : 'Бронь отменена';
+    toast(msg, status === 'cancelled' ? 'warn' : 'ok');
 
-    const backendStatus = status === 'confirmed' ? 'подтверждена' : status === 'seated' ? 'посажен' : 'отменена';
+    const backendStatus = status === 'confirmed'
+      ? 'подтверждена'
+      : status === 'seated'
+      ? 'посажен'
+      : status === 'pending'
+      ? 'ожидает подтверждения'
+      : 'отменена';
     const target = rows.find((b) => b.id === id);
     const code = target?.code || parseInt(String(id).replace(/\D/g, ''));
     try {
@@ -113,6 +124,7 @@ function Bookings({ t, toast }) {
           id: target?.dbId,
           code,
           status: backendStatus,
+          table: newTable || target?.table,
         }),
       });
     } catch (e) {
@@ -268,8 +280,11 @@ function Bookings({ t, toast }) {
                     <span className="row" style={{ justifyContent: 'flex-end', gap: 4 }}>
                       <Btn size="sm" variant="accent" icon="check" onClick={() => act(b.id, 'confirmed')}>{t('confirm')}</Btn>
                       <Btn size="sm" variant="ghost" className="btn-icon" onClick={() => act(b.id, 'cancelled')}><Icon name="x" size={12} /></Btn>
+                      <Btn size="sm" variant="ghost" icon="more" onClick={() => setActionMenuBooking(b)} />
                     </span>
-                  ) : <Btn size="sm" variant="ghost" icon="more" />}
+                  ) : (
+                    <Btn size="sm" variant="ghost" icon="more" onClick={() => setActionMenuBooking(b)} />
+                  )}
                 </td>
               </tr>
             ))}
@@ -287,6 +302,146 @@ function Bookings({ t, toast }) {
         </div>
         {!list.length && <div className="empty" style={{ padding: 40 }}><Icon name="calendar" size={24} /><span>{t('no_bookings')}</span></div>}
       </div>
+
+      {actionMenuBooking && (
+        <Modal onClose={() => setActionMenuBooking(null)} width={460} label="Действия с бронью">
+          <div style={{ padding: '6px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                  Бронь #{actionMenuBooking.id}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 2 }}>
+                  {actionMenuBooking.client} · {actionMenuBooking.phone}
+                </div>
+              </div>
+              <Pill tone={BOOK_TONE[actionMenuBooking.status]}>
+                {actionMenuBooking.status === 'seated'
+                  ? 'Посажен в зале'
+                  : actionMenuBooking.status === 'confirmed'
+                  ? 'Подтверждено'
+                  : actionMenuBooking.status === 'pending'
+                  ? 'В ожидании'
+                  : 'Отменено'}
+              </Pill>
+            </div>
+
+            <div className="card" style={{ background: 'var(--surface-2)', padding: '12px 14px', marginBottom: 16, fontSize: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 14px' }}>
+                <div><span style={{ color: 'var(--dim)' }}>Дата:</span> <b>{actionMenuBooking.date}</b></div>
+                <div><span style={{ color: 'var(--dim)' }}>Время:</span> <b>{actionMenuBooking.time}</b></div>
+                <div><span style={{ color: 'var(--dim)' }}>Зал:</span> <b>{actionMenuBooking.zone}</b></div>
+                <div><span style={{ color: 'var(--dim)' }}>Гостей:</span> <b>{actionMenuBooking.guests} чел.</b></div>
+              </div>
+
+              {/* Table assignment selector */}
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Назначенный стол:
+                </label>
+                <select
+                  value={actionMenuBooking.table && actionMenuBooking.table !== '—' ? actionMenuBooking.table : ''}
+                  onChange={(e) => {
+                    const newTb = e.target.value;
+                    act(actionMenuBooking.id, actionMenuBooking.status, newTb);
+                    setActionMenuBooking((prev) => ({ ...prev, table: newTb }));
+                  }}
+                  style={{
+                    width: '100%', height: 32, borderRadius: 6, border: '1px solid var(--line)',
+                    background: 'var(--surface)', color: 'var(--text)', fontSize: 12, padding: '0 8px', outline: 'none'
+                  }}
+                >
+                  <option value="">-- Выберите стол --</option>
+                  {['Стол 1', 'Стол 2', 'Стол 3', 'Стол 4', 'Стол 5', 'Стол 6', 'Стол 7', 'Стол 8', 'Стол 9', 'Стол 10', 'Стол 11', 'Стол 12', 'VIP 1', 'VIP 2', 'Банкетный зал'].map((tName) => (
+                    <option key={tName} value={tName}>{tName}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Seating / Arrival action */}
+              {actionMenuBooking.status !== 'seated' && (
+                <Btn
+                  size="md"
+                  variant="accent"
+                  icon="users"
+                  onClick={() => {
+                    act(actionMenuBooking.id, 'seated');
+                    setActionMenuBooking(null);
+                  }}
+                >
+                  Посадить гостей (Гости в зале)
+                </Btn>
+              )}
+
+              {actionMenuBooking.status !== 'confirmed' && (
+                <Btn
+                  size="md"
+                  variant="ghost"
+                  icon="check"
+                  onClick={() => {
+                    act(actionMenuBooking.id, 'confirmed');
+                    setActionMenuBooking(null);
+                  }}
+                >
+                  Подтвердить бронь
+                </Btn>
+              )}
+
+              {actionMenuBooking.status !== 'pending' && (
+                <Btn
+                  size="md"
+                  variant="ghost"
+                  icon="clock"
+                  onClick={() => {
+                    act(actionMenuBooking.id, 'pending');
+                    setActionMenuBooking(null);
+                  }}
+                >
+                  Вернуть в ожидание
+                </Btn>
+              )}
+
+              {actionMenuBooking.status !== 'cancelled' && (
+                <Btn
+                  size="md"
+                  variant="ghost"
+                  icon="x"
+                  style={{ color: 'var(--err)' }}
+                  onClick={() => {
+                    act(actionMenuBooking.id, 'cancelled');
+                    setActionMenuBooking(null);
+                  }}
+                >
+                  Отменить бронирование
+                </Btn>
+              )}
+
+              {/* Direct call button */}
+              <a
+                href={`tel:${actionMenuBooking.phone}`}
+                className="btn btn-md"
+                style={{
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  background: 'var(--surface-3)',
+                  color: 'var(--text)',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  marginTop: 4
+                }}
+              >
+                <Icon name="phone" size={14} />
+                Позвонить гостю ({actionMenuBooking.phone})
+              </a>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
