@@ -978,6 +978,8 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       ok: true,
       couriers,
+      courierGroupId,
+      courierGroupTitle,
       courierGroup: {
         id: courierGroupId,
         title: courierGroupTitle || "Группа курьеров FENIX",
