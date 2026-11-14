@@ -110,6 +110,139 @@ if (typeof window !== 'undefined' && !window.__fetchInterceptorInstalled) {
   };
 }
 
+function SwitchOperatorModal({ isOpen, onClose, currentUser, onSelectUser, toast }) {
+  const [staffList, setStaffList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetch('/api/admin/staff')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.ok && Array.isArray(data.staff)) {
+            setStaffList(data.staff);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const defaultAdmin = { user_id: 'admin', full_name: 'Администратор Fenix', role: 'Администратор', status: 'online' };
+  const allOperators = [defaultAdmin, ...staffList.filter((s) => s.full_name !== 'Администратор Fenix')];
+
+  return (
+    <div className="scrim" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }}>
+      <div
+        className="card"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 500,
+          maxWidth: '95vw',
+          maxHeight: '85vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--line-strong)',
+          boxShadow: 'var(--shadow-pop)',
+          borderRadius: 14,
+        }}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--surface)',
+        }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+              Дежурный оператор смены
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
+              Выберите сотрудника, который сейчас работает за пультом терминала
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={onClose}
+            style={{ width: 32, height: 32, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+
+        <div style={{ padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-3)', fontSize: 12 }}>
+              Загрузка списка персонала...
+            </div>
+          )}
+          {!loading && allOperators.map((s) => {
+            const isCurrent = (currentUser?.user_id && String(currentUser.user_id) === String(s.user_id)) || (currentUser?.name === s.full_name);
+            const inits = s.full_name
+              ? s.full_name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+              : '??';
+            return (
+              <div
+                key={s.user_id || s.full_name}
+                onClick={() => {
+                  onSelectUser({
+                    user_id: s.user_id,
+                    name: s.full_name,
+                    full_name: s.full_name,
+                    role: s.role,
+                    initials: inits
+                  });
+                  onClose();
+                  toast && toast(`Активный оператор изменён на "${s.full_name}"`, 'ok', 'users');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  border: isCurrent ? '1px solid var(--accent)' : '1px solid var(--line)',
+                  background: isCurrent ? 'rgba(211, 170, 99, 0.12)' : 'var(--surface)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span className="avatar" data-tone={isCurrent ? 'accent' : 'muted'}>{inits}</span>
+                  <div>
+                    <div style={{ fontWeight: 600, color: isCurrent ? 'var(--accent-2)' : 'var(--text)', fontSize: 13 }}>
+                      {s.full_name}
+                    </div>
+                    <div className="dim mono" style={{ fontSize: 11 }}>
+                      {s.role} {s.user_name ? `(@${s.user_name})` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  {isCurrent ? (
+                    <Pill tone="accent" dot>Активен</Pill>
+                  ) : (
+                    <Pill tone={s.status === 'online' ? 'ok' : 'muted'}>{s.status === 'online' ? 'На смене' : 'Выходной'}</Pill>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const theme = tw.theme, dir = tw.dir, lang = tw.lang;
@@ -140,6 +273,14 @@ function App() {
   const [toasts, pushToast] = useToasts();
   const now = useTick(1000);
   const seenOrderIds = useRef(new Set());
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fenix_current_user');
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+    return { user_id: 'admin', name: 'Администратор Fenix', role: 'Администратор', initials: 'АД' };
+  });
+  const [switchUserModalOpen, setSwitchUserModalOpen] = useState(false);
 
   const t = useCallback((k) => (FX_I18N[lang] && FX_I18N[lang][k]) || (FX_I18N.ru[k] || k), [lang]);
 
@@ -392,6 +533,17 @@ function App() {
       <LoginScreen
         onLoginSuccess={(token, user) => {
           setIsAuthenticated(true);
+          if (user) {
+            const resolvedUser = {
+              user_id: user.username || 'admin',
+              name: user.name || 'Администратор Fenix',
+              full_name: user.name || 'Администратор Fenix',
+              role: user.role || 'Администратор',
+              initials: initials(user.name || 'Администратор Fenix')
+            };
+            setCurrentUser(resolvedUser);
+            try { localStorage.setItem('fenix_current_user', JSON.stringify(resolvedUser)); } catch (_) {}
+          }
           pushToast(`С возвращением! Добро пожаловать в FENIX OS.`, 'ok', 'check');
         }}
       />
@@ -409,6 +561,8 @@ function App() {
         onLogout={handleLogout}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
+        user={currentUser}
+        onSwitchUser={() => setSwitchUserModalOpen(true)}
       />
       <div className="main">
         <Topbar
@@ -460,6 +614,17 @@ function App() {
       )}
       {cmdk && <CommandPalette t={t} onClose={() => setCmdk(false)} go={(p) => { setPage(p); setCmdk(false); }} />}
       <Toasts items={toasts} />
+
+      <SwitchOperatorModal
+        isOpen={switchUserModalOpen}
+        onClose={() => setSwitchUserModalOpen(false)}
+        currentUser={currentUser}
+        onSelectUser={(u) => {
+          setCurrentUser(u);
+          try { localStorage.setItem('fenix_current_user', JSON.stringify(u)); } catch (_) {}
+        }}
+        toast={pushToast}
+      />
 
       <TweaksPanel title="Tweaks">
         <TweakSection label="Тема">

@@ -29,7 +29,10 @@ const PAGE_META = {
   settings: { eyebrow: 'FENIX · ADMIN', icon: 'gear' },
 };
 
-function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onCloseMobile }) {
+function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onCloseMobile, user, onSwitchUser }) {
+  const displayName = user?.name || user?.full_name || 'Администратор Fenix';
+  const displayRole = user?.role || 'Администратор';
+  const displayInitials = user?.initials || initials(displayName);
   return (
     <>
       {mobileOpen && (
@@ -81,11 +84,17 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
           ))}
         </div>
         <div className="nav-foot" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button className="nav-user" style={{ flex: 1 }}>
-            <span className="avatar" data-tone="accent">АШ</span>
+          <button
+            type="button"
+            className="nav-user"
+            style={{ flex: 1, cursor: 'pointer', textAlign: 'left', border: 'none', background: 'transparent' }}
+            onClick={onSwitchUser}
+            title="Нажмите для смены активного оператора смены"
+          >
+            <span className="avatar" data-tone="accent">{displayInitials}</span>
             <span className="nav-user-txt">
-              <span className="nav-user-name">Алмасов Ш.</span>
-              <span className="nav-user-role">Диспетчер · Смена 1</span>
+              <span className="nav-user-name">{displayName}</span>
+              <span className="nav-user-role">{displayRole} · На смене</span>
             </span>
           </button>
           {onLogout && (
@@ -426,7 +435,7 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
               <div>
                 <label className="label">Имя клиента *</label>
                 <input required className="input" style={{ width: '100%', marginTop: 4, padding: '7px 10px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)', outline: 'none' }}
-                       value={name} onChange={e => setName(e.target.value)} placeholder="Алмасов Ш." />
+                       value={name} onChange={e => setName(e.target.value)} placeholder="Имя клиента" />
               </div>
               <div>
                 <label className="label">Телефон *</label>
