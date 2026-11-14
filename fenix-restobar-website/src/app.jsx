@@ -626,27 +626,29 @@ function App() {
         toast={pushToast}
       />
 
-      <TweaksPanel title="Tweaks">
-        <TweakSection label="Тема">
-          <TweakSelect label="Тема оформления" value={theme} onChange={(v) => setTweak('theme', v)}
-            options={THEMES.map((x) => ({ value: x.id, label: x.label }))} />
-          <TweakColor label="Акцент" value={tw.accentOverride}
-            options={(ACCENTS[theme] || ACCENTS.gold).map((a) => a[0] || THEME_FALLBACK[theme])}
-            onChange={(v) => setTweak('accentOverride', v === THEME_FALLBACK[theme] ? '' : v)} />
-        </TweakSection>
-        <TweakSection label="Форма">
-          <TweakRadio label="Направление" value={dir} onChange={(v) => setTweak('dir', v)}
-            options={[['a', 'Luxury'], ['b', 'Медь'], ['c', 'Консоль']]} />
-          <TweakRadio label="Плотность" value={tw.density} onChange={(v) => setTweak('density', v)}
-            options={[['compact', 'Плотно'], ['balanced', 'Баланс'], ['airy', 'Воздух']]} />
-          <TweakToggle label="Свёрнутая панель" value={tw.rail} onChange={(v) => setTweak('rail', v)} />
-        </TweakSection>
-        <TweakSection label="Операции">
-          <TweakRadio label="Язык" value={lang} onChange={(v) => setTweak('lang', v)}
-            options={[['ru', 'RU'], ['uz', 'UZ'], ['uzc', 'ЎЗ']]} />
-          <TweakToggle label="Звук при просрочке" value={tw.sound} onChange={(v) => setTweak('sound', v)} />
-        </TweakSection>
-      </TweaksPanel>
+      {new URLSearchParams(window.location.search).get('tweaks') === '1' && (
+        <TweaksPanel title="Tweaks">
+          <TweakSection label="Тема">
+            <TweakSelect label="Тема оформления" value={theme} onChange={(v) => setTweak('theme', v)}
+              options={THEMES.map((x) => ({ value: x.id, label: x.label }))} />
+            <TweakColor label="Акцент" value={tw.accentOverride}
+              options={(ACCENTS[theme] || ACCENTS.gold).map((a) => a[0] || THEME_FALLBACK[theme])}
+              onChange={(v) => setTweak('accentOverride', v === THEME_FALLBACK[theme] ? '' : v)} />
+          </TweakSection>
+          <TweakSection label="Форма">
+            <TweakRadio label="Направление" value={dir} onChange={(v) => setTweak('dir', v)}
+              options={[['a', 'Luxury'], ['b', 'Медь'], ['c', 'Консоль']]} />
+            <TweakRadio label="Плотность" value={tw.density} onChange={(v) => setTweak('density', v)}
+              options={[['compact', 'Плотно'], ['balanced', 'Баланс'], ['airy', 'Воздух']]} />
+            <TweakToggle label="Свёрнутая панель" value={tw.rail} onChange={(v) => setTweak('rail', v)} />
+          </TweakSection>
+          <TweakSection label="Операции">
+            <TweakRadio label="Язык" value={lang} onChange={(v) => setTweak('lang', v)}
+              options={[['ru', 'RU'], ['uz', 'UZ'], ['uzc', 'ЎЗ']]} />
+            <TweakToggle label="Звук при просрочке" value={tw.sound} onChange={(v) => setTweak('sound', v)} />
+          </TweakSection>
+        </TweaksPanel>
+      )}
     </div>
   );
 }

@@ -12,7 +12,7 @@ try:
         share_location_keyboard,
         main_reply_keyboard
     )
-    from menu_data import format_price, ITEMS_BY_ID
+    from menu_data import format_price, ITEMS_BY_ID, get_live_menu_catalog
     import db
 except ImportError:
     from bot.states import ProfileState
@@ -24,7 +24,7 @@ except ImportError:
         share_location_keyboard,
         main_reply_keyboard
     )
-    from bot.menu_data import format_price, ITEMS_BY_ID
+    from bot.menu_data import format_price, ITEMS_BY_ID, get_live_menu_catalog
     from bot import db
 
 router = Router()
@@ -164,19 +164,20 @@ async def cb_repeat_order(callback: CallbackQuery):
         await callback.answer("Ошибка формата состава заказа", show_alert=True)
         return
 
-    # Map dish names to item IDs
+    # Map dish names to item IDs with live menu items
+    _, live_items = get_live_menu_catalog()
     cart_to_save = {}
-    name_to_id = {v["name"].strip().lower(): k for k, v in ITEMS_BY_ID.items()}
+    name_to_id = {v["name"].strip().lower(): k for k, v in live_items.items()}
     for dish_name, qty in items_dict.items():
         clean_name = dish_name.strip().lower()
         if clean_name in name_to_id:
             cart_to_save[name_to_id[clean_name]] = int(qty)
-        elif dish_name in ITEMS_BY_ID:
+        elif dish_name in live_items:
             cart_to_save[dish_name] = int(qty)
         else:
             # Fallback fuzzy match
             matched = False
-            for k, it in ITEMS_BY_ID.items():
+            for k, it in live_items.items():
                 if it["name"].lower() in clean_name or clean_name in it["name"].lower():
                     cart_to_save[k] = int(qty)
                     matched = True

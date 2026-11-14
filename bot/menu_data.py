@@ -322,10 +322,18 @@ def refresh_menu_from_db():
 
         # Also dynamically append newly added items from SQLite menu_items
         all_items = get_all_menu_items()
-        existing_names = {it.get("name", "").strip().lower() for it in ITEMS_BY_ID.values()}
+        existing_names = {it.get("name", "").strip().lower(): it for it in ITEMS_BY_ID.values()}
         for item in all_items:
             name_norm = item.get("name", "").strip().lower()
-            if name_norm not in existing_names:
+            item_id = item.get("id") or ""
+            if item_id in ITEMS_BY_ID:
+                ITEMS_BY_ID[item_id]["price"] = item.get("price", ITEMS_BY_ID[item_id]["price"])
+                ITEMS_BY_ID[item_id]["name"] = item.get("name", ITEMS_BY_ID[item_id]["name"])
+            elif name_norm in existing_names:
+                existing_names[name_norm]["price"] = item.get("price", existing_names[name_norm]["price"])
+                if item_id:
+                    ITEMS_BY_ID[item_id] = existing_names[name_norm]
+            else:
                 cuisine = item.get("cuisine", "europe")
                 # Find matching or fallback category
                 target_cat = None
@@ -337,7 +345,7 @@ def refresh_menu_from_db():
                     target_cat = MENU["categories"][0]
 
                 new_dish = {
-                    "id": item.get("id") or f"dyn_{len(ITEMS_BY_ID)+1}",
+                    "id": item_id or f"dyn_{len(ITEMS_BY_ID)+1}",
                     "name": item.get("name"),
                     "price": item.get("price", 0),
                     "unit": item.get("size") or "порция",
@@ -347,9 +355,14 @@ def refresh_menu_from_db():
                 if target_cat:
                     target_cat["items"].append(new_dish)
                 ITEMS_BY_ID[new_dish["id"]] = new_dish
-                existing_names.add(name_norm)
+                existing_names[name_norm] = new_dish
     except Exception as e:
         print("[Menu Data Sync Error]:", e)
+
+def get_live_menu_catalog() -> tuple[dict, dict]:
+    """Reads active rows from menu_items in SQLite and returns live (MENU, ITEMS_BY_ID)."""
+    refresh_menu_from_db()
+    return MENU, ITEMS_BY_ID
 
 # Initial sync
 refresh_menu_from_db()

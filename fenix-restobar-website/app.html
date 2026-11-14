@@ -4562,7 +4562,10 @@ body {
         try {
           await fetch('/api/profile', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+            },
             body: JSON.stringify({
               user_id: uid,
               full_name: newName,
@@ -4587,7 +4590,11 @@ body {
     if (queryUid || queryPhone) {
       try {
         const queryParams = queryUid ? `user_id=${queryUid}` : `phone=${encodeURIComponent(queryPhone)}`;
-        const res = await fetch(`/api/profile?${queryParams}`);
+        const res = await fetch(`/api/profile?${queryParams}`, {
+          headers: {
+            'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+          }
+        });
         const data = await res.json();
         if (data.ok) {
           if (data.profile) {
@@ -5185,7 +5192,10 @@ body {
         if (tgUser && tgUser.id) {
           fetch('/api/profile', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+            },
             body: JSON.stringify({
               user_id: tgUser.id,
               full_name: userName,
@@ -5368,7 +5378,11 @@ body {
 
     // Sync guest profile with server & Telegram Bot
     if (tgUser && tgUser.id) {
-      fetch(`/api/profile?user_id=${tgUser.id}`)
+      fetch(`/api/profile?user_id=${tgUser.id}`, {
+        headers: {
+          'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData || ''
+        }
+      })
         .then(res => res.json())
         .then(data => {
           if (data && data.ok && data.profile) {

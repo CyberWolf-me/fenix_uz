@@ -461,6 +461,14 @@ def get_all_menu_items() -> list:
     conn.close()
     return [dict(r) for r in rows]
 
+def get_live_menu_catalog():
+    """Returns (MENU, ITEMS_BY_ID) refreshed directly from SQLite menu_items."""
+    try:
+        from menu_data import get_live_menu_catalog as _glmc
+    except ImportError:
+        from bot.menu_data import get_live_menu_catalog as _glmc
+    return _glmc()
+
 # Customer Profile & Orders
 def get_customer(user_id: int) -> dict | None:
     conn = get_connection()

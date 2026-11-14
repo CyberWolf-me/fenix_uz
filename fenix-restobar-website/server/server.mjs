@@ -11,6 +11,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,45 @@ const BOT_USERNAME = process.env.BOT_USERNAME || "FenixRestaurantBot";
 // Dedicated Courier Bot (Option 2 + Option 3 Logistics Bot)
 const COURIER_BOT_TOKEN = process.env.COURIER_BOT_TOKEN || "";
 const COURIER_BOT_USERNAME = process.env.COURIER_BOT_USERNAME || "FenixRestaurantCourierBot";
+
+// Telegram WebApp initData HMAC-SHA256 signature verification
+function verifyTelegramInitData(initDataRaw, botToken) {
+  if (!initDataRaw || !botToken) return null;
+  try {
+    const params = new URLSearchParams(initDataRaw);
+    const hash = params.get("hash");
+    if (!hash) return null;
+
+    params.delete("hash");
+
+    const items = [];
+    for (const [key, val] of params.entries()) {
+      items.push(`${key}=${val}`);
+    }
+    items.sort();
+    const dataCheckString = items.join("\n");
+
+    const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+    const expectedHash = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+    if (hash.length !== expectedHash.length) return null;
+    const isValid = crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(expectedHash, "hex"));
+    if (!isValid) return null;
+
+    const authDate = parseInt(params.get("auth_date") || "0", 10);
+    const nowSec = Math.floor(Date.now() / 1000);
+    // Auth date must be within 24 hours (86400s) and not in the far future
+    if (nowSec - authDate > 86400 || authDate > nowSec + 300) {
+      return null;
+    }
+
+    const userRaw = params.get("user");
+    if (!userRaw) return null;
+    return JSON.parse(userRaw);
+  } catch (_) {
+    return null;
+  }
+}
 
 // Locate fenix_restaurant.db from Telegram Bot project
 const DB_CANDIDATES = [
@@ -945,7 +985,18 @@ const server = http.createServer(async (req, res) => {
 
   // Customer Profile API (Unified Mini App & Telegram Bot Sync)
   if (req.method === "GET" && url.pathname === "/api/profile") {
-    const rawUid = (url.searchParams.get("user_id") || "").trim();
+    const rawInitData = (req.headers["x-telegram-init-data"] || "").trim();
+    let verifiedUser = null;
+    if (rawInitData) {
+      verifiedUser = verifyTelegramInitData(rawInitData, TELEGRAM_BOT_TOKEN);
+      if (!verifiedUser) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Invalid Telegram initData signature" }));
+        return;
+      }
+    }
+
+    const rawUid = verifiedUser ? String(verifiedUser.id) : (url.searchParams.get("user_id") || "").trim();
     const rawPhone = normalizeUzPhone(url.searchParams.get("phone") || "");
     const uid = rawUid ? parseInt(rawUid, 10) : null;
 
@@ -1042,7 +1093,18 @@ const server = http.createServer(async (req, res) => {
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
 
-    const uid = payload.user_id ? parseInt(String(payload.user_id).trim(), 10) : null;
+    const rawInitData = (req.headers["x-telegram-init-data"] || payload.initData || "").trim();
+    let verifiedUser = null;
+    if (rawInitData) {
+      verifiedUser = verifyTelegramInitData(rawInitData, TELEGRAM_BOT_TOKEN);
+      if (!verifiedUser) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: "Invalid Telegram initData signature" }));
+        return;
+      }
+    }
+
+    const uid = verifiedUser ? verifiedUser.id : (payload.user_id ? parseInt(String(payload.user_id).trim(), 10) : null);
     const name = (payload.full_name || payload.name || "").trim();
     const phone = normalizeUzPhone(payload.phone || "");
     const address = (payload.default_address || payload.address || "").trim();
@@ -2045,22 +2107,57 @@ const server = http.createServer(async (req, res) => {
       const itemsObj = {};
       const itemsLines = [];
 
+      // Authoritative SQLite menu_items price lookup
+      const priceMap = new Map();
+      if (db) {
+        try {
+          const menuRows = db.prepare("SELECT id, name, price FROM menu_items WHERE is_active = 1").all();
+          for (const row of menuRows) {
+            if (row.id) priceMap.set(String(row.id).toLowerCase().trim(), Number(row.price || 0));
+            if (row.name) priceMap.set(String(row.name).toLowerCase().trim(), Number(row.price || 0));
+          }
+        } catch (err) {
+          console.warn("[Order Validation] Failed to query menu_items for price validation:", err.message);
+        }
+      }
+
       if (Array.isArray(data.items)) {
         for (const item of data.items) {
-          const qty = Number(item.qty || item.count || 1);
-          const price = Number(item.price || 0);
-          calculatedItemsTotal += price * qty;
+          const qty = Number(item.qty || item.count || item.quantity || 1);
+          const rawId = String(item.id || "").toLowerCase().trim();
           const dishName = item.name?.ru || item.name || item.id || "Позиция";
+          const rawName = String(dishName).toLowerCase().trim();
+
+          let price = 0;
+          if (priceMap.has(rawId)) {
+            price = priceMap.get(rawId);
+          } else if (priceMap.has(rawName)) {
+            price = priceMap.get(rawName);
+          } else {
+            // Keep client item.price only as fallback if custom manual entry created by authenticated admin
+            price = isAdmin ? Number(item.price || 0) : 0;
+          }
+
+          calculatedItemsTotal += price * qty;
           itemsObj[dishName] = qty;
-          itemsLines.push(`▫️ ${dishName} × ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
+          itemsLines.push(`- ${dishName} x ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
         }
       } else if (data.items && typeof data.items === "object") {
         for (const [dishName, val] of Object.entries(data.items)) {
-          const qty = typeof val === "object" ? Number(val.qty || val.count || 1) : Number(val || 1);
-          const price = typeof val === "object" ? Number(val.price || 0) : 0;
+          const qty = typeof val === "object" ? Number(val.qty || val.count || val.quantity || 1) : Number(val || 1);
+          const rawName = String(dishName).toLowerCase().trim();
+
+          let price = 0;
+          if (priceMap.has(rawName)) {
+            price = priceMap.get(rawName);
+          } else {
+            const rawPrice = typeof val === "object" ? Number(val.price || 0) : 0;
+            price = isAdmin ? rawPrice : 0;
+          }
+
           if (price > 0) calculatedItemsTotal += price * qty;
           itemsObj[dishName] = qty;
-          itemsLines.push(`▫️ ${dishName} × ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
+          itemsLines.push(`- ${dishName} x ${qty}${price > 0 ? " = " + formatPrice(price * qty) : ""}`);
         }
       }
 
@@ -2096,9 +2193,12 @@ const server = http.createServer(async (req, res) => {
         deliveryFee = calculatedItemsTotal >= 250000 ? 0 : 20000;
       }
 
-      // Final total price (respect explicit total if provided, e.g. from Admin manual creation)
-      let finalTotal = Number(data.total) > 0 ? Number(data.total) : (calculatedItemsTotal + deliveryFee);
-      if (finalTotal === 0 && calculatedItemsTotal > 0) finalTotal = calculatedItemsTotal + deliveryFee;
+      // Final total price: only honor Number(data.total) override when isAdmin is true (Admin OS).
+      // For all public/customer orders, always set finalTotal = calculatedItemsTotal + deliveryFee.
+      let finalTotal = calculatedItemsTotal + deliveryFee;
+      if (isAdmin && Number(data.total) > 0) {
+        finalTotal = Number(data.total);
+      }
 
       const address = data.address || (isDelivery ? "Уточняется" : orderType === "Заказ в зале" ? "В зале" : "Самовывоз");
       const paymentMethod = data.paymentMethod || data.payment || "Наличными";

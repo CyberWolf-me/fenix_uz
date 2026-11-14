@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import Command
 
 from config import BASE_DIR, MENU_PAGES_DIR
-from menu_data import MENU, ITEMS_BY_ID, format_price
+from menu_data import MENU, ITEMS_BY_ID, format_price, get_live_menu_catalog
 from keyboards import (
     cuisines_inline_keyboard,
     categories_by_section_keyboard,
@@ -58,7 +58,8 @@ async def callback_category(callback: CallbackQuery):
     cat_id = parts[1]
     page = int(parts[2]) if len(parts) > 2 else 0
     
-    cat = next((c for c in MENU["categories"] if c["id"] == cat_id), None)
+    live_menu, live_items = get_live_menu_catalog()
+    cat = next((c for c in live_menu["categories"] if c["id"] == cat_id), None)
     if not cat:
         await callback.answer("Категория не найдена", show_alert=True)
         return
@@ -79,7 +80,8 @@ async def callback_item_detail(callback: CallbackQuery):
     cat_id = parts[2]
     page = int(parts[3])
     
-    item = ITEMS_BY_ID.get(dish_id)
+    live_menu, live_items = get_live_menu_catalog()
+    item = live_items.get(dish_id)
     if not item:
         await callback.answer("Блюдо не найдено", show_alert=True)
         return
@@ -153,7 +155,8 @@ async def callback_add_to_cart(callback: CallbackQuery):
     page = int(parts[3])
     qty = int(parts[4])
     
-    item = ITEMS_BY_ID.get(dish_id)
+    _, live_items = get_live_menu_catalog()
+    item = live_items.get(dish_id)
     if not item:
         await callback.answer("Ошибка: блюдо не найдено", show_alert=True)
         return

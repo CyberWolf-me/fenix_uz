@@ -3,16 +3,17 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.fsm.context import FSMContext
 
 from states import SearchState
-from menu_data import MENU, format_price
+from menu_data import MENU, format_price, get_live_menu_catalog
 from keyboards import cuisines_inline_keyboard, main_reply_keyboard
 import db
 
 router = Router()
 
 def search_menu_items(query: str):
+    live_menu, _ = get_live_menu_catalog()
     q = query.strip().lower()
     results = []
-    for cat in MENU["categories"]:
+    for cat in live_menu["categories"]:
         for item in cat["items"]:
             name = item["name"].lower()
             desc = item.get("desc", "").lower()

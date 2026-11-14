@@ -12,14 +12,15 @@ Scenarios:
 
 import urllib.request
 import urllib.error
+import os
 import json
 import time
 import ssl
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-BASE_URL = "https://fenix.mosaiclabs.tech"
-ADMIN_KEY = "fenix_admin_2026"
+BASE_URL = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("BASE_URL", "https://fenix.mosaiclabs.tech")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "fenix_admin_2026")
 
 # Create SSL context (trust valid CA)
 ssl_ctx = ssl.create_default_context()
@@ -43,8 +44,9 @@ def http_req(path, method="GET", data=None, headers=None):
 
     req = urllib.request.Request(url, data=encoded_data, headers=req_headers, method=method)
     t0 = time.perf_counter()
+    ctx = ssl_ctx if url.startswith("https") else None
     try:
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as resp:
+        with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
             elapsed = time.perf_counter() - t0
             body = resp.read().decode("utf-8")
             try:

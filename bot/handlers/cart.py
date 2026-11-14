@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from menu_data import ITEMS_BY_ID, format_price
+from menu_data import ITEMS_BY_ID, format_price, get_live_menu_catalog
 from keyboards import (
     cart_keyboard,
     empty_cart_keyboard,
@@ -25,12 +25,13 @@ def format_cart_text(cart: dict) -> tuple[str, int]:
     if not cart:
         return "🛒 <b>Ваша корзина пуста.</b>\n\nВыберите блюда из меню, чтобы оформить заказ доставки!", 0
         
+    _, live_items = get_live_menu_catalog()
     lines = ["🛒 <b>Ваша корзина заказа:</b>\n"]
     total = 0
     count_items = 0
     
     for dish_id, qty in cart.items():
-        item = ITEMS_BY_ID.get(dish_id)
+        item = live_items.get(dish_id)
         if not item:
             continue
         subtotal = item["price"] * qty
@@ -137,8 +138,9 @@ async def callback_checkout_start(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Корзина пуста!", show_alert=True)
         return
         
+    _, live_items = get_live_menu_catalog()
     stoplist = db.get_stoplist()
-    stopped_in_cart = [ITEMS_BY_ID[k]["name"] for k in cart if k in ITEMS_BY_ID and ITEMS_BY_ID[k]["name"] in stoplist]
+    stopped_in_cart = [live_items[k]["name"] for k in cart if k in live_items and live_items[k]["name"] in stoplist]
     if stopped_in_cart:
         items_str = ", ".join(f'«{name}»' for name in stopped_in_cart)
         await callback.answer(f"⚠️ Блюдо {items_str} сейчас в стоп-листе кухни. Пожалуйста, удалите его из корзины.", show_alert=True)
@@ -323,7 +325,8 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     
     order_num = random.randint(1000, 9999)
-    total = sum(ITEMS_BY_ID[k]["price"] * v for k, v in cart.items() if k in ITEMS_BY_ID)
+    _, live_items = get_live_menu_catalog()
+    total = sum(live_items[k]["price"] * v for k, v in cart.items() if k in live_items)
     
     # Check working hours
     is_open, current_time = is_restaurant_open()
@@ -337,7 +340,7 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
     # Format items with real dish names and prices for unified Admin OS & kitchen display
     named_items = {}
     for dish_id, qty in cart.items():
-        it = ITEMS_BY_ID.get(dish_id)
+        it = live_items.get(dish_id)
         if it:
             named_items[it["name"]] = {"qty": qty, "price": it["price"]}
         else:
@@ -379,7 +382,7 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
         "<b>Состав заказа:</b>"
     ]
     for dish_id, qty in cart.items():
-        it = ITEMS_BY_ID.get(dish_id)
+        it = live_items.get(dish_id)
         if it:
             summary.append(f"- {it['name']} x {qty} = {format_price(it['price'] * qty)}")
             
