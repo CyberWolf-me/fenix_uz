@@ -114,7 +114,14 @@ try {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'новая заявка'
     );
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+  try { db.exec("ALTER TABLE orders ADD COLUMN courier_name TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE orders ADD COLUMN courier_id TEXT;"); } catch (_) {}
 } catch (err) {
   console.warn(`[DB] SQLite integration note: ${err.message}`);
 }
@@ -145,6 +152,17 @@ function getStaffChatIds() {
     }
   }
   return Array.from(ids);
+}
+
+// Fetch configured Courier Group chat ID (Option 3)
+function getCourierGroupId() {
+  if (db) {
+    try {
+      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'courier_group_id'").get();
+      if (row && row.value) return String(row.value).trim();
+    } catch (_) {}
+  }
+  return process.env.COURIER_GROUP_CHAT_ID ? String(process.env.COURIER_GROUP_CHAT_ID).trim() : null;
 }
 
 // Simple in-memory IP rate limiter (max 15 requests per 5 minutes)
@@ -249,7 +267,7 @@ async function sendTelegramNotification(text, replyMarkup = null, targetChatIds 
   }
 }
 
-// Option A: In-House Courier Dispatch & Route Notification
+// Option 3: Telegram Courier Group Dispatch & Claim / Option A Direct Courier Dispatch
 async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
   if (!order) return;
   const num = order.order_num || order.id;
@@ -275,8 +293,15 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
   const yandexMapsWebRoute = `https://yandex.uz/maps/?rtext=41.2858,69.3402~${lat},${lon}&rtt=auto`;
   const yandexNaviDeep = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lon}`;
 
+  const courierGroupId = getCourierGroupId();
+  const isDirectToCourier = targetCourierId && targetCourierId !== 'group' && targetCourierId !== 'all';
+
+  const textHeader = isDirectToCourier
+    ? `🛵 <b>ЗАКАЗ НАЗНАЧЕН КУРЬЕРУ (В ПУТИ)</b>`
+    : `🛵 <b>НОВЫЙ ЗАКАЗ НА ДОСТАВКУ (ОЖИДАЕТ КУРЬЕРА)</b>`;
+
   const text = [
-    `🛵 <b>ЗАКАЗ ПЕРЕДАН КУРЬЕРУ (В ПУТИ)</b>`,
+    textHeader,
     `━━━━━━━━━━━━━━━━━━━━`,
     `📦 <b>Заказ #WEB-${num}</b>`,
     `👤 <b>Клиент:</b> ${name}`,
@@ -293,24 +318,50 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
     `<code>${yandexNaviDeep}</code>`
   ].join('\n');
 
-  const replyMarkup = {
-    inline_keyboard: [
-      [
-        {
-          text: "🧭 Маршрут в Яндекс Картах",
-          url: yandexMapsWebRoute
-        }
-      ],
-      [
-        {
-          text: "✅ Заказ доставлен клиенту",
-          callback_data: `courier_delivered:${num}`
-        }
+  let replyMarkup;
+  if (isDirectToCourier) {
+    // Directly assigned to a specific courier
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: "🧭 Маршрут в Яндекс Картах",
+            url: yandexMapsWebRoute
+          }
+        ],
+        [
+          {
+            text: "✅ Заказ доставлен клиенту",
+            callback_data: `courier_delivered:${num}`
+          }
+        ]
       ]
-    ]
-  };
+    };
+  } else {
+    // Posted to Courier Group: Couriers claim order with [ 🙋‍♂️ Взять заказ ]
+    replyMarkup = {
+      inline_keyboard: [
+        [
+          {
+            text: "🙋‍♂️ Взять заказ",
+            callback_data: `courier_claim:${num}`
+          }
+        ],
+        [
+          {
+            text: "🧭 Маршрут в Яндекс Картах",
+            url: yandexMapsWebRoute
+          }
+        ]
+      ]
+    };
+  }
 
-  await sendTelegramNotification(text, replyMarkup, targetCourierId ? [String(targetCourierId)] : null);
+  const targetIds = isDirectToCourier
+    ? [String(targetCourierId)]
+    : (courierGroupId ? [courierGroupId] : null);
+
+  await sendTelegramNotification(text, replyMarkup, targetIds);
 }
 
 const MIME = {
@@ -740,12 +791,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 3b. Admin List Couriers (from staff table)
+  // 3b. Admin List Couriers (from staff table & courier group status)
   if (req.method === "GET" && url.pathname === "/api/admin/couriers") {
     let couriers = [];
+    let courierGroupId = null;
+    let courierGroupTitle = null;
     if (db) {
       try {
         couriers = db.prepare("SELECT user_id, user_name, full_name, role FROM staff").all();
+      } catch (_) {}
+      try {
+        const row = db.prepare("SELECT value FROM app_settings WHERE key = 'courier_group_id'").get();
+        if (row && row.value) courierGroupId = row.value;
+        const rowT = db.prepare("SELECT value FROM app_settings WHERE key = 'courier_group_title'").get();
+        if (rowT && rowT.value) courierGroupTitle = rowT.value;
       } catch (_) {}
     }
     if (couriers.length === 0) {
@@ -755,7 +814,43 @@ const server = http.createServer(async (req, res) => {
       ];
     }
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ ok: true, couriers }));
+    res.end(JSON.stringify({
+      ok: true,
+      couriers,
+      courierGroup: {
+        id: courierGroupId,
+        title: courierGroupTitle || "Группа курьеров FENIX",
+        configured: Boolean(courierGroupId)
+      }
+    }));
+    return;
+  }
+
+  // 3b-2. Set Courier Group from Admin UI
+  if (req.method === "POST" && url.pathname === "/api/admin/settings/courier-group") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { groupId, title } = payload;
+    if (db && groupId) {
+      try {
+        db.prepare(`
+          INSERT INTO app_settings (key, value, updated_at) VALUES ('courier_group_id', ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        `).run(String(groupId));
+        if (title) {
+          db.prepare(`
+            INSERT INTO app_settings (key, value, updated_at) VALUES ('courier_group_title', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+          `).run(String(title));
+        }
+      } catch (e) {
+        console.error("Error setting courier group:", e.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, groupId, title }));
     return;
   }
 

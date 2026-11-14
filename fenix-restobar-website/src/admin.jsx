@@ -47,7 +47,8 @@ function Couriers({ t, toast, orders = [] }) {
   const [selId, setSelId] = useState(null);
   const [filterMode, setFilterMode] = useState('active'); // active | all
   const [couriersList, setCouriersList] = useState([]);
-  const [selectedCourier, setSelectedCourier] = useState('106');
+  const [courierGroupInfo, setCourierGroupInfo] = useState(null);
+  const [selectedCourier, setSelectedCourier] = useState('group');
   const mapRef = useRef(null);
   const leafletInstance = useRef(null);
   const markersRef = useRef([]);
@@ -56,9 +57,10 @@ function Couriers({ t, toast, orders = [] }) {
     fetch('/api/admin/couriers')
       .then((r) => r.json())
       .then((res) => {
-        if (res && res.ok && Array.isArray(res.couriers)) {
-          setCouriersList(res.couriers);
-          if (res.couriers.length > 0) setSelectedCourier(String(res.couriers[0].user_id));
+        if (res && res.ok) {
+          if (Array.isArray(res.couriers)) setCouriersList(res.couriers);
+          if (res.courierGroup) setCourierGroupInfo(res.courierGroup);
+          setSelectedCourier('group');
         }
       })
       .catch(() => {});
@@ -192,7 +194,8 @@ function Couriers({ t, toast, orders = [] }) {
 
   const dispatchToCourierTelegram = async (ord) => {
     try {
-      const courier = couriersList.find((c) => String(c.user_id) === String(selectedCourier));
+      const isGroup = selectedCourier === 'group';
+      const courier = isGroup ? null : couriersList.find((c) => String(c.user_id) === String(selectedCourier));
       const res = await fetch('/api/admin/orders/dispatch-courier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,13 +203,14 @@ function Couriers({ t, toast, orders = [] }) {
           id: ord.dbId,
           orderNum: ord.orderNum || parseInt(String(ord.id).replace(/\D/g, '')),
           courierId: selectedCourier,
-          courierName: courier ? courier.full_name : 'Курьер Fenix',
+          courierName: isGroup ? (courierGroupInfo?.title || 'Группа курьеров') : (courier ? courier.full_name : 'Курьер Fenix'),
         }),
       });
       const data = await res.json();
       if (data.ok) {
         ord.col = 'way';
-        toast(`Заказ #${ord.id} отправлен в Telegram курьеру с маршрутом!`, 'ok', 'truck');
+        const targetDesc = isGroup ? 'в группу курьеров FENIX' : `курьеру ${courier ? courier.full_name : ''}`;
+        toast(`Заказ #${ord.id} отправлен ${targetDesc}!`, 'ok', 'truck');
       }
     } catch (e) {
       toast('Ошибка отправки курьеру: ' + e.message, 'err');
@@ -320,10 +324,19 @@ function Couriers({ t, toast, orders = [] }) {
                 </div>
               </div>
 
-              {/* Courier Assignment Selector (Option A) */}
+              {/* Courier Assignment Selector (Option 3 & Option A) */}
               <div style={{ marginTop: 4, marginBottom: 10, padding: '8px 10px', background: 'var(--surface-3)', borderRadius: 8, border: '1px solid var(--line)' }}>
-                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="bike" size={12} /> Назначить курьера (Telegram Bot):
+                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="bike" size={12} /> Назначить доставку (Telegram):
+                  </span>
+                  {courierGroupInfo?.configured ? (
+                    <span style={{ color: 'var(--ok)', fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ok)' }} /> Группа активна
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--dim)', fontSize: 10 }}>/set_courier_group в чате</span>
+                  )}
                 </div>
                 <select
                   value={selectedCourier}
@@ -333,6 +346,11 @@ function Couriers({ t, toast, orders = [] }) {
                     background: 'var(--surface)', color: 'var(--text)', fontSize: 12, padding: '0 8px', outline: 'none'
                   }}
                 >
+                  <option value="group">
+                    {courierGroupInfo?.configured
+                      ? `Группа курьеров (${courierGroupInfo.title || 'Взять заказ'})`
+                      : 'Общая группа курьеров (Свободный разбор)'}
+                  </option>
                   {couriersList.map((c) => (
                     <option key={c.user_id} value={c.user_id}>
                       {c.full_name} ({c.role === 'courier' ? 'Курьер' : c.role})
@@ -345,7 +363,7 @@ function Couriers({ t, toast, orders = [] }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {currentOrder.col !== 'way' && currentOrder.col !== 'done' && (
                   <Btn size="sm" variant="accent" icon="bike" onClick={() => dispatchToCourierTelegram(currentOrder)}>
-                    🚀 Передать курьеру в Telegram (В пути)
+                    Передать курьерам в Telegram (В пути)
                   </Btn>
                 )}
 
@@ -371,7 +389,7 @@ function Couriers({ t, toast, orders = [] }) {
                     title="Запустить приложение Яндекс.Навигатор"
                     style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'var(--surface-3)' }}
                   >
-                    🧭 Навигатор
+                    <Icon name="pin" size={13} /> Навигатор
                   </a>
                 </div>
 

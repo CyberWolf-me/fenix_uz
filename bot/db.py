@@ -99,6 +99,15 @@ def init_db():
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # App settings & courier group channel
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     
     conn.commit()
     conn.close()
@@ -224,6 +233,14 @@ def update_order_status(order_num: int | str, status: str) -> bool:
     conn.close()
     return affected
 
+def get_order(order_num: int | str):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM orders WHERE order_num = ? OR id = ?", (order_num, order_num))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 def get_all_staff_ids() -> list[int]:
     conn = get_connection()
     c = conn.cursor()
@@ -250,6 +267,63 @@ def is_courier(user_id: int) -> bool:
         return False
     role = (row["role"] or "").lower()
     return role in ("courier", "курьер", "admin", "диспетчер", "менеджер")
+
+# App settings & courier group channel
+def get_setting(key: str, default: str = None) -> str:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c.execute("SELECT value FROM app_settings WHERE key = ?", (key,))
+    row = c.fetchone()
+    conn.close()
+    if row and row["value"]:
+        return row["value"]
+    return default
+
+def set_setting(key: str, value: str):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c.execute("""
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+    """, (key, str(value)))
+    conn.commit()
+    conn.close()
+
+def claim_order(order_num: int | str, courier_id: int | str, courier_name: str) -> tuple[bool, str]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT courier_name, status FROM orders WHERE order_num = ? OR id = ?", (order_num, order_num))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return False, "Заказ не найден в базе данных"
+    if row["courier_name"] and row["status"] in ("в пути", "выполнен"):
+        conn.close()
+        return False, f"Заказ уже взят курьером {row['courier_name']}"
+    c.execute("""
+    UPDATE orders 
+    SET courier_id = ?, courier_name = ?, status = 'в пути'
+    WHERE order_num = ? OR id = ?
+    """, (str(courier_id), courier_name, order_num, order_num))
+    conn.commit()
+    conn.close()
+    return True, "Успешно"
+
+def complete_order_delivery(order_num: int | str, user_id: int | str, user_name: str) -> tuple[bool, str]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT courier_id, courier_name, status FROM orders WHERE order_num = ? OR id = ?", (order_num, order_num))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return False, "Заказ не найден в базе данных"
+    c.execute("UPDATE orders SET status = 'выполнен' WHERE order_num = ? OR id = ?", (order_num, order_num))
+    conn.commit()
+    conn.close()
+    return True, "Успешно"
 
 # User language settings
 def get_user_language(user_id: int) -> str:

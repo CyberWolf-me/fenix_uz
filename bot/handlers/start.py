@@ -236,70 +236,120 @@ async def callback_admin_actions(callback: CallbackQuery):
         await safe_edit_or_send(callback, text, reply_markup=admin_panel_keyboard())
         await callback.answer("Обновлено")
 
-# ── Option A: In-House Courier Dispatch & Real-Time Fulfillment ───
-@router.message(Command("courier"))
-async def cmd_courier(message: Message):
-    user_id = message.from_user.id
-    parts = message.text.split() if message.text else []
-
-    # Check if user provides valid courier password or admin password
-    if len(parts) > 1 and parts[1].strip() in (BOT_COURIER_PASSWORD, "fenix_courier", "fenix_driver", "fenix", BOT_ADMIN_PASSWORD):
-        db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "", role="courier")
+# ── Option 3: Telegram Courier Group Dispatch & Claim Fulfillment ───
+@router.message(Command("set_courier_group"))
+async def cmd_set_courier_group(message: Message):
+    if message.chat.type not in ("group", "supergroup"):
         await message.answer(
-            "✅ <b>Авторизация курьера успешна!</b>\n\n"
-            "Вы официально подключены к службе доставки FENIX Restobar.\n"
-            "Когда диспетчер передаёт заказ в доставку (статус <i>«В пути»</i>), сюда поступит карточка заказа с:\n"
-            "• Телефоном и именем клиента\n"
-            "• Точным адресом доставки\n"
-            "• Кнопкой запуска Яндекс.Навигатора\n"
-            "• Кнопкой <b>[ ✅ Заказ доставлен ]</b> для подтверждения выполнения в один клик.",
+            "⚠️ Команду <code>/set_courier_group</code> необходимо отправлять <b>внутри вашей группы курьеров</b> в Telegram.\n\n"
+            "1. Создайте группу в Telegram (например, <i>«FENIX — Курьеры & Доставка»</i>).\n"
+            "2. Добавьте в неё бота @FenixRestaurantBot.\n"
+            "3. Отправьте в группе команду <code>/set_courier_group</code>.",
             parse_mode="HTML"
         )
         return
 
-    # Check if already registered in staff
-    if db.is_courier(user_id) or db.is_staff(user_id):
-        await message.answer(
-            "🛵 <b>Служба доставки FENIX</b>\n\n"
-            "Вы авторизованы как штатный курьер Fenix. Ожидайте назначения заказов диспетчером.",
-            parse_mode="HTML"
-        )
-    else:
-        # Access denied for unauthenticated guests
-        await message.answer(
-            "🔒 <b>Доступ ограничен (Служба доставки FENIX)</b>\n\n"
-            "Регистрация в качестве курьера доступна только сотрудникам ресторана.\n"
-            "Если вы работаете курьером в FENIX, введите команду с выданным паролем:\n"
-            "<code>/courier &lt;пароль&gt;</code>\n\n"
-            "<i>Пароль выдаётся управляющим или диспетчером ресторана в смене.</i>",
-            parse_mode="HTML"
-        )
+    chat_id = message.chat.id
+    chat_title = message.chat.title or "Группа курьеров FENIX"
+    db.set_setting("courier_group_id", str(chat_id))
+    db.set_setting("courier_group_title", chat_title)
+
+    await message.answer(
+        "✅ <b>ГРУППА КУРЬЕРОВ УСПЕШНО ПРИВЯЗАНА!</b>\n\n"
+        f"🏷 <b>Название:</b> {chat_title}\n"
+        f"🆔 <b>Chat ID:</b> <code>{chat_id}</code>\n\n"
+        "📦 Теперь все заказы на доставку при передаче курьеру (статус <i>«В пути»</i>) "
+        "будут мгновенно поступать в этот чат с кнопкой <b>[ 🙋‍♂️ Взять заказ ]</b>.\n\n"
+        "🛵 <b>Как работает доставка через группу:</b>\n"
+        "1. В чат поступает карточка заказа со списком блюд, адресом, суммой и маршрутом.\n"
+        "2. Свободный водитель нажимает <b>«🙋‍♂️ Взять заказ»</b> — карточка закрепляется за ним.\n"
+        "3. В сообщении появляется кнопка <b>«✅ Заказ доставлен клиенту»</b>.\n"
+        "4. После вручения курьер подтверждает доставку, и статус заказа в системе автоматически меняется на «Выполнен».",
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data.startswith("courier_claim:"))
+async def callback_courier_claim(callback: CallbackQuery):
+    user = callback.from_user
+    order_num = callback.data.split(":")[1]
+    courier_name = user.full_name or user.username or f"ID:{user.id}"
+    username_tag = f"@{user.username}" if user.username else courier_name
+
+    success, reason = db.claim_order(order_num, user.id, courier_name)
+    if not success:
+        await callback.answer(f"⚠️ {reason}", show_alert=True)
+        return
+
+    now_time = datetime.now().strftime("%H:%M")
+    await callback.answer(f"✅ Вы взяли заказ #{order_num}! Удачной дороги!", show_alert=False)
+
+    orig_text = callback.message.html_text or callback.message.text or ""
+    # Extract existing yandex maps URL from reply_markup
+    yandex_url = "https://yandex.uz/maps/?rtext=41.2858,69.3402~41.3119,69.2401&rtt=auto"
+    if callback.message.reply_markup and callback.message.reply_markup.inline_keyboard:
+        for row in callback.message.reply_markup.inline_keyboard:
+            for btn in row:
+                if btn.url and "yandex" in btn.url:
+                    yandex_url = btn.url
+                    break
+
+    updated_text = (
+        orig_text +
+        f"\n\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔵 <b>ВЗЯТ КУРЬЕРОМ:</b> {username_tag} ({courier_name})\n"
+        f"🕒 <b>Время взятия:</b> <code>{now_time}</code>\n"
+        f"🛵 <b>Статус:</b> Заказ в пути к клиенту"
+    )
+
+    new_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧭 Маршрут в Яндекс Картах", url=yandex_url)],
+        [InlineKeyboardButton(text="✅ Заказ доставлен клиенту", callback_data=f"courier_delivered:{order_num}")]
+    ])
+
+    try:
+        await callback.message.edit_text(updated_text, parse_mode="HTML", reply_markup=new_kb)
+    except Exception:
+        pass
 
 @router.callback_query(F.data.startswith("courier_delivered:"))
 async def callback_courier_delivered(callback: CallbackQuery):
     user = callback.from_user
-    if not (db.is_courier(user.id) or db.is_staff(user.id)):
-        await callback.answer("⛔ Доступ запрещён. Вы не являетесь авторизованным курьером Fenix.", show_alert=True)
-        return
-
     order_num = callback.data.split(":")[1]
     courier_name = user.full_name or user.username or f"ID:{user.id}"
+    username_tag = f"@{user.username}" if user.username else courier_name
 
-    success = db.update_order_status(order_num, "выполнен")
-    if success:
-        await callback.answer(f"Заказ #{order_num} успешно доставлен!", show_alert=True)
-        now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
-        orig_text = callback.message.html_text or callback.message.text or ""
-        new_text = (
-            orig_text +
-            f"\n\n━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ <b>ЗАКАЗ УСПЕШНО ДОСТАВЛЕН КЛИЕНТУ</b>\n"
-            f"👤 Курьер: <b>{courier_name}</b>\n"
-            f"🕒 Время: <code>{now_str}</code>"
-        )
-        try:
-            await callback.message.edit_text(new_text, parse_mode="HTML", reply_markup=None)
-        except Exception:
-            pass
-    else:
-        await callback.answer("Статус заказа уже был обновлен.", show_alert=True)
+    success, msg = db.complete_order_delivery(order_num, user.id, courier_name)
+    if not success:
+        await callback.answer(f"⚠️ {msg}", show_alert=True)
+        return
+
+    await callback.answer(f"Заказ #{order_num} успешно доставлен!", show_alert=True)
+    now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
+    orig_text = callback.message.html_text or callback.message.text or ""
+
+    yandex_url = None
+    if callback.message.reply_markup and callback.message.reply_markup.inline_keyboard:
+        for row in callback.message.reply_markup.inline_keyboard:
+            for btn in row:
+                if btn.url and "yandex" in btn.url:
+                    yandex_url = btn.url
+                    break
+
+    final_text = (
+        orig_text +
+        f"\n\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"🟢 <b>ЗАКАЗ УСПЕШНО ДОСТАВЛЕН КЛИЕНТУ</b>\n"
+        f"👤 Доставил: <b>{username_tag}</b>\n"
+        f"🕒 Время вручения: <code>{now_str}</code>"
+    )
+
+    final_kb = None
+    if yandex_url:
+        final_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🧭 Маршрут в Яндекс Картах", url=yandex_url)]
+        ])
+
+    try:
+        await callback.message.edit_text(final_text, parse_mode="HTML", reply_markup=final_kb)
+    except Exception:
+        pass
