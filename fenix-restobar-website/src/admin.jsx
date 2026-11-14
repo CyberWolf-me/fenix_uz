@@ -49,6 +49,7 @@ function Couriers({ t, toast, orders = [] }) {
   const [couriersList, setCouriersList] = useState([]);
   const [courierGroupInfo, setCourierGroupInfo] = useState(null);
   const [selectedCourier, setSelectedCourier] = useState('group');
+  const [refreshTick, setRefreshTick] = useState(0);
   const mapRef = useRef(null);
   const leafletInstance = useRef(null);
   const markersRef = useRef([]);
@@ -196,6 +197,7 @@ function Couriers({ t, toast, orders = [] }) {
         }),
       });
       ord.col = nextCol;
+      setRefreshTick((v) => v + 1);
       toast(`Заказ #${ord.id} переведён в статус "${nextRu}"`, 'ok', 'check');
     } catch (e) {
       toast('Ошибка обновления статуса: ' + e.message, 'err');
@@ -219,6 +221,7 @@ function Couriers({ t, toast, orders = [] }) {
       const data = await res.json();
       if (data.ok) {
         ord.col = 'way';
+        setRefreshTick((v) => v + 1);
         const targetDesc = isGroup ? 'в группу курьеров FENIX' : `курьеру ${courier ? courier.full_name : ''}`;
         toast(`Заказ #${ord.id} отправлен ${targetDesc}!`, 'ok', 'truck');
       }
@@ -403,10 +406,22 @@ function Couriers({ t, toast, orders = [] }) {
 
               {/* Action Buttons for Selected Order */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {currentOrder.col !== 'way' && currentOrder.col !== 'done' && (
+                {selectedCourier !== 'group' ? (
                   <Btn size="sm" variant="accent" icon="bike" onClick={() => dispatchToCourierTelegram(currentOrder)}>
-                    Передать курьерам в Telegram (В пути)
+                    {currentOrder.col === 'way' || currentOrder.col === 'done'
+                      ? `Отправить курьеру (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || 'Курьер'}) в Telegram`
+                      : `Назначить курьеру (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || 'Курьер'}) в Telegram`}
                   </Btn>
+                ) : (
+                  currentOrder.col !== 'way' && currentOrder.col !== 'done' ? (
+                    <Btn size="sm" variant="accent" icon="bike" onClick={() => dispatchToCourierTelegram(currentOrder)}>
+                      Передать в общую группу курьеров (Telegram)
+                    </Btn>
+                  ) : (
+                    <Btn size="sm" variant="ghost" icon="bike" onClick={() => dispatchToCourierTelegram(currentOrder)}>
+                      Отправить повторно в группу курьеров
+                    </Btn>
+                  )
                 )}
 
                 {currentOrder.col === 'way' && (

@@ -20,9 +20,10 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.types import (
     Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton,
-    InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+    InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove,
+    ChatMemberUpdated
 )
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, IS_MEMBER, IS_NOT_MEMBER
 
 from config import COURIER_BOT_TOKEN, COURIER_BOT_USERNAME, WEBSITE_URL, BOT_TOKEN
 import db
@@ -128,7 +129,43 @@ async def cmd_start(message: Message):
     )
     await message.answer(welcome_text, parse_mode="HTML", reply_markup=courier_main_reply_keyboard())
 
-# ── 2. Command /set_courier_group ──────────────────────────────────────
+# ── 2. Command /set_courier_group & Auto-Group Detection ──────────────
+@router.chat_member(ChatMemberUpdatedFilter(IS_NOT_MEMBER >> IS_MEMBER))
+async def on_bot_added_to_chat(event: ChatMemberUpdated, bot: Bot):
+    if event.new_chat_member.user.id == bot.id:
+        chat = event.chat
+        db.set_setting("courier_group_id", str(chat.id))
+        db.set_setting("courier_group_title", chat.title or "Группа курьеров FENIX")
+        logger.info(f"Bot added to group {chat.title} ({chat.id}), registered as courier group!")
+        try:
+            await bot.send_message(
+                chat.id,
+                "✅ <b>ГРУППА КУРЬЕРОВ FENIX УСПЕШНО ПОДКЛЮЧЕНА!</b>\n\n"
+                f"🏷 <b>Чат:</b> {chat.title}\n"
+                f"🆔 <b>Chat ID:</b> <code>{chat.id}</code>\n"
+                f"🤖 <b>Бот службы доставки:</b> @{COURIER_BOT_USERNAME}\n\n"
+                "📦 Заказы на доставку будут поступать сюда с кнопкой «🙋‍♂️ Взять заказ».",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.warning(f"Could not greet group: {e}")
+
+@router.message(F.new_chat_members)
+async def on_new_chat_members(message: Message, bot: Bot):
+    for member in message.new_chat_members:
+        if member.id == bot.id:
+            db.set_setting("courier_group_id", str(message.chat.id))
+            db.set_setting("courier_group_title", message.chat.title or "Группа курьеров FENIX")
+            logger.info(f"New chat members: Bot added to {message.chat.title} ({message.chat.id})")
+            await message.answer(
+                "✅ <b>ГРУППА КУРЬЕРОВ FENIX УСПЕШНО ПОДКЛЮЧЕНА!</b>\n\n"
+                f"🏷 <b>Чат:</b> {message.chat.title}\n"
+                f"🆔 <b>Chat ID:</b> <code>{message.chat.id}</code>\n"
+                f"🤖 <b>Бот службы доставки:</b> @{COURIER_BOT_USERNAME}\n\n"
+                "📦 Все заказы на доставку будут поступать в этот чат автоматически!",
+                parse_mode="HTML"
+            )
+
 @router.message(Command("set_courier_group"))
 async def cmd_set_courier_group(message: Message):
     chat = message.chat
@@ -588,7 +625,7 @@ async def main():
 
     try:
         logger.info("Starting polling courier updates...")
-        await dp.start_polling(bot, polling_timeout=25)
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types(), polling_timeout=25)
     finally:
         await bot.session.close()
         logger.info("Courier Bot polling stopped.")
