@@ -747,6 +747,107 @@
   font-size: 12px;
 }
 
+/* ── VENUE / ADMIN FILTER TOOLBAR ────────────────────────────── */
+.venue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+  width: 100%;
+}
+
+.venue-toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 3px 4px 3px 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.filter-group-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.filter-group-tag svg {
+  color: var(--accent);
+}
+
+.filter-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.filter-pill {
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 99px;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.filter-pill:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.filter-pill[data-on="1"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.filter-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--line-strong);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.venue-toolbar-search {
+  flex: 1 1 200px;
+  max-width: 320px;
+  min-width: 140px;
+}
+
+.venue-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 /* ── TABLET SCREENS (769px – 1024px) ─────────────────────────── */
 @media (max-width: 1024px) {
   .app:not([data-rail="0"]) {
@@ -764,6 +865,29 @@
     margin-left: auto;
   }
   .dispatch-toolbar-center {
+    order: 3;
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  .venue-toolbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .venue-toolbar-filters {
+    order: 1;
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .venue-toolbar-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .venue-toolbar-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  .venue-toolbar-search {
     order: 3;
     flex: 1 1 100%;
     max-width: 100%;
@@ -904,6 +1028,42 @@
   }
   .dispatch-toolbar-right {
     display: none !important;
+  }
+
+  .venue-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .venue-toolbar-filters {
+    order: 1;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 3px;
+    gap: 8px;
+  }
+  .venue-toolbar-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .filter-group {
+    padding: 2px 3px 2px 8px;
+  }
+  .filter-pill {
+    height: 25px;
+    padding: 0 9px;
+    font-size: 10.5px;
+  }
+  .venue-toolbar-actions {
+    order: 2;
+    margin-left: auto;
+  }
+  .venue-toolbar-search {
+    order: 3;
+    width: 100%;
+    flex: 1 1 100%;
+    max-width: 100%;
   }
 
   /* Compact Collapsible Metric Strip (Saves ~190px of vertical space on mobile) */

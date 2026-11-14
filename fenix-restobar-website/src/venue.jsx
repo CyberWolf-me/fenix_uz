@@ -27,8 +27,9 @@ function isTomorrowDate(dStr) {
 }
 
 function Bookings({ t, toast }) {
-  const [date, setDate] = useState('today');
+  const [date, setDate] = useState('all');
   const [zone, setZone] = useState('all');
+  const [search, setSearch] = useState('');
   const [rows, setRows] = useState(FX.bookings);
 
   useEffect(() => {
@@ -78,7 +79,19 @@ function Bookings({ t, toast }) {
     if (date === 'tomorrow') return isTomorrowDate(b.date);
     return b.date === date;
   };
-  const list = rows.filter((b) => matchesDate(b) && (zone === 'all' || b.zone === zone));
+  const list = rows.filter((b) => {
+    if (!matchesDate(b)) return false;
+    if (zone !== 'all' && b.zone !== zone) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matchClient = (b.client || '').toLowerCase().includes(q);
+      const matchPhone = (b.phone || '').toLowerCase().includes(q);
+      const matchId = (b.id || '').toLowerCase().includes(q);
+      const matchTable = (b.table || '').toLowerCase().includes(q);
+      if (!matchClient && !matchPhone && !matchId && !matchTable) return false;
+    }
+    return true;
+  });
   const pending = rows.filter((b) => b.status === 'pending').length;
   const bookingsTodayCount = rows.filter((b) => isTodayDate(b.date)).length;
 
@@ -126,41 +139,99 @@ function Bookings({ t, toast }) {
         ))}
       </div>
 
-      <div className="filters">
-        <div className="row" style={{ gap: 6 }}>
-          <span className="label">{t('date')}:</span>
-          <div className="chips">
-            {[['all', 'all_dates'], ['today', 'today'], ['tomorrow', 'tomorrow']].map(([k, l]) => (
-              <button key={k} className="chip" data-on={date === k ? '1' : '0'} onClick={() => setDate(k)}>{t(l)}</button>
-            ))}
+      <div className="venue-toolbar">
+        <div className="venue-toolbar-filters">
+          <div className="filter-group">
+            <span className="filter-group-tag">
+              <Icon name="calendar" size={13} />
+              <span>{t('date')}</span>
+            </span>
+            <div className="filter-pills">
+              {[['all', 'all_dates'], ['today', 'today'], ['tomorrow', 'tomorrow']].map(([k, l]) => (
+                <button
+                  key={k}
+                  className="filter-pill"
+                  data-on={date === k ? '1' : '0'}
+                  onClick={() => setDate(k)}
+                >
+                  {t(l)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-divider" />
+
+          <div className="filter-group">
+            <span className="filter-group-tag">
+              <Icon name="layers" size={13} />
+              <span>{t('zone')}</span>
+            </span>
+            <div className="filter-pills">
+              {[
+                ['all', 'all_zones'],
+                ['Основной зал', 'main_hall'],
+                ['Банкетный зал', 'banquet_hall'],
+                ['VIP-кабина', 'vip'],
+                ['any', 'any']
+              ].map(([k, l]) => (
+                <button
+                  key={k}
+                  className="filter-pill"
+                  data-on={zone === k ? '1' : '0'}
+                  onClick={() => setZone(k)}
+                >
+                  {l === 'any' ? 'Любой' : t(l)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="row" style={{ gap: 6 }}>
-          <span className="label">{t('zone')}:</span>
-          <div className="chips">
-            {[['all', 'all_zones'], ['Основной зал', 'main_hall'], ['Банкетный зал', 'banquet_hall'], ['VIP-кабина', 'vip'], ['any', 'any']].map(([k, l]) => (
-              <button key={k} className="chip" data-on={zone === k ? '1' : '0'} onClick={() => setZone(k)}>{l === 'any' ? 'Любой' : t(l)}</button>
-            ))}
+
+        <div className="venue-toolbar-search">
+          <div className="search" style={{ height: 34, width: '100%', maxWidth: '100%', borderRadius: 8 }}>
+            <Icon name="search" size={14} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск по гостю, телефону, столу..."
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{ border: 0, background: 'none', color: 'var(--text-3)', cursor: 'pointer', display: 'flex', padding: 2 }}
+                title="Очистить"
+              >
+                <Icon name="x" size={12} />
+              </button>
+            )}
           </div>
         </div>
-        <span className="grow" />
-        <Btn size="sm" icon="plus" onClick={() => toast('Форма создания брони', 'ok', 'plus')}>{t('create')}</Btn>
+
+        <div className="venue-toolbar-actions">
+          <Pill tone="neutral">{list.length} броней</Pill>
+          <Btn size="sm" variant="accent" icon="plus" onClick={() => toast('Форма создания брони', 'ok', 'plus')}>
+            {t('create')}
+          </Btn>
+        </div>
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
-          <colgroup>
-            <col style={{ width: '85px' }} />
-            <col style={{ width: '105px' }} />
-            <col style={{ width: '80px' }} />
-            <col style={{ width: '180px' }} />
-            <col style={{ width: '145px' }} />
-            <col style={{ width: '140px' }} />
-            <col style={{ width: '90px' }} />
-            <col style={{ width: '100px' }} />
-            <col style={{ width: '125px' }} />
-            <col style={{ width: '110px' }} />
-          </colgroup>
+        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="tbl" style={{ tableLayout: 'fixed', width: '100%', minWidth: 920 }}>
+            <colgroup>
+              <col style={{ width: '75px' }} />
+              <col style={{ width: '95px' }} />
+              <col style={{ width: '65px' }} />
+              <col style={{ width: '155px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '115px' }} />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '75px' }} />
+              <col style={{ width: '105px' }} />
+              <col style={{ width: '80px' }} />
+            </colgroup>
           <thead>
             <tr>
               <th style={{ paddingLeft: 18, textAlign: 'left' }}>{t('id')}</th>
@@ -213,6 +284,7 @@ function Bookings({ t, toast }) {
             )}
           </tbody>
         </table>
+        </div>
         {!list.length && <div className="empty" style={{ padding: 40 }}><Icon name="calendar" size={24} /><span>{t('no_bookings')}</span></div>}
       </div>
     </div>
@@ -221,6 +293,8 @@ function Bookings({ t, toast }) {
 
 function Banquets({ t, toast }) {
   const [rows, setRows] = useState(FX.banquets);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -270,6 +344,19 @@ function Banquets({ t, toast }) {
     } catch (_) {}
   };
 
+  const filteredRows = rows.filter((b) => {
+    if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matchClient = (b.client || '').toLowerCase().includes(q);
+      const matchPhone = (b.phone || '').toLowerCase().includes(q);
+      const matchId = (b.id || '').toLowerCase().includes(q);
+      const matchHall = (b.hall || '').toLowerCase().includes(q);
+      if (!matchClient && !matchPhone && !matchId && !matchHall) return false;
+    }
+    return true;
+  });
+
   const total = rows.reduce((s, b) => s + b.deposit, 0);
   return (
     <div className="page">
@@ -290,26 +377,76 @@ function Banquets({ t, toast }) {
         ))}
       </div>
 
-      <div className="filters">
-        <span className="label">Предстоящие события</span>
-        <span className="grow" />
-        <Btn size="sm" icon="plus" onClick={() => toast('Новая банкетная заявка', 'ok', 'plus')}>{t('create')}</Btn>
+      <div className="venue-toolbar">
+        <div className="venue-toolbar-filters">
+          <div className="filter-group">
+            <span className="filter-group-tag">
+              <Icon name="star" size={13} />
+              <span>Статус</span>
+            </span>
+            <div className="filter-pills">
+              {[
+                ['all', 'Все события'],
+                ['waiting', 'Ожидают'],
+                ['confirmed', 'Подтверждены']
+              ].map(([k, label]) => (
+                <button
+                  key={k}
+                  className="filter-pill"
+                  data-on={statusFilter === k ? '1' : '0'}
+                  onClick={() => setStatusFilter(k)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="venue-toolbar-search">
+          <div className="search" style={{ height: 34, width: '100%', maxWidth: '100%', borderRadius: 8 }}>
+            <Icon name="search" size={14} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск банкета по клиенту, залу..."
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{ border: 0, background: 'none', color: 'var(--text-3)', cursor: 'pointer', display: 'flex', padding: 2 }}
+                title="Очистить"
+              >
+                <Icon name="x" size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="venue-toolbar-actions">
+          <Pill tone="neutral">{filteredRows.length} событий</Pill>
+          <Btn size="sm" variant="accent" icon="plus" onClick={() => toast('Новая банкетная заявка', 'ok', 'plus')}>
+            {t('create')}
+          </Btn>
+        </div>
       </div>
 
       <div className="card" style={{ overflow: 'hidden' }}>
-        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
-          <colgroup>
-            <col style={{ width: '85px' }} />
-            <col style={{ width: '110px' }} />
-            <col style={{ width: '180px' }} />
-            <col style={{ width: '145px' }} />
-            <col style={{ width: '120px' }} />
-            <col style={{ width: '90px' }} />
-            <col style={{ width: '140px' }} />
-            <col style={{ width: '130px' }} />
-            <col style={{ width: '115px' }} />
-            <col style={{ width: '100px' }} />
-          </colgroup>
+        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="tbl" style={{ tableLayout: 'fixed', width: '100%', minWidth: 920 }}>
+            <colgroup>
+              <col style={{ width: '75px' }} />
+              <col style={{ width: '95px' }} />
+              <col style={{ width: '155px' }} />
+              <col style={{ width: '125px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '115px' }} />
+              <col style={{ width: '105px' }} />
+              <col style={{ width: '80px' }} />
+            </colgroup>
           <thead>
             <tr>
               <th style={{ paddingLeft: 18, textAlign: 'left' }}>{t('id')}</th>
@@ -325,7 +462,7 @@ function Banquets({ t, toast }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((b) => (
+            {filteredRows.map((b) => (
               <tr key={b.id} style={{ cursor: 'default' }}>
                 <td className="mono dim" style={{ paddingLeft: 18 }}>{b.id}</td>
                 <td className="mono" style={{ whiteSpace: 'nowrap' }}>{b.date}</td>
@@ -343,7 +480,7 @@ function Banquets({ t, toast }) {
                 </td>
               </tr>
             ))}
-            {!rows.length && (
+            {!filteredRows.length && (
               <tr>
                 <td colSpan="10" style={{ textAlign: 'center', padding: '38px 12px', color: 'var(--text-3)' }}>
                   <Icon name="star" size={24} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.5 }} />
@@ -354,6 +491,7 @@ function Banquets({ t, toast }) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
