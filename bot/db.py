@@ -240,6 +240,17 @@ def is_staff(user_id: int) -> bool:
     conn.close()
     return bool(row)
 
+def is_courier(user_id: int) -> bool:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT role FROM staff WHERE user_id = ?", (user_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return False
+    role = (row["role"] or "").lower()
+    return role in ("courier", "курьер", "admin", "диспетчер", "менеджер")
+
 # User language settings
 def get_user_language(user_id: int) -> str:
     conn = get_connection()

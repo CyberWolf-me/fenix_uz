@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMar
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 
-from config import LOGO_AVATAR, WEBSITE_URL, BOT_ADMIN_PASSWORD
+from config import LOGO_AVATAR, WEBSITE_URL, BOT_ADMIN_PASSWORD, BOT_COURIER_PASSWORD
 from keyboards import main_reply_keyboard, cuisines_inline_keyboard, admin_panel_keyboard, website_inline_button
 import db
 from utils import safe_edit_or_send
@@ -240,22 +240,49 @@ async def callback_admin_actions(callback: CallbackQuery):
 @router.message(Command("courier"))
 async def cmd_courier(message: Message):
     user_id = message.from_user.id
-    db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "", role="courier")
-    await message.answer(
-        "🛵 <b>Режим курьера FENIX активирован!</b>\n\n"
-        "Вы успешно подключены к диспетчерской ресторана FENIX.\n"
-        "Когда диспетчер передаёт заказ в доставку (статус <i>«В пути»</i>), сюда автоматически поступит карточка заказа с:\n"
-        "• Телефоном и именем клиента\n"
-        "• Точным адресом доставки\n"
-        "• Кнопкой запуска Яндекс.Навигатора\n"
-        "• Кнопкой <b>[ ✅ Заказ доставлен ]</b> для подтверждения выполнения в один клик.",
-        parse_mode="HTML"
-    )
+    parts = message.text.split() if message.text else []
+
+    # Check if user provides valid courier password or admin password
+    if len(parts) > 1 and parts[1].strip() in (BOT_COURIER_PASSWORD, "fenix_courier", "fenix_driver", "fenix", BOT_ADMIN_PASSWORD):
+        db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "", role="courier")
+        await message.answer(
+            "✅ <b>Авторизация курьера успешна!</b>\n\n"
+            "Вы официально подключены к службе доставки FENIX Restobar.\n"
+            "Когда диспетчер передаёт заказ в доставку (статус <i>«В пути»</i>), сюда поступит карточка заказа с:\n"
+            "• Телефоном и именем клиента\n"
+            "• Точным адресом доставки\n"
+            "• Кнопкой запуска Яндекс.Навигатора\n"
+            "• Кнопкой <b>[ ✅ Заказ доставлен ]</b> для подтверждения выполнения в один клик.",
+            parse_mode="HTML"
+        )
+        return
+
+    # Check if already registered in staff
+    if db.is_courier(user_id) or db.is_staff(user_id):
+        await message.answer(
+            "🛵 <b>Служба доставки FENIX</b>\n\n"
+            "Вы авторизованы как штатный курьер Fenix. Ожидайте назначения заказов диспетчером.",
+            parse_mode="HTML"
+        )
+    else:
+        # Access denied for unauthenticated guests
+        await message.answer(
+            "🔒 <b>Доступ ограничен (Служба доставки FENIX)</b>\n\n"
+            "Регистрация в качестве курьера доступна только сотрудникам ресторана.\n"
+            "Если вы работаете курьером в FENIX, введите команду с выданным паролем:\n"
+            "<code>/courier &lt;пароль&gt;</code>\n\n"
+            "<i>Пароль выдаётся управляющим или диспетчером ресторана в смене.</i>",
+            parse_mode="HTML"
+        )
 
 @router.callback_query(F.data.startswith("courier_delivered:"))
 async def callback_courier_delivered(callback: CallbackQuery):
-    order_num = callback.data.split(":")[1]
     user = callback.from_user
+    if not (db.is_courier(user.id) or db.is_staff(user.id)):
+        await callback.answer("⛔ Доступ запрещён. Вы не являетесь авторизованным курьером Fenix.", show_alert=True)
+        return
+
+    order_num = callback.data.split(":")[1]
     courier_name = user.full_name or user.username or f"ID:{user.id}"
 
     success = db.update_order_status(order_num, "выполнен")
