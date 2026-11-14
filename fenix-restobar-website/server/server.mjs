@@ -135,35 +135,9 @@ try {
   console.warn(`[DB] SQLite integration note: ${err.message}`);
 }
 
-// Fetch staff chat IDs to notify (managers & dispatchers for general alerts)
-function getStaffChatIds(forRoles = ['admin', 'manager', 'dispatcher', 'менеджер', 'диспетчер', 'управляющий', 'администратор']) {
-  const ids = new Set();
-  if (TELEGRAM_CHAT_ID) {
-    for (const part of TELEGRAM_CHAT_ID.split(",")) {
-      const clean = part.trim();
-      if (clean) ids.add(clean);
-    }
-  }
-  if (db) {
-    try {
-      const rows = db.prepare("SELECT user_id, role FROM staff").all();
-      for (const r of rows) {
-        if (r && r.user_id) {
-          const num = Number(r.user_id);
-          // Only notify valid Telegram IDs (skip dummy/seeded IDs 101-107)
-          if (!isNaN(num) && Math.abs(num) > 100000) {
-            const roleLower = String(r.role || '').toLowerCase().trim();
-            if (!forRoles || forRoles.length === 0 || forRoles.some((f) => roleLower.includes(f))) {
-              ids.add(String(r.user_id));
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("[DB] Could not query staff IDs:", err.message);
-    }
-  }
-  return Array.from(ids);
+// Staff / manager alerts disabled per user request: only couriers are notified
+function getStaffChatIds() {
+  return [];
 }
 
 // Fetch configured Courier Group chat ID (Option 3)
@@ -244,15 +218,8 @@ async function sendTelegramNotification(text, replyMarkup = null, targetChatIds 
       }
     }
   }
-  // If no specific courier ID with a real Telegram chat was found, notify all registered staff
+  // If no specific courier or customer ID was targeted, do not broadcast to staff
   if (recipientIds.size === 0) {
-    for (const id of getStaffChatIds()) recipientIds.add(id);
-  }
-
-  if (recipientIds.size === 0) {
-    console.log("\n[Telegram Alert Preview - No recipients found]:");
-    console.log(text.replace(/<[^>]*>/g, ""));
-    console.log("👉 Tip: Authorize staff in @FenixRestaurantBot or add @FenixRestaurantCourierBot to your courier group with /set_courier_group.\n");
     return;
   }
 
@@ -1481,7 +1448,6 @@ const server = http.createServer(async (req, res) => {
       if (data.comment) msg += `▫️ Пожелания: <i>${data.comment}</i>\n`;
       msg += `\nСтатус: <b>Ожидает звонка для подтверждения</b>`;
 
-      await sendTelegramNotification(msg);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, id: `WEB-${code}`, code, codeFormatted: `WEB-${code}` }));
       return;
@@ -1589,8 +1555,6 @@ const server = http.createServer(async (req, res) => {
       if (deliveryFee > 0) msg += `\n▫️ Доставка: <b>${formatPrice(deliveryFee)}</b>`;
       msg += `\n\n💰 <b>ИТОГО К ОПЛАТЕ: ${formatPrice(finalTotal)}</b>`;
 
-      await sendTelegramNotification(msg);
-
       // Auto-dispatch delivery orders directly to the Telegram Courier Group
       if (isDelivery) {
         try {
@@ -1654,7 +1618,6 @@ const server = http.createServer(async (req, res) => {
       if (data.comment) msg += `▫️ Комментарий: <i>${data.comment}</i>\n`;
       msg += `\nСтатус: <b>Требуется связаться с клиентом</b>`;
 
-      await sendTelegramNotification(msg);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, id: eventCode }));
       return;

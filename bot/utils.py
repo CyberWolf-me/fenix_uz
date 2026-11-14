@@ -33,12 +33,8 @@ async def safe_edit_or_send(callback: CallbackQuery, text: str, reply_markup: In
             pass
 
 async def notify_all_admins(bot, text: str):
-    staff_ids = set(db.get_all_staff_ids()) | set(ADMIN_IDS)
-    for uid in staff_ids:
-        try:
-            await bot.send_message(chat_id=uid, text=text, parse_mode="HTML")
-        except Exception:
-            pass
+    # Staff / admin alerts disabled per user request: only couriers are notified
+    return
 
 async def notify_courier_group_new_order(order_num: int, customer_name: str, phone: str, address: str, items: dict, total_price: int, pay_method: str = "Наличными"):
     courier_group_id = db.get_setting("courier_group_id")
