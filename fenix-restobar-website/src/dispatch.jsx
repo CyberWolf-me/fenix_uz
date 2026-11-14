@@ -400,24 +400,44 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
     <div className="page page-flush dispatch-page">
       <Kpis t={t} orders={orders} bookingsCount={bookingsCount} />
 
-      {/* Structured Responsive Toolbar (Eliminates mobile collision & cramming) */}
+      {/* Spacious Unified Toolbar (Single Elegant Row on Desktop, Adaptive on Mobile) */}
       <div className="dispatch-toolbar">
-        {/* Primary Controls Row: Search + View Toggles + Action */}
-        <div className="dispatch-toolbar-row">
-          <div className="search grow">
+        {/* Left: Filter Chips + Late Warning */}
+        <div className="dispatch-toolbar-left">
+          <div className="chips">
+            {['all', 'delivery', 'pickup', 'hall'].map((k) => (
+              <button key={k} className="chip" data-on={typeF === k ? '1' : '0'} onClick={() => setTypeF(k)}>
+                {k === 'all' ? t('all') : t(k)}
+              </button>
+            ))}
+          </div>
+
+          {lateCount > 0 && (
+            <Pill tone="danger" dot>{lateCount} {t('late')}</Pill>
+          )}
+        </div>
+
+        {/* Center: Search Input */}
+        <div className="dispatch-toolbar-center">
+          <div className="search">
             <Icon name="search" size={13} />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Поиск по номеру, имени или адресу..."
             />
-            {q && (
+            {q ? (
               <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')} title="Очистить">
                 <Icon name="x" size={11} />
               </button>
+            ) : (
+              <span className="kbd hide-mobile">⌘K</span>
             )}
           </div>
+        </div>
 
+        {/* Right: Sort Controls + View Toggle + Quick Action */}
+        <div className="dispatch-toolbar-right">
           <div className="seg hide-mobile">
             <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по срочности SLA">SLA</button>
             <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
@@ -434,29 +454,9 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
 
           {newCount > 0 && (
             <Btn size="sm" variant="accent" icon="check" onClick={() => dispatch('acceptAll')} title={t('accept_all')}>
-              <span className="hide-sm">{t('accept_all')}</span>
+              <span>{t('accept_all')}</span>
             </Btn>
           )}
-        </div>
-
-        {/* Secondary Filter Row: Smooth Touch-Scrollable Chips (Zero text overlap) */}
-        <div className="dispatch-chips-row">
-          <div className="chips">
-            {['all', 'delivery', 'pickup', 'hall'].map((k) => (
-              <button key={k} className="chip" data-on={typeF === k ? '1' : '0'} onClick={() => setTypeF(k)}>
-                {k === 'all' ? t('all') : t(k)}
-              </button>
-            ))}
-          </div>
-
-          {lateCount > 0 && (
-            <Pill tone="danger" dot>{lateCount} {t('late')}</Pill>
-          )}
-
-          <div className="seg show-mobile-only" style={{ marginLeft: 'auto' }}>
-            <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по SLA">SLA</button>
-            <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
-          </div>
         </div>
       </div>
 
