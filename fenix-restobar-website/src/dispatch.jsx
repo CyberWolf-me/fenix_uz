@@ -126,7 +126,8 @@ function Kpis({ t, orders = [], bookingsCount = 0 }) {
   );
 }
 
-function OrderCard({ o, t, onOpen, onAdvance, sel }) {
+function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const s = slaState(o);
   const nextLabel = { new: 'accept', kitchen: 'ready', way: 'mark_done', done: null }[o.col];
   return (
@@ -180,13 +181,78 @@ function OrderCard({ o, t, onOpen, onAdvance, sel }) {
         <span className="ototal">{summ(o.total)}<small>сум</small></span>
       </div>
 
-      {nextLabel && (
-        <div className="ocard-actions" onClick={(e) => e.stopPropagation()}>
+      <div className="ocard-actions" onClick={(e) => e.stopPropagation()}>
+        {nextLabel ? (
           <Btn size="sm" variant={o.col === 'new' ? 'accent' : undefined} icon={o.col === 'new' ? 'check' : o.col === 'kitchen' ? 'printer' : 'check'}
                onClick={() => onAdvance(o)}>{t(nextLabel)}</Btn>
-          <Btn size="sm" variant="ghost" className="btn-icon" title="Меню"><Icon name="more" size={13} /></Btn>
+        ) : (
+          <span className="grow" />
+        )}
+        <div style={{ position: 'relative' }}>
+          <Btn
+            size="sm"
+            variant="ghost"
+            className="btn-icon"
+            title="Действия с заказом"
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+          >
+            <Icon name="more" size={13} />
+          </Btn>
+          {menuOpen && (
+            <>
+              <div
+                className="order-menu-scrim"
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+              />
+              <div className="order-context-menu" role="menu" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="context-menu-item"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit && onEdit(o); }}
+                >
+                  <Icon name="edit" size={13} />
+                  <span>Редактировать заказ</span>
+                </button>
+                <button
+                  type="button"
+                  className="context-menu-item"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onPrint && onPrint(o); }}
+                >
+                  <Icon name="printer" size={13} />
+                  <span>Печать чека</span>
+                </button>
+                {o.phone && (
+                  <a
+                    href={'tel:' + String(o.phone).replace(/\s/g, '')}
+                    className="context-menu-item"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                  >
+                    <Icon name="phone" size={13} />
+                    <span>Позвонить клиенту</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className="context-menu-item"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onOpen && onOpen(o); }}
+                >
+                  <Icon name="bookStack" size={13} />
+                  <span>Карточка заказа</span>
+                </button>
+                <div className="context-menu-divider" />
+                <button
+                  type="button"
+                  className="context-menu-item danger"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete && onDelete(o); }}
+                >
+                  <Icon name="trash" size={13} />
+                  <span>Удалить заказ</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </article>
   );
 }
@@ -373,11 +439,179 @@ function ReceiptModal({ o, onClose, t }) {
   );
 }
 
-function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang, bookingsCount = 0 }) {
+function EditOrderModal({ o, onClose, onSave, toast }) {
+  const [client, setClient] = useState(o.client || '');
+  const [phone, setPhone] = useState(o.phone || '');
+  const [addr, setAddr] = useState(o.addr || o.table || '');
+  const [total, setTotal] = useState(o.total || 0);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/orders/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: o.dbId,
+          orderNum: o.orderNum,
+          client,
+          phone,
+          addr,
+          total: Number(total),
+        }),
+      });
+      if (res.ok) {
+        onSave && onSave({
+          ...o,
+          client,
+          phone,
+          addr: o.type === 'delivery' ? addr : undefined,
+          table: o.type === 'hall' ? addr : undefined,
+          total: Number(total),
+        });
+        toast && toast(`Заказ #${o.id} успешно обновлён`, 'ok', 'check');
+        onClose();
+      } else {
+        toast && toast('Ошибка при сохранении заказа', 'err', 'alert');
+      }
+    } catch (err) {
+      toast && toast('Ошибка связи с сервером: ' + err.message, 'err', 'alert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} label={`Редактирование #${o.id}`}>
+      <div className="modal-head">
+        <Icon name="edit" size={16} style={{ color: 'var(--accent)' }} />
+        <div className="grow">
+          <div className="modal-title">Редактировать заказ #{o.id}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>Изменение данных клиента и суммы</div>
+        </div>
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><Icon name="x" size={14} /></button>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label className="label">Имя клиента *</label>
+            <input
+              required
+              className="input"
+              value={client}
+              onChange={(e) => setClient(e.target.value)}
+              placeholder="Тимур"
+              style={{ width: '100%', marginTop: 5, padding: '8px 11px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="label">Телефон клиента *</label>
+            <input
+              required
+              className="input mono"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+998901234567"
+              style={{ width: '100%', marginTop: 5, padding: '8px 11px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="label">{o.type === 'delivery' ? 'Адрес доставки' : 'Стол в зале'}</label>
+            <input
+              className="input"
+              value={addr}
+              onChange={(e) => setAddr(e.target.value)}
+              placeholder={o.type === 'delivery' ? 'ул. Навои, 15' : 'Стол 4'}
+              style={{ width: '100%', marginTop: 5, padding: '8px 11px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)' }}
+            />
+          </div>
+          <div>
+            <label className="label">Итоговая сумма заказа (сум)</label>
+            <input
+              type="number"
+              className="input mono"
+              value={total}
+              onChange={(e) => setTotal(e.target.value)}
+              style={{ width: '100%', marginTop: 5, padding: '8px 11px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)', fontWeight: 700 }}
+            />
+          </div>
+        </div>
+        <div className="modal-foot">
+          <Btn type="submit" variant="accent" icon="check" className="grow" disabled={loading}>
+            {loading ? 'Сохранение...' : 'Сохранить изменения'}
+          </Btn>
+          <Btn type="button" variant="ghost" onClick={onClose}>Отмена</Btn>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DeleteConfirmModal({ o, onClose, onDeleted, toast }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/orders/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: o.dbId,
+          orderNum: o.orderNum,
+        }),
+      });
+      if (res.ok) {
+        onDeleted && onDeleted(o.id);
+        toast && toast(`Заказ #${o.id} удалён из базы`, 'warn', 'trash');
+        onClose();
+      } else {
+        toast && toast('Ошибка при удалении заказа', 'err', 'alert');
+      }
+    } catch (err) {
+      toast && toast('Ошибка связи с сервером: ' + err.message, 'err', 'alert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} label={`Удалить заказ #${o.id}`}>
+      <div className="modal-head">
+        <Icon name="trash" size={16} style={{ color: 'var(--danger)' }} />
+        <div className="grow">
+          <div className="modal-title" style={{ color: 'var(--danger)' }}>Удаление заказа #{o.id}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>Подтверждение удаления</div>
+        </div>
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><Icon name="x" size={14} /></button>
+      </div>
+      <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
+          Вы уверены, что хотите удалить заказ <b>#{o.id}</b> клиента <b>{o.client}</b> на сумму <b>{summ(o.total)} сум</b>?
+        </p>
+        <p style={{ margin: 0, fontSize: 11.5, color: 'var(--danger)', background: 'var(--danger-soft)', padding: '8px 12px', borderRadius: 'var(--r-xs)' }}>
+          Это действие безвозвратно удалит запись из базы данных SQLite ресторана.
+        </p>
+      </div>
+      <div className="modal-foot">
+        <Btn type="button" variant="danger" icon="trash" className="grow" disabled={loading} onClick={handleDelete}>
+          {loading ? 'Удаление...' : 'Да, удалить заказ'}
+        </Btn>
+        <Btn type="button" variant="ghost" onClick={onClose}>Отмена</Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang, bookingsCount = 0, onUpdateOrder, onDeleteOrder }) {
   const [q, setQ] = useState('');
   const [typeF, setTypeF] = useState('all');
   const [sort, setSort] = useState('sla');
   const [mobileStage, setMobileStage] = useState('new');
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [deletingOrder, setDeletingOrder] = useState(null);
 
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
@@ -506,7 +740,16 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
                   </div>
                   <div className="col-body">
                     {list.map((o) => (
-                      <OrderCard key={o.id} o={o} t={t} onOpen={onOpen} onAdvance={onAdvance} />
+                      <OrderCard
+                        key={o.id}
+                        o={o}
+                        t={t}
+                        onOpen={onOpen}
+                        onAdvance={onAdvance}
+                        onPrint={onPrint}
+                        onEdit={(ord) => setEditingOrder(ord)}
+                        onDelete={(ord) => setDeletingOrder(ord)}
+                      />
                     ))}
                     {!list.length && (
                       <div className="empty">
@@ -551,10 +794,31 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
           </div>
         )}
       </div>
+
+      {editingOrder && (
+        <EditOrderModal
+          o={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSave={(updated) => {
+            onUpdateOrder && onUpdateOrder(updated);
+          }}
+          toast={toast}
+        />
+      )}
+      {deletingOrder && (
+        <DeleteConfirmModal
+          o={deletingOrder}
+          onClose={() => setDeletingOrder(null)}
+          onDeleted={(id) => {
+            onDeleteOrder && onDeleteOrder(id);
+          }}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
 
 const COL_TONE = { new: 'accent', kitchen: 'info', way: 'violet', done: 'ok' };
 
-Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, Kpis, COLUMNS, COL_TONE, OrderCard });
+Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, EditOrderModal, DeleteConfirmModal, Kpis, COLUMNS, COL_TONE, OrderCard });

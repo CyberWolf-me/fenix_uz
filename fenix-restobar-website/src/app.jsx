@@ -370,7 +370,9 @@ function App() {
     dispatch: <Dispatch t={t} orders={orders} dispatch={dispatch} view={view} setView={setView}
                         onOpen={setOpenOrder} onAdvance={(o) => advance(o)}
                         onPrint={setPrintOrder} toast={pushToast} lang={lang}
-                        bookingsCount={bookingsCount} />,
+                        bookingsCount={bookingsCount}
+                        onUpdateOrder={(updated) => setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))}
+                        onDeleteOrder={(deletedId) => setOrders((prev) => prev.filter((o) => o.id !== deletedId))} />,
     bookings: <Bookings t={t} toast={pushToast} />,
     banquets: <Banquets t={t} toast={pushToast} />,
     floor: <Floor t={t} toast={pushToast} />,

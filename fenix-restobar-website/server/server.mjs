@@ -596,6 +596,90 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 3b. Admin Delete Order
+  if ((req.method === "POST" || req.method === "DELETE") && (url.pathname === "/api/admin/orders/delete" || url.pathname === "/api/admin/orders")) {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const id = payload.id || url.searchParams.get("id");
+    const orderNum = payload.orderNum || url.searchParams.get("orderNum");
+    if (!id && !orderNum) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing order ID" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        const num = orderNum || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
+        if (num) {
+          db.prepare("DELETE FROM orders WHERE order_num = ? OR id = ?").run(num, num);
+        } else if (id) {
+          db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+        }
+        console.log(`[Admin] Deleted order #${id || orderNum}`);
+      } catch (err) {
+        console.error("[Admin Order Delete Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, message: `Заказ #${id || orderNum} успешно удалён` }));
+    return;
+  }
+
+  // 3c. Admin Edit Order Details
+  if (req.method === "POST" && url.pathname === "/api/admin/orders/edit") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+    const { id, orderNum, client, customerName, phone, customerPhone, addr, address, total, totalPrice } = payload;
+    const finalName = customerName || client;
+    const finalPhone = customerPhone || phone;
+    const finalAddr = address || addr;
+    const finalTotal = totalPrice !== undefined ? totalPrice : total;
+
+    if (!id && !orderNum) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing order ID" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        const num = orderNum || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
+        if (num) {
+          db.prepare(`
+            UPDATE orders 
+            SET customer_name = COALESCE(?, customer_name),
+                customer_phone = COALESCE(?, customer_phone),
+                address = COALESCE(?, address),
+                total_price = COALESCE(?, total_price)
+            WHERE order_num = ? OR id = ?
+          `).run(finalName, finalPhone, finalAddr, finalTotal, num, num);
+        } else if (id) {
+          db.prepare(`
+            UPDATE orders 
+            SET customer_name = COALESCE(?, customer_name),
+                customer_phone = COALESCE(?, customer_phone),
+                address = COALESCE(?, address),
+                total_price = COALESCE(?, total_price)
+            WHERE id = ?
+          `).run(finalName, finalPhone, finalAddr, finalTotal, id);
+        }
+        console.log(`[Admin] Edited order #${id || orderNum}`);
+      } catch (err) {
+        console.error("[Admin Order Edit Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, message: "Заказ успешно обновлён" }));
+    return;
+  }
+
   // 4. Admin Reservations List
   if (req.method === "GET" && url.pathname === "/api/admin/reservations") {
     let reservations = [];
