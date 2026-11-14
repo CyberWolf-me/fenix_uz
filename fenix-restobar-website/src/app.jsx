@@ -210,6 +210,8 @@ function App() {
             total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 120000),
             createdAt: createdTs,
             isBackend: true,
+            courier: r.courier || r.courierName || undefined,
+            courierId: r.courierId || undefined,
           };
         });
 

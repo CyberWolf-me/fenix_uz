@@ -187,35 +187,54 @@ async def callback_courier_claim(callback: CallbackQuery, bot: Bot):
     except Exception:
         pass
 
-    # Send personal copy to courier's private chat
-    try:
-        ord_data = db.get_order(order_num)
-        if ord_data:
-            client_phone = ord_data.get("customer_phone", "")
-            address = ord_data.get("address", "Ташкент")
-            lat, lon = extract_coords(address)
-            yandex_navi = f"yandexnavi://build_route_on_map?lat_to={lat}&lon_to={lon}"
+    # Send personal copy to courier's private chat (if claimed in group)
+    ord_data = db.get_order(order_num)
+    address = ord_data.get("address", "Ташкент") if ord_data else "Ташкент"
+    lat, lon = extract_coords(address)
+    yandex_navi = f"yandexnavi://build_route_on_map?lat_to={lat}&lon_to={lon}"
 
-            private_msg = (
-                f"🛵 <b>ВЫ ВЗЯЛИ ЗАКАЗ #WEB-{order_num}</b>\n\n"
-                f"👤 <b>Клиент:</b> {ord_data.get('customer_name', 'Клиент')}\n"
-                f"📞 <b>Телефон:</b> <a href=\"tel:{client_phone}\">{client_phone}</a>\n"
-                f"📍 <b>Адрес:</b> <code>{address}</code>\n"
-                f"💰 <b>Сумма:</b> <b>{ord_data.get('total_price', 0):,} сум</b>\n\n"
-                f"📲 <i>Навигатор:</i> <code>{yandex_navi}</code>"
-            ).replace(",", " ")
+    if callback.message.chat.type in ("group", "supergroup"):
+        try:
+            if ord_data:
+                client_phone = ord_data.get("customer_phone", "")
+                pay = "Наличными" if ord_data.get("payment_method") == "cash" else "Картой"
+                private_msg = (
+                    f"🛵 <b>ВЫ ВЗЯЛИ ЗАКАЗ #WEB-{order_num}</b>\n\n"
+                    f"🏢 <b>Забрать:</b> FENIX Hub (Яшнабад, 5-й проезд, 1а)\n"
+                    f"📍 <b>Доставить:</b> <code>{address}</code>\n"
+                    f"👤 <b>Клиент:</b> {ord_data.get('customer_name', 'Клиент')}\n"
+                    f"📞 <b>Телефон:</b> <a href=\"tel:{client_phone}\">{client_phone}</a>\n"
+                    f"💰 <b>Сумма к получению:</b> <b>{ord_data.get('total_price', 0):,} сум</b> ({pay})\n\n"
+                    f"📲 <i>Навигатор:</i> <code>{yandex_navi}</code>"
+                ).replace(",", " ")
 
-            priv_kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🧭 Маршрут в Яндекс Картах", url=yandex_url)],
-                [InlineKeyboardButton(text="✅ Заказ доставлен клиенту", callback_data=f"courier_delivered:{order_num}")]
-            ])
-            await bot.send_message(user.id, private_msg, parse_mode="HTML", reply_markup=priv_kb)
-    except Exception as e:
-        logger.debug(f"Could not PM courier {user.id}: {e}")
+                priv_kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🧭 Маршрут в Яндекс Картах", url=yandex_url)],
+                    [InlineKeyboardButton(text="✅ Заказ доставлен клиенту", callback_data=f"courier_delivered:{order_num}")]
+                ])
+                await bot.send_message(user.id, private_msg, parse_mode="HTML", reply_markup=priv_kb)
+        except Exception as e:
+            logger.debug(f"Could not PM courier {user.id}: {e}")
+    else:
+        # Claimed in private chat: announce to group so other drivers know it's taken
+        courier_group_id = db.get_setting("courier_group_id")
+        if courier_group_id:
+            try:
+                await bot.send_message(
+                    chat_id=int(courier_group_id),
+                    text=(
+                        f"🔵 <b>Заказ #WEB-{order_num} взят курьером {username_tag}!</b>\n"
+                        f"📍 <b>Адрес:</b> <code>{address}</code>\n"
+                        f"🛵 <b>Статус:</b> В пути к клиенту"
+                    ),
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
 
 # ── 4. Inline Delivery Callback: courier_delivered:{order_num} ────────
 @router.callback_query(F.data.startswith("courier_delivered:"))
-async def callback_courier_delivered(callback: CallbackQuery):
+async def callback_courier_delivered(callback: CallbackQuery, bot: Bot):
     user = callback.from_user
     order_num = callback.data.split(":")[1]
     courier_name = user.full_name or user.username or f"ID:{user.id}"
@@ -256,6 +275,23 @@ async def callback_courier_delivered(callback: CallbackQuery):
         await callback.message.edit_text(final_text, parse_mode="HTML", reply_markup=final_kb)
     except Exception:
         pass
+
+    # If marked in private chat, announce completion to the Courier Group
+    if callback.message.chat.type == "private":
+        courier_group_id = db.get_setting("courier_group_id")
+        if courier_group_id:
+            try:
+                await bot.send_message(
+                    chat_id=int(courier_group_id),
+                    text=(
+                        f"🟢 <b>ЗАКАЗ #WEB-{order_num} УСПЕШНО ДОСТАВЛЕН!</b>\n"
+                        f"👤 Курьер: <b>{username_tag}</b>\n"
+                        f"🕒 Время: <code>{now_str}</code>"
+                    ),
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
 
 # ── 5. Couriers Replying in Group Chat ("взял", "доставил") ────────────
 @router.message(F.chat.type.in_({"group", "supergroup"}), F.reply_to_message)
@@ -304,6 +340,33 @@ async def handle_group_reply(message: Message, bot: Bot):
                 )
             except Exception:
                 pass
+
+            # Also send courier app card to courier's private chat
+            try:
+                ord_data = db.get_order(order_num)
+                if ord_data:
+                    client_phone = ord_data.get("customer_phone", "")
+                    address = ord_data.get("address", "Ташкент")
+                    pay = "Наличными" if ord_data.get("payment_method") == "cash" else "Картой"
+                    yandex_navi = f"yandexnavi://build_route_on_map?lat_to={lat}&lon_to={lon}"
+
+                    priv_msg = (
+                        f"🛵 <b>ВЫ ВЗЯЛИ ЗАКАЗ #WEB-{order_num}</b>\n\n"
+                        f"🏢 <b>Забрать:</b> FENIX Hub (Яшнабад, 5-й проезд, 1а)\n"
+                        f"📍 <b>Доставить:</b> <code>{address}</code>\n"
+                        f"👤 <b>Клиент:</b> {ord_data.get('customer_name', 'Клиент')}\n"
+                        f"📞 <b>Телефон:</b> <a href=\"tel:{client_phone}\">{client_phone}</a>\n"
+                        f"💰 <b>Сумма к получению:</b> <b>{ord_data.get('total_price', 0):,} сум</b> ({pay})\n\n"
+                        f"📲 <i>Навигатор:</i> <code>{yandex_navi}</code>"
+                    ).replace(",", " ")
+
+                    priv_kb = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🧭 Маршрут в Яндекс Картах", url=yandex_url)],
+                        [InlineKeyboardButton(text="✅ Заказ доставлен клиенту", callback_data=f"courier_delivered:{order_num}")]
+                    ])
+                    await bot.send_message(user.id, priv_msg, parse_mode="HTML", reply_markup=priv_kb)
+            except Exception as e:
+                logger.debug(f"Could not PM courier {user.id}: {e}")
         else:
             await message.reply(f"⚠️ {reason}")
 

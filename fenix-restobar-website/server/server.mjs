@@ -272,8 +272,8 @@ async function sendTelegramNotification(text, replyMarkup = null, targetChatIds 
   }
 }
 
-// Option 3: Telegram Courier Group Dispatch & Claim / Option A Direct Courier Dispatch
-async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
+// Option 2 + 3: Telegram Courier Group & Dedicated Courier Bot Dispatch
+async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetCourierName = null) {
   if (!order) return;
   const num = order.order_num || order.id;
   const name = order.customer_name || 'Клиент';
@@ -281,6 +281,7 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
   const address = order.address || 'г. Ташкент';
   const total = formatPrice(order.total_price);
   const pay = order.payment_method === 'cash' ? '💵 Наличными курьеру' : '💳 Оплачено онлайн / картой';
+  const courierDisplayName = targetCourierName || order.courier_name || 'Курьер FENIX';
 
   let itemsList = [];
   try {
@@ -301,72 +302,97 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
   const courierGroupId = getCourierGroupId();
   const isDirectToCourier = targetCourierId && targetCourierId !== 'group' && targetCourierId !== 'all';
 
-  const textHeader = isDirectToCourier
-    ? `🛵 <b>ЗАКАЗ НАЗНАЧЕН КУРЬЕРУ (В ПУТИ)</b>`
-    : `🛵 <b>НОВЫЙ ЗАКАЗ НА ДОСТАВКУ (ОЖИДАЕТ КУРЬЕРА)</b>`;
-
-  const text = [
-    textHeader,
-    `━━━━━━━━━━━━━━━━━━━━`,
-    `📦 <b>Заказ #WEB-${num}</b>`,
-    `👤 <b>Клиент:</b> ${name}`,
-    `📞 <b>Телефон:</b> <a href="tel:${phone}">${phone}</a>`,
-    `📍 <b>Адрес доставки:</b> <code>${address}</code>`,
-    `🧭 <b>Координаты:</b> <code>${lat.toFixed(4)}, ${lon.toFixed(4)}</code>`,
-    ``,
-    `📋 <b>Состав заказа:</b>`,
-    itemsList.join('\n'),
-    ``,
-    `💰 <b>Сумма к получению:</b> <b>${total}</b> (${pay})`,
-    `━━━━━━━━━━━━━━━━━━━━`,
-    `📲 <i>Нажмите «Маршрут в Картах» или используйте Яндекс.Навигатор:</i>`,
-    `<code>${yandexNaviDeep}</code>`
-  ].join('\n');
-
-  let replyMarkup;
   if (isDirectToCourier) {
-    // Directly assigned to a specific courier
-    replyMarkup = {
+    // 1. Direct Delivery Card sent to assigned courier's private bot (Courier App style)
+    const privateText = [
+      `🛵 <b>ВАМ НАЗНАЧЕН ЗАКАЗ НА ДОСТАВКУ!</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📦 <b>Заказ #WEB-${num}</b>`,
+      `🏢 <b>Откуда забрать:</b> FENIX Hub (Яшнабад, 5-й проезд, 1а)`,
+      `📍 <b>Куда доставить:</b> <code>${address}</code>`,
+      `🧭 <b>Координаты:</b> <code>${lat.toFixed(4)}, ${lon.toFixed(4)}</code>`,
+      ``,
+      `👤 <b>Клиент:</b> ${name}`,
+      `📞 <b>Телефон:</b> <a href="tel:${phone}">${phone}</a>`,
+      ``,
+      `📋 <b>Состав заказа:</b>`,
+      itemsList.join('\n'),
+      ``,
+      `💰 <b>К получению с клиента:</b> <b>${total}</b> (${pay})`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📲 <i>Нажмите для построения маршрута в Навигаторе:</i>`,
+      `<code>${yandexNaviDeep}</code>`
+    ].join('\n');
+
+    const privateMarkup = {
       inline_keyboard: [
         [
-          {
-            text: "🧭 Маршрут в Яндекс Картах",
-            url: yandexMapsWebRoute
-          }
+          { text: "🧭 Маршрут в Яндекс Картах", url: yandexMapsWebRoute }
         ],
         [
-          {
-            text: "✅ Заказ доставлен клиенту",
-            callback_data: `courier_delivered:${num}`
-          }
+          { text: "✅ Заказ доставлен клиенту", callback_data: `courier_delivered:${num}` }
         ]
       ]
     };
+
+    await sendTelegramNotification(privateText, privateMarkup, [String(targetCourierId)], COURIER_BOT_TOKEN);
+
+    // 2. Also notify the General Courier Group so all drivers know it is assigned
+    if (courierGroupId) {
+      const groupAssignedText = [
+        `🛵 <b>ЗАКАЗ #WEB-${num} НАЗНАЧЕН КУРЬЕРУ</b>`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `👤 <b>Курьер:</b> <b>${courierDisplayName}</b>`,
+        `📍 <b>Адрес доставки:</b> <code>${address}</code>`,
+        `💰 <b>Сумма:</b> ${total} (${pay})`,
+        `📋 <b>Позиций:</b> ${itemsList.length}`,
+        `━━━━━━━━━━━━━━━━━━━━`,
+        `Статус: Заказ передан в доставку курьеру ${courierDisplayName}`
+      ].join('\n');
+
+      const groupAssignedMarkup = {
+        inline_keyboard: [
+          [
+            { text: "🧭 Маршрут на карте", url: yandexMapsWebRoute }
+          ]
+        ]
+      };
+
+      await sendTelegramNotification(groupAssignedText, groupAssignedMarkup, [courierGroupId], COURIER_BOT_TOKEN);
+    }
   } else {
-    // Posted to Courier Group: Couriers claim order with [ 🙋‍♂️ Взять заказ ]
-    replyMarkup = {
+    // Unassigned / Group Dispatch: posted to Courier Group with [ 🙋‍♂️ Взять заказ ]
+    const text = [
+      `🛵 <b>НОВЫЙ ЗАКАЗ НА ДОСТАВКУ (ОЖИДАЕТ КУРЬЕРА)</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📦 <b>Заказ #WEB-${num}</b>`,
+      `👤 <b>Клиент:</b> ${name}`,
+      `📞 <b>Телефон:</b> <a href="tel:${phone}">${phone}</a>`,
+      `📍 <b>Адрес доставки:</b> <code>${address}</code>`,
+      `🧭 <b>Координаты:</b> <code>${lat.toFixed(4)}, ${lon.toFixed(4)}</code>`,
+      ``,
+      `📋 <b>Состав заказа:</b>`,
+      itemsList.join('\n'),
+      ``,
+      `💰 <b>Сумма к получению:</b> <b>${total}</b> (${pay})`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📲 <i>Нажмите «Маршрут в Картах» или используйте Яндекс.Навигатор:</i>`,
+      `<code>${yandexNaviDeep}</code>`
+    ].join('\n');
+
+    const replyMarkup = {
       inline_keyboard: [
         [
-          {
-            text: "🙋‍♂️ Взять заказ",
-            callback_data: `courier_claim:${num}`
-          }
+          { text: "🙋‍♂️ Взять заказ", callback_data: `courier_claim:${num}` }
         ],
         [
-          {
-            text: "🧭 Маршрут в Яндекс Картах",
-            url: yandexMapsWebRoute
-          }
+          { text: "🧭 Маршрут в Яндекс Картах", url: yandexMapsWebRoute }
         ]
       ]
     };
+
+    await sendTelegramNotification(text, replyMarkup, courierGroupId ? [courierGroupId] : null, COURIER_BOT_TOKEN);
   }
-
-  const targetIds = isDirectToCourier
-    ? [String(targetCourierId)]
-    : (courierGroupId ? [courierGroupId] : null);
-
-  await sendTelegramNotification(text, replyMarkup, targetIds, COURIER_BOT_TOKEN);
 }
 
 const MIME = {
@@ -688,7 +714,7 @@ const server = http.createServer(async (req, res) => {
         const rows = db.prepare(`
           SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
                  order_type, address, payment_method, items_json, total_price, 
-                 created_at, status 
+                 created_at, status, courier_name, courier_id 
           FROM orders 
           ORDER BY id DESC LIMIT 200
         `).all();
@@ -708,7 +734,10 @@ const server = http.createServer(async (req, res) => {
             items,
             totalPrice: r.total_price,
             createdAt: r.created_at,
-            status: r.status
+            status: r.status,
+            courier: r.courier_name || null,
+            courierName: r.courier_name || null,
+            courierId: r.courier_id || null,
           };
         });
       } catch (err) {
@@ -781,10 +810,16 @@ const server = http.createServer(async (req, res) => {
 
     if (db) {
       try {
-        db.prepare("UPDATE orders SET status = 'в пути' WHERE order_num = ? OR id = ?").run(num, num);
+        const isGroup = !courierId || courierId === 'group' || courierId === 'all';
+        if (isGroup) {
+          db.prepare("UPDATE orders SET status = 'в пути' WHERE order_num = ? OR id = ?").run(num, num);
+        } else {
+          db.prepare("UPDATE orders SET status = 'в пути', courier_id = ?, courier_name = ? WHERE order_num = ? OR id = ?")
+            .run(String(courierId), courierName || 'Курьер Fenix', num, num);
+        }
         const row = db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num);
         if (row) {
-          await notifyCourierDeliveryOrder(row, courierId);
+          await notifyCourierDeliveryOrder(row, courierId, courierName);
         }
       } catch (err) {
         console.error("[Courier Dispatch Error]:", err.message);

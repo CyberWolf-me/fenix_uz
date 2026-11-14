@@ -155,6 +155,12 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) 
           </div>
         </div>
       )}
+      {o.courier && (
+        <div className="oaddr" style={{ padding: '4px 8px', background: 'var(--surface-3)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <Icon name="bike" size={12} style={{ color: 'var(--accent)' }} />
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--accent-2)' }}>Курьер: {o.courier}</span>
+        </div>
+      )}
       {o.table && (
         <div className="oaddr" style={{ padding: '5px 8px' }}>
           <Icon name="grid" size={11} style={{ color: 'var(--text-3)', marginTop: 1 }} />

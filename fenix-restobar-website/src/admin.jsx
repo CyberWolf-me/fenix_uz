@@ -322,6 +322,11 @@ function Couriers({ t, toast, orders = [] }) {
                   <b>Сумма:</b> <span className="mono" style={{ color: 'var(--accent-2)', fontWeight: 700 }}>{summ(currentOrder.total)} сум</span>
                   <span className="dim" style={{ marginLeft: 8 }}>({currentOrder.pay === 'cash' ? 'Наличными' : 'Картой'})</span>
                 </div>
+                {currentOrder.courier && (
+                  <div style={{ marginTop: 8, padding: '5px 8px', background: 'var(--surface)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-2)', fontWeight: 600, fontSize: 12, border: '1px solid var(--line)' }}>
+                    <Icon name="bike" size={13} /> Курьер: {currentOrder.courier}
+                  </div>
+                )}
               </div>
 
               {/* Courier Assignment Selector (Option 3 & Option A) */}
@@ -434,7 +439,7 @@ function Couriers({ t, toast, orders = [] }) {
                         </Pill>
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-2)' }} className="trunc">
-                        {o.client} · {o.addr || 'Адрес доставки'}
+                        {o.client} · {o.courier ? `Курьер: ${o.courier}` : (o.addr || 'Адрес доставки')}
                       </div>
                       <div className="mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>
                         {summ(o.total)} сум
