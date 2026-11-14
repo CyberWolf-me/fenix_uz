@@ -223,8 +223,8 @@
           <div class="seg" role="group"><button type="button" data-mode="pickup" aria-pressed="${sheetMode === 'pickup'}">${e(t('order.pickup'))}</button><button type="button" data-mode="delivery" aria-pressed="${sheetMode === 'delivery'}">${e(t('order.deliveryMode'))}</button></div>
           ${sheetMode === 'delivery' ? `<div class="field"><label for="o-addr">${e(t('order.addr'))}</label><input id="o-addr" autocomplete="street-address" placeholder="${S.lang === 'uz' ? 'Yetkazish manzili (koʻcha, uy)' : 'Адрес доставки (улица, дом)'}"></div>` : ''}
           <p class="label" style="margin-top:8px">${e(t('order.pay'))}</p>
-          <div class="pay">${['Payme', 'Click', 'Uzum', t('order.cash')].map((p, i) => `<label><input type="radio" name="pay" ${i === 0 ? 'checked' : ''}>${e(p)}</label>`).join('')}</div>
-          <p class="form-note">${e(t('order.note'))}</p>
+          <div class="pay"><label><input type="radio" name="pay" checked> ${e(t('order.cash'))} (${S.lang === 'uz' ? 'qabul qilinganda' : S.lang === 'en' ? 'upon receipt' : 'при получении'})</label></div>
+          <p class="form-note">${S.lang === 'uz' ? 'To‘lov vaqtincha faqat kuryerga yoki olib ketishda naqd pulda qabul qilinadi.' : S.lang === 'en' ? 'Payment is temporarily accepted in cash only upon delivery or pickup.' : 'Оплата временно принимается только наличными курьеру или при самовывозе.'}</p>
         </div>`;
       const sub = S.cartTotal();
       const delFee = sheetMode === 'delivery' ? (sub >= 250000 ? 0 : 20000) : 0;
@@ -280,7 +280,7 @@
         mode: sheetMode,
         orderType: sheetMode === 'delivery' ? 'Доставка курьером (сайт)' : 'Самовывоз (сайт)',
         address: $('#o-addr') ? $('#o-addr').value : (sheetMode === 'delivery' ? 'Уточняется' : 'Самовывоз'),
-        payment: $('input[name="pay"]:checked') ? $('input[name="pay"]:checked').parentElement.textContent.trim() : 'Payme',
+        payment: 'Наличными',
         name: cName,
         phone: cleanPhone,
         lang: S.lang,
