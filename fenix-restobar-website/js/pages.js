@@ -228,9 +228,16 @@
           const alt = L() !== 'ru' && it.name.ru !== S.iName(it) ? `<p class="alt" lang="ru">${e(it.name.ru)}</p>` : '';
           const tags = [it.tags.includes('preorder') ? `<span class="tag acc">${e(t('menu.preorder'))}</span>` : '', it.tags.includes('seasonal') ? `<span class="tag">${e(t('menu.seasonal'))}</span>` : '', it.source === 'tg' ? '' : ''].join('');
           const size = S.iSize(it);
+          const isStopped = S.stoplist && (
+            S.stoplist.has(String(it.name?.ru || it.name || '').toLowerCase().trim()) ||
+            S.stoplist.has(String(it.id || '').toLowerCase().trim())
+          );
           const q2 = S.cart[it.id] || 0;
-          const ctl = !showAdd ? '' : (q2 ? `<span class="qty"><button type="button" data-qty="${it.id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q2}</span><button type="button" data-qty="${it.id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>` : `<button class="add" type="button" data-qty="${it.id}" data-d="1" aria-label="${e(t('menu.add'))}: ${e(S.iName(it))}">${I('plus')}</button>`);
-          return `<div class="mi"><div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
+          const stopBadge = `<span class="tag" style="background:var(--danger,#d9534f);color:#fff;border:none;font-weight:600;padding:2px 6px;border-radius:4px;font-size:10px;">Стоп-лист</span>`;
+          const ctl = isStopped
+            ? stopBadge
+            : (!showAdd ? '' : (q2 ? `<span class="qty"><button type="button" data-qty="${it.id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q2}</span><button type="button" data-qty="${it.id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>` : `<button class="add" type="button" data-qty="${it.id}" data-d="1" aria-label="${e(t('menu.add'))}: ${e(S.iName(it))}">${I('plus')}</button>`));
+          return `<div class="mi${isStopped ? ' is-stopped' : ''}" style="${isStopped ? 'opacity:0.55;filter:grayscale(0.6);' : ''}"><div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
         }).join('')}
         ${s.id === 'coffee' || s.id === 'snacks' || (menu === 'bar' && s.id === 'lemonades') ? `<p class="label" style="margin-top:10px">${e(t('menu.srcTg'))}</p>` : ''}
       </section>`;

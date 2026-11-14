@@ -27,6 +27,7 @@ CREATE TABLE reservations (
         res_time TEXT,
         guests TEXT,
         zone TEXT,
+        table_assigned TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'ожидает подтверждения'
     );

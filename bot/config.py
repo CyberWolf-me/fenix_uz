@@ -21,11 +21,11 @@ except ImportError:
                 pass
 
 # Bot Token provided by user (Customer Bot)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI")
+BOT_TOKEN = os.getenv("BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or ""
 BOT_USERNAME = os.getenv("BOT_USERNAME", "FenixRestaurantBot")
 
 # Dedicated Courier Bot Token (Option 2 + Option 3 Logistics Bot)
-COURIER_BOT_TOKEN = os.getenv("COURIER_BOT_TOKEN", "9201007435:AAE4DhtNItloWXOlTdLuWRWzrJbK3c8_-ZE")
+COURIER_BOT_TOKEN = os.getenv("COURIER_BOT_TOKEN") or ""
 COURIER_BOT_USERNAME = os.getenv("COURIER_BOT_USERNAME", "FenixRestaurantCourierBot")
 
 # Optional: Admin Chat IDs (comma-separated if multiple)
@@ -34,7 +34,7 @@ BOT_ADMIN_PASSWORD = os.getenv("BOT_ADMIN_PASSWORD", "fenix_admin_2026")
 BOT_COURIER_PASSWORD = os.getenv("BOT_COURIER_PASSWORD", "fenix_courier_2026")
 
 # Official Website URL (configurable, for local dev: http://localhost:3000 or production domain)
-WEBSITE_URL = os.getenv("WEBSITE_URL", "https://b714-213-230-78-186.ngrok-free.app")
+WEBSITE_URL = os.getenv("WEBSITE_URL", "https://fenix.mosaiclabs.tech")
 WEBAPP_URL = os.getenv("WEBAPP_URL", f"{WEBSITE_URL}/app.html")
 
 # Paths to assets

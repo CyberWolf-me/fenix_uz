@@ -49,6 +49,7 @@ def init_db():
         res_time TEXT,
         guests TEXT,
         zone TEXT,
+        table_assigned TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         status TEXT DEFAULT 'ожидает подтверждения'
     )
@@ -109,6 +110,11 @@ def init_db():
     )
     """)
     
+    try:
+        c.execute("ALTER TABLE reservations ADD COLUMN table_assigned TEXT")
+    except Exception:
+        pass
+
     conn.commit()
     conn.close()
 

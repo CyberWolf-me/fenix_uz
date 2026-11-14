@@ -33,8 +33,23 @@ async def safe_edit_or_send(callback: CallbackQuery, text: str, reply_markup: In
             pass
 
 async def notify_all_admins(bot, text: str):
-    # Staff / admin alerts disabled per user request: only couriers are notified
-    return
+    staff_ids = set(ADMIN_IDS)
+    try:
+        db_staff = db.get_all_staff()
+        for s in db_staff:
+            role = str(s.get("role", "")).lower()
+            if "admin" in role or "manager" in role:
+                tid = s.get("telegram_id") or s.get("user_id")
+                if tid and int(tid) > 100000:
+                    staff_ids.add(int(tid))
+    except Exception:
+        pass
+
+    for aid in staff_ids:
+        try:
+            await bot.send_message(aid, text, parse_mode="HTML")
+        except Exception:
+            pass
 
 async def notify_courier_group_new_order(order_num: int, customer_name: str, phone: str, address: str, items: dict, total_price: int, pay_method: str = "Наличными"):
     courier_group_id = db.get_setting("courier_group_id")

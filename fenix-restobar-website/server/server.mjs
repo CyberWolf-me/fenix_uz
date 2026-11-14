@@ -1,5 +1,5 @@
 // ============================================================================
-// FENIX RESTOBAR — BACKEND ENDPOINT (Node.js 18+, Zero External Dependencies)
+// FENIX RESTOBAR — BACKEND ENDPOINT (Node.js 22.5+, Zero External Dependencies)
 // Handles:
 //   POST /api/reservations  (Table Reservation -> SQLite + Telegram Bot Alert)
 //   POST /api/events        (Banquet / Event Inquiry -> SQLite + Telegram Bot Alert)
@@ -17,13 +17,46 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..");
 const LOG_FILE = path.join(__dirname, "submissions.jsonl");
 
+// Lightweight .env file loader
+function loadEnv() {
+  const envPaths = [
+    path.resolve(__dirname, "../../.env"),
+    path.resolve(__dirname, "../.env"),
+    path.resolve(__dirname, ".env"),
+    path.resolve(process.cwd(), ".env")
+  ];
+  for (const p of envPaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const lines = fs.readFileSync(p, "utf-8").split("\n");
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) continue;
+          const idx = trimmed.indexOf("=");
+          if (idx > 0) {
+            const k = trimmed.slice(0, idx).trim();
+            let v = trimmed.slice(idx + 1).trim();
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+              v = v.slice(1, -1);
+            }
+            if (!process.env[k]) {
+              process.env[k] = v;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+}
+loadEnv();
+
 const PORT = process.env.PORT || 3000;
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || "";
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || process.env.ADMIN_CHAT_ID || "";
 const BOT_USERNAME = process.env.BOT_USERNAME || "FenixRestaurantBot";
 
 // Dedicated Courier Bot (Option 2 + Option 3 Logistics Bot)
-const COURIER_BOT_TOKEN = process.env.COURIER_BOT_TOKEN || "9201007435:AAE4DhtNItloWXOlTdLuWRWzrJbK3c8_-ZE";
+const COURIER_BOT_TOKEN = process.env.COURIER_BOT_TOKEN || "";
 const COURIER_BOT_USERNAME = process.env.COURIER_BOT_USERNAME || "FenixRestaurantCourierBot";
 
 // Locate fenix_restaurant.db from Telegram Bot project
@@ -42,7 +75,16 @@ let db = null;
 let dbPath = null;
 
 try {
-  const { DatabaseSync } = await import("node:sqlite");
+  let DatabaseSync;
+  try {
+    const sqliteModule = await import("node:sqlite");
+    DatabaseSync = sqliteModule.DatabaseSync;
+  } catch (err) {
+    console.error("FATAL: Failed to import 'node:sqlite'. Node.js 22.5+ is required to run the FENIX backend.");
+    console.error("Current Node.js version:", process.version);
+    throw err;
+  }
+
   for (const candidate of DB_CANDIDATES) {
     if (fs.existsSync(candidate)) {
       dbPath = candidate;
@@ -95,6 +137,7 @@ try {
       res_time TEXT,
       guests TEXT,
       zone TEXT,
+      table_assigned TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'ожидает подтверждения'
     );
@@ -123,21 +166,84 @@ try {
       value TEXT,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS menu_items (
+      id TEXT PRIMARY KEY,
+      cuisine TEXT,
+      category TEXT,
+      name TEXT,
+      name_uz TEXT,
+      name_en TEXT,
+      price INTEGER,
+      price_alt INTEGER,
+      size TEXT,
+      note TEXT,
+      image TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_name TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_id TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE reservations ADD COLUMN table_assigned TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN phone TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN shift TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN status TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN telegram_id TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN vehicle TEXT;"); } catch (_) {}
+
+  // Auto-seed menu_items from menu-data.js if table is empty
+  try {
+    const menuCount = db.prepare("SELECT COUNT(*) AS c FROM menu_items").get()?.c || 0;
+    if (menuCount === 0) {
+      const menuFile = path.join(PUBLIC_DIR, "data/menu-data.js");
+      if (fs.existsSync(menuFile)) {
+        const raw = fs.readFileSync(menuFile, "utf-8");
+        const match = raw.match(/window\.FENIX_MENU\s*=\s*(\{[\s\S]*\});?\s*$/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          const insertStmt = db.prepare(`
+            INSERT OR IGNORE INTO menu_items (id, cuisine, category, name, name_uz, name_en, price, price_alt, size, note, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+          `);
+          for (const it of (parsed.items || [])) {
+            insertStmt.run(it[0], it[1], it[2], it[3], it[4] || "", it[5] || "", it[6] || 0, it[7] || null, it[8] || null, it[9] || null);
+          }
+          console.log(`[DB] Auto-seeded ${(parsed.items || []).length} dishes into menu_items table.`);
+        }
+      }
+    }
+  } catch (seedErr) {
+    console.error("[DB Seed Error]:", seedErr.message);
+  }
 } catch (err) {
   console.warn(`[DB] SQLite integration note: ${err.message}`);
 }
 
-// Staff / manager alerts disabled per user request: only couriers are notified
+// Fetch staff / manager chat IDs to notify for reservations, banquets, and pickup orders
 function getStaffChatIds() {
-  return [];
+  const ids = new Set();
+  const envAdmin = process.env.TELEGRAM_CHAT_ID || process.env.ADMIN_CHAT_ID;
+  if (envAdmin) {
+    for (const part of String(envAdmin).split(",")) {
+      const clean = part.trim();
+      const num = Number(clean);
+      if (!isNaN(num) && Math.abs(num) > 100000) ids.add(clean);
+    }
+  }
+  if (db) {
+    try {
+      const rows = db.prepare("SELECT user_id, telegram_id, role FROM staff").all();
+      for (const r of rows) {
+        const role = String(r.role || '').toLowerCase();
+        if (role.includes('admin') || role.includes('manager') || role.includes('менеджер') || role.includes('админ') || role.includes('диспетчер') || role.includes('хостес')) {
+          const tid = r.telegram_id || r.user_id;
+          const num = Number(tid);
+          if (!isNaN(num) && Math.abs(num) > 100000) ids.add(String(tid));
+        }
+      }
+    } catch (_) {}
+  }
+  return Array.from(ids);
 }
 
 // Fetch configured Courier Group chat ID (Option 3)
@@ -260,6 +366,11 @@ function syncMenuFiles(dbInstance) {
       WHERE is_active = 1 
       ORDER BY rowid ASC
     `).all();
+
+    if (!rows || rows.length === 0) {
+      console.warn("[Menu Sync] Aborted: menu_items table is empty; preserving existing data/menu-data.js");
+      return;
+    }
 
     const items = rows.map((r) => {
       const isPreorder = (r.id === "europe-012" || r.id === "europe-013" || r.id === "europe-014" || (r.note && r.note.toLowerCase().includes("предзаказ")));
@@ -542,7 +653,9 @@ const server = http.createServer(async (req, res) => {
   // Admin OS & API Authentication Guard
   const ADMIN_USER = process.env.ADMIN_USER || "admin";
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "fenix_admin_2026";
-  const VALID_PASSWORDS = new Set([ADMIN_PASSWORD, "fenix_admin_2026", "fenix2026"]);
+  const VALID_PASSWORDS = process.env.ADMIN_PASSWORD
+    ? new Set([process.env.ADMIN_PASSWORD.trim()])
+    : new Set(["fenix_admin_2026", "fenix2026"]);
 
   function isRequestAuthorized(req, url) {
     // 1. Check Cookie
@@ -1661,6 +1774,13 @@ const server = http.createServer(async (req, res) => {
       if (data.comment) msg += `▫️ Пожелания: <i>${data.comment}</i>\n`;
       msg += `\nСтатус: <b>Ожидает звонка для подтверждения</b>`;
 
+      // Forward alert to staff
+      try {
+        await sendTelegramNotification(msg, null, getStaffChatIds());
+      } catch (err) {
+        console.error("[Telegram Reservation Alert Error]:", err.message);
+      }
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, id: `WEB-${code}`, code, codeFormatted: `WEB-${code}` }));
       return;
@@ -1786,6 +1906,13 @@ const server = http.createServer(async (req, res) => {
         } catch (err) {
           console.error("[Auto Courier Dispatch Error]:", err.message);
         }
+      } else {
+        // Forward pickup and hall orders to staff / manager
+        try {
+          await sendTelegramNotification(msg, null, getStaffChatIds());
+        } catch (err) {
+          console.error("[Telegram Pickup Alert Error]:", err.message);
+        }
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -1830,6 +1957,13 @@ const server = http.createServer(async (req, res) => {
       msg += `▫️ Дата: <b>${data.date || "Уточняется"}</b>\n`;
       if (data.comment) msg += `▫️ Комментарий: <i>${data.comment}</i>\n`;
       msg += `\nСтатус: <b>Требуется связаться с клиентом</b>`;
+
+      // Forward alert to staff
+      try {
+        await sendTelegramNotification(msg, null, getStaffChatIds());
+      } catch (err) {
+        console.error("[Telegram Event Alert Error]:", err.message);
+      }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, id: eventCode }));

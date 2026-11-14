@@ -8,8 +8,8 @@ echo.
 echo   [1] Запуск Node.js веб-сервера (http://localhost:3000)...
 start "FENIX Website Server (Port 3000)" cmd /k "cd /d %~dp0fenix-restobar-website && node server/server.mjs"
 
-echo   [2] Запуск Telegram-бота (@Fenix_restaurant_bot)...
-start "FENIX Telegram Bot" cmd /k "cd /d %~dp0bot && python bot.py"
+echo   [2] Запуск Telegram-ботов (клиентский + курьерский)...
+start "FENIX Telegram Bots" cmd /k "cd /d %~dp0bot && python run_all.py"
 
 echo.
 echo ====================================================================

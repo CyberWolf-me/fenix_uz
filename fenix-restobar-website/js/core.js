@@ -7,7 +7,8 @@
     lang: LANGS.includes(qs.get('lang')) ? qs.get('lang') : (localStorage.getItem('fx.lang') || 'ru'),
     cart: JSON.parse(localStorage.getItem('fx.cart') || '{}'),
     tweaks: window.FX_TWEAKS || {},
-    missing: new Set()
+    missing: new Set(),
+    stoplist: new Set()
   };
   if (!LANGS.includes(S.lang)) S.lang = 'ru';
 

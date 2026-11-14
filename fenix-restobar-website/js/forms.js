@@ -58,8 +58,7 @@
       <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
       ${consent('r', v, errs)}
       <div class="full"><button class="btn btn-solid btn-block" type="submit" ${busy ? 'disabled aria-busy="true"' : ''}>${busy ? `<span>${e(t('res.sending'))}</span><span class="spinner"></span>` : `<span>${e(t('res.submit'))}</span>${I('arrow')}`}</button>
-        <p class="form-note" style="margin-top:12px">${e(t('res.proto'))}</p>
-        <label class="check" style="margin-top:4px"><input type="checkbox" data-simfail ${S._simFail ? 'checked' : ''}> ${e(t('res.simFail'))}</label></div>
+        <p class="form-note" style="margin-top:12px">${e(t('res.proto'))}</p></div>
     </form>`;
   }
 
@@ -121,7 +120,6 @@
     if (status[kind] === 'idle' && !S._started) { S._started = 1; S.track('form_start', kind); }
   });
   document.addEventListener('change', ev => {
-    if (ev.target.matches('[data-simfail]')) { S._simFail = ev.target.checked; return; }
     const f = ev.target.closest('form[data-kind="reserve"]');
     if (f && ev.target.name === 'date') { store.reserve.date = ev.target.value; save('reserve'); rerender('reserve', {}, '#r-date'); }
     const fc = ev.target.closest('form[data-kind]');
@@ -169,19 +167,20 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    }).catch(err => {
-      console.warn('[Fenix API] Submission error:', err);
-    }).finally(() => {
-      if (S._simFail && kind === 'reserve') {
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Submission failed');
+        status[kind] = 'success';
+        S.track('form_complete', kind);
+        rerender(kind, {}, '[data-focus]');
+      })
+      .catch((err) => {
+        console.warn('[Fenix API] Submission error:', err);
         status[kind] = 'error';
         rerender(kind);
         const n = document.querySelector('.notice.bad');
-        n && n.scrollIntoView && 0;
-        return;
-      }
-      status[kind] = 'success';
-      S.track('form_complete', kind);
-      rerender(kind, {}, '[data-focus]');
-    });
+        if (n && n.scrollIntoView) n.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
   });
 })();

@@ -380,27 +380,6 @@ function LoginScreen({ onLoginSuccess }) {
             )}
           </button>
         </form>
-
-        {/* Help Tip */}
-        <div style={{
-          marginTop: '28px',
-          paddingTop: '20px',
-          borderTop: '1px solid rgba(201, 168, 106, 0.12)',
-          textAlign: 'center',
-          fontSize: '12px',
-          color: 'var(--text-3, #6f6656)',
-          lineHeight: 1.5
-        }}>
-          <div>Стандартные учетные данные персонала:</div>
-          <div style={{
-            fontFamily: 'var(--f-mono, monospace)',
-            color: 'var(--accent, #d3aa63)',
-            marginTop: '4px',
-            fontSize: '12px'
-          }}>
-            Логин: <b>admin</b> · Пароль: <b>fenix2026</b>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -354,6 +354,19 @@
   try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch (_) {}
 
   /* ── boot ── */
+  fetch('/api/menu/stoplist')
+    .then(r => r.json())
+    .then(data => {
+      if (data && Array.isArray(data.stopped)) {
+        S.stoplist = new Set(data.stopped.map(x => String(x).toLowerCase().trim()));
+        if (location.hash.startsWith('#/menu') || location.hash.startsWith('#/delivery')) {
+          const ml = document.getElementById('menu-list');
+          if (ml) render(false);
+        }
+      }
+    })
+    .catch(() => {});
+
   S.loadLogos().then(() => {
     if (!location.hash && localStorage.getItem('fx.route')) history.replaceState(null, '', localStorage.getItem('fx.route'));
     applyBody(); render(false);
