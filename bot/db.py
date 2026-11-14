@@ -203,17 +203,26 @@ def get_recent_events(limit: int = 5):
     return [dict(r) for r in rows]
 
 # Staff / Admin management
-def register_staff(user_id: int, user_name: str, full_name: str) -> bool:
+def register_staff(user_id: int, user_name: str, full_name: str, role: str = "admin") -> bool:
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-    INSERT INTO staff (user_id, user_name, full_name)
-    VALUES (?, ?, ?)
-    ON CONFLICT(user_id) DO UPDATE SET user_name = excluded.user_name, full_name = excluded.full_name
-    """, (user_id, user_name, full_name))
+    INSERT INTO staff (user_id, user_name, full_name, role)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET user_name = excluded.user_name, full_name = excluded.full_name, role = excluded.role
+    """, (user_id, user_name, full_name, role))
     conn.commit()
     conn.close()
     return True
+
+def update_order_status(order_num: int | str, status: str) -> bool:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE orders SET status = ? WHERE order_num = ? OR id = ?", (status, order_num, order_num))
+    affected = c.rowcount > 0
+    conn.commit()
+    conn.close()
+    return affected
 
 def get_all_staff_ids() -> list[int]:
     conn = get_connection()

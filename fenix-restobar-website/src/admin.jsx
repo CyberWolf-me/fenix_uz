@@ -15,7 +15,16 @@ const TASHKENT_DISTRICT_COORDS = {
 };
 
 function getCoordsForAddress(addr) {
-  const s = String(addr || '').toLowerCase();
+  const str = String(addr || '');
+  const match = str.match(/([0-9]{2}\.[0-9]+)[\s,]+([0-9]{2}\.[0-9]+)/);
+  if (match) {
+    const lat = parseFloat(match[1]);
+    const lon = parseFloat(match[2]);
+    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) {
+      return [lat, lon];
+    }
+  }
+  const s = str.toLowerCase();
   if (s.includes('чиланзар') || s.includes('chilonzor')) return TASHKENT_DISTRICT_COORDS.chilanzar;
   if (s.includes('юнусабад') || s.includes('yunusobod')) return TASHKENT_DISTRICT_COORDS.yunusabad;
   if (s.includes('мирабад') || s.includes('mirobod')) return TASHKENT_DISTRICT_COORDS.mirabad;
@@ -37,9 +46,23 @@ function Couriers({ t, toast, orders = [] }) {
   const deliveryOrders = orders.filter((o) => o.type === 'delivery');
   const [selId, setSelId] = useState(null);
   const [filterMode, setFilterMode] = useState('active'); // active | all
+  const [couriersList, setCouriersList] = useState([]);
+  const [selectedCourier, setSelectedCourier] = useState('106');
   const mapRef = useRef(null);
   const leafletInstance = useRef(null);
   const markersRef = useRef([]);
+
+  useEffect(() => {
+    fetch('/api/admin/couriers')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.ok && Array.isArray(res.couriers)) {
+          setCouriersList(res.couriers);
+          if (res.couriers.length > 0) setSelectedCourier(String(res.couriers[0].user_id));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Find currently active delivery
   const activeDeliveries = deliveryOrders.filter((o) => o.col !== 'done');
@@ -167,6 +190,29 @@ function Couriers({ t, toast, orders = [] }) {
     }
   };
 
+  const dispatchToCourierTelegram = async (ord) => {
+    try {
+      const courier = couriersList.find((c) => String(c.user_id) === String(selectedCourier));
+      const res = await fetch('/api/admin/orders/dispatch-courier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: ord.dbId,
+          orderNum: ord.orderNum || parseInt(String(ord.id).replace(/\D/g, '')),
+          courierId: selectedCourier,
+          courierName: courier ? courier.full_name : 'Курьер Fenix',
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        ord.col = 'way';
+        toast(`Заказ #${ord.id} отправлен в Telegram курьеру с маршрутом!`, 'ok', 'truck');
+      }
+    } catch (e) {
+      toast('Ошибка отправки курьеру: ' + e.message, 'err');
+    }
+  };
+
   return (
     <div className="page">
       {/* Real KPI Row */}
@@ -274,21 +320,32 @@ function Couriers({ t, toast, orders = [] }) {
                 </div>
               </div>
 
+              {/* Courier Assignment Selector (Option A) */}
+              <div style={{ marginTop: 4, marginBottom: 10, padding: '8px 10px', background: 'var(--surface-3)', borderRadius: 8, border: '1px solid var(--line)' }}>
+                <div className="label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="bike" size={12} /> Назначить курьера (Telegram Bot):
+                </div>
+                <select
+                  value={selectedCourier}
+                  onChange={(e) => setSelectedCourier(e.target.value)}
+                  style={{
+                    width: '100%', height: 32, borderRadius: 6, border: '1px solid var(--line)',
+                    background: 'var(--surface)', color: 'var(--text)', fontSize: 12, padding: '0 8px', outline: 'none'
+                  }}
+                >
+                  {couriersList.map((c) => (
+                    <option key={c.user_id} value={c.user_id}>
+                      {c.full_name} ({c.role === 'courier' ? 'Курьер' : c.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Action Buttons for Selected Order */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <a
-                  href={`https://yandex.uz/maps/?text=${encodeURIComponent((currentOrder.addr || 'Ташкент') + ' Ташкент')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-sm"
-                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--surface-3)' }}
-                >
-                  <Icon name="pin" size={14} /> Открыть в Яндекс Картах
-                </a>
-
                 {currentOrder.col !== 'way' && currentOrder.col !== 'done' && (
-                  <Btn size="sm" variant="accent" icon="bike" onClick={() => advanceDeliveryStatus(currentOrder, 'way', 'в пути')}>
-                    Передать курьеру (В пути)
+                  <Btn size="sm" variant="accent" icon="bike" onClick={() => dispatchToCourierTelegram(currentOrder)}>
+                    🚀 Передать курьеру в Telegram (В пути)
                   </Btn>
                 )}
 
@@ -297,6 +354,34 @@ function Couriers({ t, toast, orders = [] }) {
                     Подтвердить доставку клиенту
                   </Btn>
                 )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  <a
+                    href={`https://yandex.uz/maps/?rtext=41.2858,69.3402~${getCoordsForAddress(currentOrder.addr)[0]},${getCoordsForAddress(currentOrder.addr)[1]}&rtt=auto`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-sm"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'var(--surface-3)' }}
+                  >
+                    <Icon name="pin" size={13} /> Яндекс Карты
+                  </a>
+                  <a
+                    href={`yandexnavi://build_route_on_map?lat_to=${getCoordsForAddress(currentOrder.addr)[0]}&lon_to=${getCoordsForAddress(currentOrder.addr)[1]}`}
+                    className="btn btn-sm"
+                    title="Запустить приложение Яндекс.Навигатор"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'var(--surface-3)' }}
+                  >
+                    🧭 Навигатор
+                  </a>
+                </div>
+
+                <a
+                  href={`tel:${currentOrder.phone}`}
+                  className="btn btn-sm"
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--surface-3)' }}
+                >
+                  <Icon name="phone" size={13} /> Позвонить клиенту
+                </a>
               </div>
             </div>
           ) : null}

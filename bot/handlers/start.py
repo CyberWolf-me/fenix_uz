@@ -1,3 +1,4 @@
+from datetime import datetime
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
@@ -234,3 +235,44 @@ async def callback_admin_actions(callback: CallbackQuery):
         )
         await safe_edit_or_send(callback, text, reply_markup=admin_panel_keyboard())
         await callback.answer("Обновлено")
+
+# ── Option A: In-House Courier Dispatch & Real-Time Fulfillment ───
+@router.message(Command("courier"))
+async def cmd_courier(message: Message):
+    user_id = message.from_user.id
+    db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "", role="courier")
+    await message.answer(
+        "🛵 <b>Режим курьера FENIX активирован!</b>\n\n"
+        "Вы успешно подключены к диспетчерской ресторана FENIX.\n"
+        "Когда диспетчер передаёт заказ в доставку (статус <i>«В пути»</i>), сюда автоматически поступит карточка заказа с:\n"
+        "• Телефоном и именем клиента\n"
+        "• Точным адресом доставки\n"
+        "• Кнопкой запуска Яндекс.Навигатора\n"
+        "• Кнопкой <b>[ ✅ Заказ доставлен ]</b> для подтверждения выполнения в один клик.",
+        parse_mode="HTML"
+    )
+
+@router.callback_query(F.data.startswith("courier_delivered:"))
+async def callback_courier_delivered(callback: CallbackQuery):
+    order_num = callback.data.split(":")[1]
+    user = callback.from_user
+    courier_name = user.full_name or user.username or f"ID:{user.id}"
+
+    success = db.update_order_status(order_num, "выполнен")
+    if success:
+        await callback.answer(f"Заказ #{order_num} успешно доставлен!", show_alert=True)
+        now_str = datetime.now().strftime("%d.%m.%Y %H:%M")
+        orig_text = callback.message.html_text or callback.message.text or ""
+        new_text = (
+            orig_text +
+            f"\n\n━━━━━━━━━━━━━━━━━━━━\n"
+            f"✅ <b>ЗАКАЗ УСПЕШНО ДОСТАВЛЕН КЛИЕНТУ</b>\n"
+            f"👤 Курьер: <b>{courier_name}</b>\n"
+            f"🕒 Время: <code>{now_str}</code>"
+        )
+        try:
+            await callback.message.edit_text(new_text, parse_mode="HTML", reply_markup=None)
+        except Exception:
+            pass
+    else:
+        await callback.answer("Статус заказа уже был обновлен.", show_alert=True)

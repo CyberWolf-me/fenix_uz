@@ -176,31 +176,68 @@ function formatPrice(num) {
   return Number(num || 0).toLocaleString("ru-RU") + " сум";
 }
 
-async function sendTelegramNotification(text) {
+function extractCoords(addr) {
+  const str = String(addr || '');
+  const match = str.match(/([0-9]{2}\.[0-9]+)[\s,]+([0-9]{2}\.[0-9]+)/);
+  if (match) {
+    const lat = parseFloat(match[1]);
+    const lon = parseFloat(match[2]);
+    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) {
+      return [lat, lon];
+    }
+  }
+  const s = str.toLowerCase();
+  if (s.includes('чиланзар') || s.includes('chilonzor')) return [41.2721, 69.2045];
+  if (s.includes('юнусабад') || s.includes('yunusobod')) return [41.3645, 69.2885];
+  if (s.includes('мирабад') || s.includes('mirobod')) return [41.2985, 69.2789];
+  if (s.includes('сергели') || s.includes('sergeli')) return [41.2215, 69.2205];
+  if (s.includes('шайхантахур') || s.includes('shayxontohur')) return [41.3255, 69.2395];
+  if (s.includes('улугбек') || s.includes('ulug')) return [41.3325, 69.3385];
+  if (s.includes('яшнабад') || s.includes('yashnobod') || s.includes('хуснобод')) return [41.2890, 69.3350];
+  // Default offset around Tashkent center
+  return [41.3111, 69.2797];
+}
+
+async function sendTelegramNotification(text, replyMarkup = null, targetChatIds = null) {
   if (!TELEGRAM_BOT_TOKEN) {
     console.log("[Telegram skipped — TELEGRAM_BOT_TOKEN not configured]");
     return;
   }
 
-  const recipientIds = getStaffChatIds();
-  if (recipientIds.length === 0) {
+  const recipientIds = new Set();
+  if (targetChatIds && targetChatIds.length > 0) {
+    for (const cid of targetChatIds) {
+      const num = Number(cid);
+      if (!isNaN(num) && Math.abs(num) > 100000) {
+        recipientIds.add(String(cid));
+      }
+    }
+  }
+  // If no specific courier ID with a real Telegram chat was found, notify all registered staff
+  if (recipientIds.size === 0) {
+    for (const id of getStaffChatIds()) recipientIds.add(id);
+  }
+
+  if (recipientIds.size === 0) {
     console.log("\n[Telegram Alert Preview - No staff registered in DB yet]:");
     console.log(text.replace(/<[^>]*>/g, ""));
-    console.log("👉 Tip: Authorize staff by sending '/admin fenix' in @FenixRestaurantBot, or set TELEGRAM_CHAT_ID in environment.\n");
+    console.log("👉 Tip: Authorize staff by sending '/admin fenix' or '/courier' in @FenixRestaurantBot, or set TELEGRAM_CHAT_ID in environment.\n");
     return;
   }
 
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   for (const chatId of recipientIds) {
     try {
+      const payload = {
+        chat_id: chatId,
+        text,
+        parse_mode: "HTML"
+      };
+      if (replyMarkup) payload.reply_markup = replyMarkup;
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: "HTML"
-        })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const body = await res.text();
@@ -210,6 +247,70 @@ async function sendTelegramNotification(text) {
       console.error(`[Telegram] Error sending to ${chatId}:`, err.message);
     }
   }
+}
+
+// Option A: In-House Courier Dispatch & Route Notification
+async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
+  if (!order) return;
+  const num = order.order_num || order.id;
+  const name = order.customer_name || 'Клиент';
+  const phone = normalizeUzPhone(order.customer_phone || '');
+  const address = order.address || 'г. Ташкент';
+  const total = formatPrice(order.total_price);
+  const pay = order.payment_method === 'cash' ? '💵 Наличными курьеру' : '💳 Оплачено онлайн / картой';
+
+  let itemsList = [];
+  try {
+    const parsed = typeof order.items_json === 'string' ? JSON.parse(order.items_json) : order.items_json;
+    if (Array.isArray(parsed)) {
+      itemsList = parsed.map((it) => `• <b>${it.name || it.n || 'Блюдо'}</b> × ${it.count || it.q || 1}`);
+    } else if (typeof parsed === 'object' && parsed !== null) {
+      itemsList = Object.entries(parsed).map(([n, q]) => `• <b>${n}</b> × ${typeof q === 'object' ? (q.count || q.qty || 1) : q}`);
+    }
+  } catch (_) {
+    itemsList = ['• Заказ по меню'];
+  }
+
+  const [lat, lon] = extractCoords(address);
+  const yandexMapsWebRoute = `https://yandex.uz/maps/?rtext=41.2858,69.3402~${lat},${lon}&rtt=auto`;
+  const yandexNaviDeep = `yandexnavi://build_route_on_map?lat_to=${lat}&lon_to=${lon}`;
+
+  const text = [
+    `🛵 <b>ЗАКАЗ ПЕРЕДАН КУРЬЕРУ (В ПУТИ)</b>`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `📦 <b>Заказ #WEB-${num}</b>`,
+    `👤 <b>Клиент:</b> ${name}`,
+    `📞 <b>Телефон:</b> <a href="tel:${phone}">${phone}</a>`,
+    `📍 <b>Адрес доставки:</b> <code>${address}</code>`,
+    `🧭 <b>Координаты:</b> <code>${lat.toFixed(4)}, ${lon.toFixed(4)}</code>`,
+    ``,
+    `📋 <b>Состав заказа:</b>`,
+    itemsList.join('\n'),
+    ``,
+    `💰 <b>Сумма к получению:</b> <b>${total}</b> (${pay})`,
+    `━━━━━━━━━━━━━━━━━━━━`,
+    `📲 <i>Нажмите «Маршрут в Картах» или используйте Яндекс.Навигатор:</i>`,
+    `<code>${yandexNaviDeep}</code>`
+  ].join('\n');
+
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        {
+          text: "🧭 Маршрут в Яндекс Картах",
+          url: yandexMapsWebRoute
+        }
+      ],
+      [
+        {
+          text: "✅ Заказ доставлен клиенту",
+          callback_data: `courier_delivered:${num}`
+        }
+      ]
+    ]
+  };
+
+  await sendTelegramNotification(text, replyMarkup, targetCourierId ? [String(targetCourierId)] : null);
 }
 
 const MIME = {
@@ -586,6 +687,17 @@ const server = http.createServer(async (req, res) => {
           db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, id);
         }
         console.log(`[Admin] Updated order ${id || orderNum} status to "${status}"`);
+
+        // Option A: If order is set to "в пути", automatically send delivery card to Telegram courier bot
+        const statusLower = String(status).toLowerCase();
+        if (statusLower.includes('пути') || statusLower.includes('курьер')) {
+          const row = num
+            ? db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num)
+            : db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
+          if (row) {
+            notifyCourierDeliveryOrder(row, payload.courierId);
+          }
+        }
       } catch (err) {
         console.error("[Admin Order Status Error]:", err.message);
       }
@@ -593,6 +705,71 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, status }));
+    return;
+  }
+
+  // 3a. Admin Dispatch Order to In-House Courier (Option A)
+  if (req.method === "POST" && url.pathname === "/api/admin/orders/dispatch-courier") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    const { id, orderNum, courierId, courierName } = payload;
+    const num = orderNum || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : id);
+    if (!num) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing order ID" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        db.prepare("UPDATE orders SET status = 'в пути' WHERE order_num = ? OR id = ?").run(num, num);
+        const row = db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num);
+        if (row) {
+          await notifyCourierDeliveryOrder(row, courierId);
+        }
+      } catch (err) {
+        console.error("[Courier Dispatch Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, status: 'в пути', courierName: courierName || 'Курьер' }));
+    return;
+  }
+
+  // 3b. Admin List Couriers (from staff table)
+  if (req.method === "GET" && url.pathname === "/api/admin/couriers") {
+    let couriers = [];
+    if (db) {
+      try {
+        couriers = db.prepare("SELECT user_id, user_name, full_name, role FROM staff").all();
+      } catch (_) {}
+    }
+    if (couriers.length === 0) {
+      couriers = [
+        { user_id: 106, user_name: 'courier_yashnabad', full_name: 'Курьер 1 (Яшнабад)', role: 'courier' },
+        { user_id: 107, user_name: 'courier_center', full_name: 'Курьер 2 (Центр)', role: 'courier' },
+      ];
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, couriers }));
+    return;
+  }
+
+  // 3c. Geocoder API endpoint (Option A - Yandex Maps Geocoding)
+  if (req.method === "GET" && url.pathname === "/api/admin/geocode") {
+    const address = url.searchParams.get("address") || "";
+    if (!address) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing address" }));
+      return;
+    }
+    const [lat, lon] = extractCoords(address);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, address, lat, lon }));
     return;
   }
 
