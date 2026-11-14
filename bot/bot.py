@@ -18,7 +18,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import MenuButtonWebApp, WebAppInfo
 
 from config import BOT_TOKEN, WEBAPP_URL
-from handlers import start, menu, cart, reservation, contacts, search
+from handlers import start, menu, cart, reservation, contacts, search, profile
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,6 +50,7 @@ async def main():
     dp.include_router(menu.router)
     dp.include_router(cart.router)
     dp.include_router(reservation.router)
+    dp.include_router(profile.router)
     dp.include_router(contacts.router)
     dp.include_router(search.router)
 

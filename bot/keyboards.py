@@ -47,19 +47,20 @@ def main_reply_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
             KeyboardButton(text="🛒 Корзина")
         ],
         [
-            KeyboardButton(text="📅 Забронировать стол"),
-            KeyboardButton(text="🛵 Оформить доставку")
+            KeyboardButton(text="👤 Мой профиль / Заказы"),
+            KeyboardButton(text="📅 Забронировать стол")
+        ],
+        [
+            KeyboardButton(text="🛵 Оформить доставку"),
+            KeyboardButton(text="🔍 Поиск блюда")
         ],
         [
             KeyboardButton(text="🌐 Наш веб-сайт"),
-            KeyboardButton(text="🔍 Поиск блюда")
+            KeyboardButton(text="📄 Скачать PDF-меню")
         ],
         [
             KeyboardButton(text="📍 Локация и адрес"),
             KeyboardButton(text="📞 Контакты и соцсети")
-        ],
-        [
-            KeyboardButton(text="📄 Скачать PDF-меню")
         ]
     ]
     if is_admin:
@@ -361,6 +362,79 @@ def admin_panel_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="🔄 Обновить данные", callback_data="adm:refresh")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+# Guest Profile Keyboards
+def profile_inline_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text="📦 Мои заказы", callback_data="profile:orders"),
+            InlineKeyboardButton(text="📅 Мои брони", callback_data="profile:reservations")
+        ],
+        [
+            InlineKeyboardButton(text="📍 Изменить адрес", callback_data="profile:edit_address"),
+            InlineKeyboardButton(text="📞 Изменить телефон", callback_data="profile:edit_phone")
+        ],
+        [
+            InlineKeyboardButton(text="👤 Изменить имя", callback_data="profile:edit_name"),
+            InlineKeyboardButton(text="🌐 Сменить язык", callback_data="profile:change_lang")
+        ],
+        [
+            InlineKeyboardButton(text="🛒 Перейти в корзину", callback_data="open_cart")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def fast_checkout_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text="✅ Да, быстрая доставка", callback_data="fast_chk:delivery")
+        ],
+        [
+            InlineKeyboardButton(text="🛍 Оформить самовывоз", callback_data="fast_chk:pickup")
+        ],
+        [
+            InlineKeyboardButton(text="✏️ Изменить данные вручную", callback_data="fast_chk:manual")
+        ],
+        [
+            InlineKeyboardButton(text="❌ Отмена", callback_data="fast_chk:cancel")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def language_select_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="set_lang:ru"),
+            InlineKeyboardButton(text="🇺🇿 O'zbekcha", callback_data="set_lang:uz"),
+            InlineKeyboardButton(text="🇬🇧 English", callback_data="set_lang:en")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад к профилю", callback_data="view_profile")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def order_repeat_keyboard(order_num: int) -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text="🔄 Повторить этот заказ", callback_data=f"repeat_order:{order_num}")
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад к профилю", callback_data="view_profile")
+        ]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def reservation_fast_confirm_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text="✅ Да, подтвердить бронь", callback_data="res_fast:yes")
+        ],
+        [
+            InlineKeyboardButton(text="✏️ Ввести другое имя/телефон", callback_data="res_fast:manual")
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

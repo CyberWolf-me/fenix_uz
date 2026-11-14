@@ -11,7 +11,8 @@ from keyboards import (
     reservation_guests_keyboard,
     reservation_zone_keyboard,
     share_phone_keyboard,
-    main_reply_keyboard
+    main_reply_keyboard,
+    reservation_fast_confirm_keyboard
 )
 from utils import safe_edit_or_send, notify_all_admins
 import db
@@ -117,13 +118,95 @@ async def reservation_guests_selected(callback: CallbackQuery, state: FSMContext
 async def reservation_zone_selected(callback: CallbackQuery, state: FSMContext):
     zone_val = callback.data.split(":")[1]
     await state.update_data(res_zone=zone_val)
-    await state.set_state(ReservationState.waiting_for_name)
     await callback.answer()
     
+    customer = db.get_customer(callback.from_user.id)
+    if customer and customer.get("full_name") and customer.get("phone"):
+        await state.update_data(res_name=customer["full_name"], res_phone=customer["phone"])
+        await state.set_state(ReservationState.confirmation)
+        data = await state.get_data()
+        confirm_text = (
+            "🚀 <b>ПОДТВЕРЖДЕНИЕ БРОНИРОВАНИЯ (В 1 КЛИК)</b>\n\n"
+            f"📅 Дата: <b>{data.get('res_date')}</b>\n"
+            f"⏰ Время: <b>{data.get('res_time')}</b>\n"
+            f"👥 Гости: <b>{data.get('res_guests')} чел.</b>\n"
+            f"🏛 Зал/Зона: <b>{zone_val}</b>\n\n"
+            f"Использовать ваши сохраненные данные?\n"
+            f"👤 <b>Имя:</b> {customer['full_name']}\n"
+            f"📞 <b>Телефон:</b> <code>{customer['phone']}</code>"
+        )
+        await callback.message.answer(confirm_text, parse_mode="HTML", reply_markup=reservation_fast_confirm_keyboard())
+        return
+
+    await state.set_state(ReservationState.waiting_for_name)
     await callback.message.answer(
         "Шаг 5 из 5: Как к вам обращаться (Ваше имя)?",
         reply_markup=ReplyKeyboardRemove()
     )
+
+@router.callback_query(ReservationState.confirmation, F.data.startswith("res_fast:"))
+async def reservation_fast_confirm(callback: CallbackQuery, state: FSMContext):
+    action = callback.data.split(":")[1]
+    if action == "manual":
+        await state.set_state(ReservationState.waiting_for_name)
+        await callback.message.edit_text("Шаг 5 из 5: Как к вам обращаться (Ваше имя)?")
+        await callback.answer()
+        return
+
+    user_id = callback.from_user.id
+    data = await state.get_data()
+    res_code = random.randint(100, 999)
+    phone = data.get("res_phone", "")
+
+    db.create_reservation(
+        code=res_code,
+        user_id=user_id,
+        user_name=callback.from_user.username or "",
+        customer_name=data.get("res_name", ""),
+        customer_phone=phone,
+        res_date=data.get("res_date", ""),
+        res_time=data.get("res_time", ""),
+        guests=data.get("res_guests", ""),
+        zone=data.get("res_zone", "")
+    )
+
+    # Auto-save or update customer profile
+    try:
+        db.upsert_customer(
+            user_id=user_id,
+            full_name=data.get("res_name", ""),
+            phone=phone
+        )
+    except Exception as e:
+        logger.warning(f"Failed to upsert customer from reservation: {e}")
+    
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👤 Мой профиль / Брони", callback_data="profile:reservations")],
+        [InlineKeyboardButton(text="📖 Меню ресторана", callback_data="cuisines_menu")]
+    ])
+
+    res_text = (
+        f"🎉 <b>ЗАЯВКА НА БРОНИРОВАНИЕ №{res_code} ПРИНЯТА!</b>\n\n"
+        f"👤 <b>Имя:</b> {data.get('res_name')}\n"
+        f"📞 <b>Телефон:</b> {phone}\n"
+        f"📅 <b>Дата:</b> {data.get('res_date')}\n"
+        f"⏰ <b>Время:</b> {data.get('res_time')}\n"
+        f"👥 <b>Количество гостей:</b> {data.get('res_guests')}\n"
+        f"🏛 <b>Зона:</b> {data.get('res_zone')}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Наш менеджер свяжется с вами в течение 10–15 минут для подтверждения брони стола.\n"
+        "📞 Контакт ресторана: <b>97 185 00 10 • 97 185 00 20</b>"
+    )
+    
+    await state.clear()
+    is_adm = db.is_staff(user_id)
+    await callback.message.edit_text(res_text, parse_mode="HTML", reply_markup=kb)
+    await callback.message.answer("Главное меню:", reply_markup=main_reply_keyboard(is_admin=is_adm))
+    
+    admin_alert = f"🔔 <b>НОВАЯ ЗАЯВКА НА БРОНИРОВАНИЕ!</b>\n\n{res_text}"
+    await notify_all_admins(callback.bot, admin_alert)
+    await callback.answer()
 
 @router.message(ReservationState.waiting_for_name)
 async def reservation_name_received(message: Message, state: FSMContext):
@@ -174,6 +257,16 @@ async def reservation_phone_received(message: Message, state: FSMContext):
         guests=data.get("res_guests", ""),
         zone=data.get("res_zone", "")
     )
+
+    # Auto-save or update customer profile
+    try:
+        db.upsert_customer(
+            user_id=user_id,
+            full_name=data.get("res_name", ""),
+            phone=phone
+        )
+    except Exception as e:
+        logger.warning(f"Failed to upsert customer from reservation: {e}")
     
     res_text = (
         f"🎉 <b>ЗАЯВКА НА БРОНИРОВАНИЕ №{res_code} ПРИНЯТА!</b>\n\n"

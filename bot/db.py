@@ -110,6 +110,20 @@ def init_db():
     )
     """)
     
+    # Guest Customers Profile table
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+        user_id INTEGER PRIMARY KEY,
+        full_name TEXT,
+        phone TEXT,
+        default_address TEXT,
+        language TEXT DEFAULT 'ru',
+        bonus_points INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     try:
         c.execute("ALTER TABLE reservations ADD COLUMN table_assigned TEXT")
     except Exception:
@@ -446,6 +460,150 @@ def get_all_menu_items() -> list:
     rows = c.execute("SELECT id, cuisine, category, name, name_uz, name_en, price, size, note FROM menu_items WHERE is_active = 1").fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+# Customer Profile & Orders
+def get_customer(user_id: int) -> dict | None:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+        user_id INTEGER PRIMARY KEY,
+        full_name TEXT,
+        phone TEXT,
+        default_address TEXT,
+        language TEXT DEFAULT 'ru',
+        bonus_points INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    row = c.execute("SELECT * FROM customers WHERE user_id = ?", (user_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def upsert_customer(user_id: int, full_name: str = None, phone: str = None, default_address: str = None, language: str = None, bonus_points: int = None) -> dict:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+        user_id INTEGER PRIMARY KEY,
+        full_name TEXT,
+        phone TEXT,
+        default_address TEXT,
+        language TEXT DEFAULT 'ru',
+        bonus_points INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    existing = c.execute("SELECT * FROM customers WHERE user_id = ?", (user_id,)).fetchone()
+    if existing:
+        new_name = full_name if full_name is not None else existing["full_name"]
+        new_phone = phone if phone is not None else existing["phone"]
+        new_address = default_address if default_address is not None else existing["default_address"]
+        new_lang = language if language is not None else existing["language"]
+        new_bonus = bonus_points if bonus_points is not None else existing["bonus_points"]
+        c.execute("""
+            UPDATE customers
+            SET full_name = ?, phone = ?, default_address = ?, language = ?, bonus_points = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+        """, (new_name, new_phone, new_address, new_lang, new_bonus, user_id))
+    else:
+        c.execute("""
+            INSERT INTO customers (user_id, full_name, phone, default_address, language, bonus_points)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, full_name or "", phone or "", default_address or "", language or "ru", bonus_points or 0))
+    conn.commit()
+    row = c.execute("SELECT * FROM customers WHERE user_id = ?", (user_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else {}
+
+def get_customer_orders(user_id: int, phone: str = None, limit: int = 5) -> list[dict]:
+    conn = get_connection()
+    c = conn.cursor()
+    if phone:
+        rows = c.execute("""
+            SELECT * FROM orders 
+            WHERE user_id = ? OR customer_phone = ? 
+            ORDER BY id DESC LIMIT ?
+        """, (user_id, phone, limit)).fetchall()
+    else:
+        rows = c.execute("""
+            SELECT * FROM orders 
+            WHERE user_id = ? 
+            ORDER BY id DESC LIMIT ?
+        """, (user_id, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_customer_reservations(user_id: int, phone: str = None, limit: int = 5) -> list[dict]:
+    conn = get_connection()
+    c = conn.cursor()
+    if phone:
+        rows = c.execute("""
+            SELECT * FROM reservations 
+            WHERE user_id = ? OR customer_phone = ? 
+            ORDER BY id DESC LIMIT ?
+        """, (user_id, phone, limit)).fetchall()
+    else:
+        rows = c.execute("""
+            SELECT * FROM reservations 
+            WHERE user_id = ? 
+            ORDER BY id DESC LIMIT ?
+        """, (user_id, limit)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def cancel_customer_reservation(code_or_id: int, user_id: int) -> bool:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE reservations
+        SET status = 'отменена'
+        WHERE (code = ? OR id = ?) AND user_id = ?
+    """, (code_or_id, code_or_id, user_id))
+    affected = c.rowcount > 0
+    conn.commit()
+    conn.close()
+    return affected
+
+def get_customer_cashback(user_id: int, phone: str = None) -> int:
+    conn = get_connection()
+    c = conn.cursor()
+    query = """
+        SELECT SUM(total_price) as total_spent FROM orders
+        WHERE (user_id = ? OR (customer_phone = ? AND ? IS NOT NULL))
+          AND (status LIKE '%выполнен%' OR status LIKE '%доставлен%')
+    """
+    row = c.execute(query, (user_id, phone, phone)).fetchone()
+    conn.close()
+    total_spent = (row["total_spent"] if row else 0) or 0
+    return int(total_spent * 0.05)
+
+def get_user_language(user_id: int) -> str:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS user_settings (user_id INTEGER PRIMARY KEY, language TEXT DEFAULT 'ru', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    row = c.execute("SELECT language FROM user_settings WHERE user_id = ?", (user_id,)).fetchone()
+    conn.close()
+    if row and row["language"]:
+        return row["language"]
+    return "ru"
+
+def set_user_language(user_id: int, lang: str):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS user_settings (user_id INTEGER PRIMARY KEY, language TEXT DEFAULT 'ru', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+    c.execute("""
+        INSERT INTO user_settings (user_id, language, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET language = excluded.language, updated_at = CURRENT_TIMESTAMP
+    """, (user_id, lang))
+    c.execute("""
+        UPDATE customers SET language = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?
+    """, (lang, user_id))
+    conn.commit()
+    conn.close()
 
 # Initialize on import
 init_db()

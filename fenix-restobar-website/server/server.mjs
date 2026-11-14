@@ -181,6 +181,16 @@ try {
       is_active INTEGER DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS customers (
+      user_id INTEGER PRIMARY KEY,
+      full_name TEXT,
+      phone TEXT,
+      default_address TEXT,
+      language TEXT DEFAULT 'ru',
+      bonus_points INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_name TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN courier_id TEXT;"); } catch (_) {}
@@ -190,6 +200,10 @@ try {
   try { db.exec("ALTER TABLE staff ADD COLUMN status TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN telegram_id TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN vehicle TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE customers ADD COLUMN default_address TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE customers ADD COLUMN language TEXT DEFAULT 'ru';"); } catch (_) {}
+  try { db.exec("ALTER TABLE customers ADD COLUMN bonus_points INTEGER DEFAULT 0;"); } catch (_) {}
+  try { db.exec("ALTER TABLE customers ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"); } catch (_) {}
 
   // Auto-seed menu_items from menu-data.js if table is empty
   try {
@@ -617,6 +631,66 @@ async function notifyCustomerOrderStatus(order, newStatus, courierName = null) {
   }
 }
 
+// Push reservation status updates to customer via Customer Bot (@FenixRestaurantBot)
+async function notifyCustomerReservationStatus(reservation, newStatus, tableAssigned = null) {
+  if (!reservation || !reservation.user_id) return;
+  const uid = String(reservation.user_id).trim();
+  if (!/^\d+$/.test(uid) || Number(uid) < 1000) return; // Synthetic web bookings with no Telegram ID
+
+  const code = reservation.code || reservation.id;
+  const statusLower = String(newStatus || reservation.status || '').toLowerCase();
+  const table = (tableAssigned !== undefined && tableAssigned !== null && tableAssigned !== '' && tableAssigned !== '—')
+    ? tableAssigned
+    : ((reservation.table_assigned && reservation.table_assigned !== '—') ? reservation.table_assigned : null);
+  const date = reservation.res_date || '';
+  const time = reservation.res_time || '';
+  const guests = reservation.guests || '';
+  const zone = reservation.zone || 'Основной зал';
+
+  let msg = '';
+  if (statusLower.includes('подтвержден') || statusLower.includes('принят')) {
+    msg = [
+      `🎉 <b>Ваша бронь #WEB-${code} подтверждена!</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `📅 <b>Дата визита:</b> ${date}`,
+      `⏰ <b>Время:</b> ${time}`,
+      `👥 <b>Гости:</b> ${guests}`,
+      `🏛 <b>Зона:</b> ${zone}`,
+      table ? `🪑 <b>Назначенный стол:</b> <b>${table}</b>` : `🪑 <b>Стол:</b> Будет подготовлен к вашему приходу`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Ждем вас в FENIX Restobar & Lounge!`,
+      `📍 <i>г. Ташкент, Яшнабадский р-н, ул. Хуснабад, 5 проезд, 1а</i>`,
+      `📞 <b>97 185 00 10 • 97 185 00 20</b>`
+    ].join('\n');
+  } else if (statusLower.includes('отменен')) {
+    msg = [
+      `❌ <b>Ваша бронь #WEB-${code} была отменена.</b>`,
+      `Если у вас изменились планы или возникли вопросы, вы всегда можете забронировать новый стол в боте или связаться с администратором: <b>97 185 00 10</b>.`
+    ].join('\n');
+  } else if (statusLower.includes('завершен') || statusLower.includes('визит завершен')) {
+    msg = [
+      `🍽 <b>Благодарим за визит в FENIX Restobar!</b>`,
+      `Надеемся, вам понравилась кухня и атмосфера. Будем рады видеть вас снова!`
+    ].join('\n');
+  } else if (table) {
+    msg = [
+      `🪑 <b>Обновление по брони #WEB-${code}</b>`,
+      `━━━━━━━━━━━━━━━━━━━━`,
+      `Вам назначен стол: <b>${table}</b>`,
+      `📅 <b>Дата и время:</b> ${date} в ${time}`,
+      `Ждем вас в FENIX!`
+    ].join('\n');
+  }
+
+  if (msg) {
+    try {
+      await sendTelegramNotification(msg, null, [uid], TELEGRAM_BOT_TOKEN);
+    } catch (e) {
+      console.warn(`[Customer Reservation Note]: Could not push to TG user ${uid}: ${e.message}`);
+    }
+  }
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -642,7 +716,7 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key, Authorization");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -866,6 +940,164 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, found: Boolean(found), record: found }));
+    return;
+  }
+
+  // Customer Profile API (Unified Mini App & Telegram Bot Sync)
+  if (req.method === "GET" && url.pathname === "/api/profile") {
+    const rawUid = (url.searchParams.get("user_id") || "").trim();
+    const rawPhone = normalizeUzPhone(url.searchParams.get("phone") || "");
+    const uid = rawUid ? parseInt(rawUid, 10) : null;
+
+    if (!uid && !rawPhone) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Missing user_id or phone" }));
+      return;
+    }
+
+    let customer = null;
+    let orders = [];
+    let reservations = [];
+    let cashback = 0;
+
+    if (db) {
+      try {
+        if (uid) {
+          customer = db.prepare("SELECT * FROM customers WHERE user_id = ?").get(uid);
+        }
+        if (!customer && rawPhone) {
+          customer = db.prepare("SELECT * FROM customers WHERE phone = ?").get(rawPhone);
+        }
+
+        // Fetch recent orders
+        const ordStmt = db.prepare(`
+          SELECT order_num, order_type, address, total_price, status, created_at, items_json
+          FROM orders
+          WHERE (user_id = ? AND user_id > 0) OR (customer_phone = ? AND customer_phone != '')
+          ORDER BY id DESC LIMIT 5
+        `);
+        const ordRows = ordStmt.all(uid || -1, rawPhone || (customer?.phone || ""));
+        orders = ordRows.map(o => {
+          let items = [];
+          try { items = JSON.parse(o.items_json); } catch (_) {}
+          return {
+            order_num: o.order_num,
+            order_type: o.order_type,
+            address: o.address,
+            total_price: o.total_price,
+            status: o.status,
+            created_at: o.created_at,
+            items
+          };
+        });
+
+        // Calculate 5% cashback on completed delivery/pickup orders
+        try {
+          const cashStmt = db.prepare(`
+            SELECT SUM(total_price) as sum_total
+            FROM orders
+            WHERE ((user_id = ? AND user_id > 0) OR (customer_phone = ? AND customer_phone != ''))
+              AND (status LIKE '%выполнен%' OR status LIKE '%доставлен%')
+          `);
+          const cashRow = cashStmt.get(uid || -1, rawPhone || (customer?.phone || ""));
+          const totalSpent = cashRow?.sum_total || 0;
+          cashback = Math.round(totalSpent * 0.05);
+        } catch (_) {}
+
+        // Fetch recent reservations
+        const resStmt = db.prepare(`
+          SELECT code, customer_name, customer_phone, res_date, res_time, guests, zone, table_assigned, status, created_at
+          FROM reservations
+          WHERE (user_id = ? AND user_id > 0) OR (customer_phone = ? AND customer_phone != '')
+          ORDER BY id DESC LIMIT 5
+        `);
+        reservations = resStmt.all(uid || -1, rawPhone || (customer?.phone || ""));
+      } catch (err) {
+        console.error("[Profile API Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      profile: customer ? {
+        user_id: customer.user_id,
+        full_name: customer.full_name || "",
+        phone: customer.phone || "",
+        default_address: customer.default_address || "",
+        language: customer.language || "ru",
+        bonus_points: (customer.bonus_points && customer.bonus_points > 0) ? customer.bonus_points : cashback,
+        created_at: customer.created_at,
+        updated_at: customer.updated_at
+      } : null,
+      orders,
+      reservations
+    }));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/profile") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    const uid = payload.user_id ? parseInt(String(payload.user_id).trim(), 10) : null;
+    const name = (payload.full_name || payload.name || "").trim();
+    const phone = normalizeUzPhone(payload.phone || "");
+    const address = (payload.default_address || payload.address || "").trim();
+    const language = (payload.language || "ru").trim().toLowerCase();
+
+    if (!uid && !phone) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "user_id or phone is required" }));
+      return;
+    }
+
+    if (db) {
+      try {
+        if (uid) {
+          db.prepare(`
+            INSERT INTO customers (user_id, full_name, phone, default_address, language, updated_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+              full_name = CASE WHEN excluded.full_name != '' THEN excluded.full_name ELSE customers.full_name END,
+              phone = CASE WHEN excluded.phone != '' THEN excluded.phone ELSE customers.phone END,
+              default_address = CASE WHEN excluded.default_address != '' THEN excluded.default_address ELSE customers.default_address END,
+              language = CASE WHEN excluded.language != '' THEN excluded.language ELSE customers.language END,
+              updated_at = CURRENT_TIMESTAMP
+          `).run(uid, name, phone, address, language);
+        } else if (phone) {
+          const existing = db.prepare("SELECT user_id FROM customers WHERE phone = ? LIMIT 1").get(phone);
+          if (existing) {
+            db.prepare(`
+              UPDATE customers SET
+                full_name = CASE WHEN ? != '' THEN ? ELSE full_name END,
+                default_address = CASE WHEN ? != '' THEN ? ELSE default_address END,
+                language = CASE WHEN ? != '' THEN ? ELSE language END,
+                updated_at = CURRENT_TIMESTAMP
+              WHERE user_id = ?
+            `).run(name, name, address, address, language, language, existing.user_id);
+          }
+        }
+        console.log(`[Profile API] Updated profile for user_id=${uid}, phone=${phone}`);
+      } catch (err) {
+        console.error("[Profile Update Error]:", err.message);
+      }
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      message: "Profile updated successfully",
+      profile: {
+        user_id: uid,
+        full_name: name,
+        phone,
+        default_address: address,
+        language
+      }
+    }));
     return;
   }
 
@@ -1284,7 +1516,9 @@ const server = http.createServer(async (req, res) => {
     if (db) {
       try {
         const num = code || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
+        let prevRow = null;
         if (num) {
+          prevRow = db.prepare("SELECT * FROM reservations WHERE code = ? OR id = ?").get(num, num);
           if (status && table !== undefined) {
             db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE code = ? OR id = ?").run(status, finalTable, num, num);
           } else if (status) {
@@ -1293,6 +1527,7 @@ const server = http.createServer(async (req, res) => {
             db.prepare("UPDATE reservations SET table_assigned = ? WHERE code = ? OR id = ?").run(finalTable, num, num);
           }
         } else if (id) {
+          prevRow = db.prepare("SELECT * FROM reservations WHERE id = ?").get(id);
           if (status && table !== undefined) {
             db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE id = ?").run(status, finalTable, id);
           } else if (status) {
@@ -1300,6 +1535,9 @@ const server = http.createServer(async (req, res) => {
           } else if (table !== undefined) {
             db.prepare("UPDATE reservations SET table_assigned = ? WHERE id = ?").run(finalTable, id);
           }
+        }
+        if (prevRow) {
+          notifyCustomerReservationStatus(prevRow, status || prevRow.status, finalTable !== undefined ? finalTable : prevRow.table_assigned);
         }
         console.log(`[Admin] Updated reservation ${id || code} status="${status}", table="${finalTable}"`);
       } catch (err) {
@@ -1757,6 +1995,21 @@ const server = http.createServer(async (req, res) => {
             "ожидает подтверждения (с сайта)"
           );
           console.log(`[DB] Saved reservation #${code} to fenix_restaurant.db`);
+
+          // Auto-save customer profile from reservation
+          const tgUid = data.telegramUserId ? Number(data.telegramUserId) : null;
+          if (tgUid && tgUid > 1000) {
+            try {
+              db.prepare(`
+                INSERT INTO customers (user_id, full_name, phone, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                  full_name = CASE WHEN excluded.full_name != '' THEN excluded.full_name ELSE customers.full_name END,
+                  phone = CASE WHEN excluded.phone != '' THEN excluded.phone ELSE customers.phone END,
+                  updated_at = CURRENT_TIMESTAMP
+              `).run(tgUid, data.name || "", data.phone || "");
+            } catch (_) {}
+          }
         } catch (err) {
           console.error("[DB] Error saving reservation:", err.message);
         }
@@ -1870,6 +2123,22 @@ const server = http.createServer(async (req, res) => {
             "новый (с сайта)"
           );
           console.log(`[DB] Saved order #${orderNum} to fenix_restaurant.db`);
+
+          // Auto-save customer profile from order
+          const tgUid = data.telegramUserId ? Number(data.telegramUserId) : null;
+          if (tgUid && tgUid > 1000) {
+            try {
+              db.prepare(`
+                INSERT INTO customers (user_id, full_name, phone, default_address, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                  full_name = CASE WHEN excluded.full_name != '' THEN excluded.full_name ELSE customers.full_name END,
+                  phone = CASE WHEN excluded.phone != '' THEN excluded.phone ELSE customers.phone END,
+                  default_address = CASE WHEN excluded.default_address != '' THEN excluded.default_address ELSE customers.default_address END,
+                  updated_at = CURRENT_TIMESTAMP
+              `).run(tgUid, data.name || "", data.phone || "", (address !== "Уточняется" && address !== "В зале" && address !== "Самовывоз") ? address : "");
+            } catch (_) {}
+          }
         } catch (err) {
           console.error("[DB] Error saving order:", err.message);
         }

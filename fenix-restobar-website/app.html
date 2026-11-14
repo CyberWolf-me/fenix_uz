@@ -4675,6 +4675,20 @@ body {
         localStorage.setItem('fx.registered', '1');
         haptic('success');
 
+        if (tgUser && tgUser.id) {
+          fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: tgUser.id,
+              full_name: userName,
+              phone: userPhone,
+              default_address: userAddress,
+              language: currentLang
+            })
+          }).catch(() => {});
+        }
+
         updateAddressBanner();
         closeWizard();
         switchTab('tab-menu');
@@ -4834,6 +4848,45 @@ body {
     setOrderMode(orderMode);
     setLanguage(currentLang);
     renderRecentHistory();
+
+    // Sync guest profile with server & Telegram Bot
+    if (tgUser && tgUser.id) {
+      fetch(`/api/profile?user_id=${tgUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.ok && data.profile) {
+            const p = data.profile;
+            let changed = false;
+            if (p.full_name && !localStorage.getItem('fx.name')) {
+              userName = p.full_name;
+              localStorage.setItem('fx.name', userName);
+              changed = true;
+            }
+            if (p.phone && !localStorage.getItem('fx.phone')) {
+              userPhone = p.phone;
+              localStorage.setItem('fx.phone', userPhone);
+              changed = true;
+            }
+            if (p.default_address && !localStorage.getItem('fx.addr')) {
+              userAddress = p.default_address;
+              localStorage.setItem('fx.addr', userAddress);
+              changed = true;
+            }
+            if (p.language && !localStorage.getItem('fx.lang')) {
+              currentLang = p.language;
+              localStorage.setItem('fx.lang', currentLang);
+              setLanguage(currentLang);
+            }
+            if (p.phone && (p.default_address || orderMode === 'pickup')) {
+              isRegistered = true;
+              localStorage.setItem('fx.registered', '1');
+              closeWizard();
+            }
+            if (changed) updateAddressBanner();
+          }
+        })
+        .catch(() => {});
+    }
 
     // If user is not yet registered, auto-launch Step 1 of the Onboarding Wizard!
     if (!isRegistered) {

@@ -12,7 +12,8 @@ from keyboards import (
     share_phone_keyboard,
     share_location_keyboard,
     order_payment_keyboard,
-    order_type_keyboard
+    order_type_keyboard,
+    fast_checkout_keyboard
 )
 from states import OrderState
 from utils import safe_edit_or_send, is_restaurant_open, notify_all_admins, notify_courier_group_new_order
@@ -144,15 +145,83 @@ async def callback_checkout_start(callback: CallbackQuery, state: FSMContext):
         return
 
     await callback.answer()
-    await start_checkout(callback.message, state)
+    await start_checkout(callback.message, state, user_id=callback.from_user.id)
 
-async def start_checkout(message: Message, state: FSMContext):
+async def start_checkout(message: Message, state: FSMContext, user_id: int = None):
+    uid = user_id or (message.from_user.id if message.from_user else None)
+    customer = db.get_customer(uid) if uid else None
+    
+    if customer and customer.get("full_name") and customer.get("phone") and customer.get("default_address"):
+        await state.set_state(OrderState.confirm_saved_details)
+        await state.update_data(
+            customer_name=customer["full_name"],
+            customer_phone=customer["phone"],
+            customer_address=customer["default_address"]
+        )
+        fast_text = (
+            "🚀 <b>БЫСТРОЕ ОФОРМЛЕНИЕ ЗАКАЗА (В 1 КЛИК)</b>\n\n"
+            "У вас уже сохранены данные доставки:\n"
+            f"👤 <b>Получатель:</b> {customer['full_name']}\n"
+            f"📞 <b>Телефон:</b> <code>{customer['phone']}</code>\n"
+            f"📍 <b>Адрес:</b> <i>{customer['default_address']}</i>\n\n"
+            "<i>Использовать эти данные для быстрой доставки или изменить вручную?</i>"
+        )
+        await message.answer(fast_text, parse_mode="HTML", reply_markup=fast_checkout_keyboard())
+        return
+
+    await start_manual_checkout(message, state)
+
+async def start_manual_checkout(message: Message, state: FSMContext):
     await state.set_state(OrderState.waiting_for_type)
     text = (
         "🛵 <b>Оформление заказа в FENIX RESTAURANT & BAR</b>\n\n"
         "Шаг 1 из 5: Выберите способ получения заказа:"
     )
     await message.answer(text, parse_mode="HTML", reply_markup=order_type_keyboard())
+
+# Handlers for 1-Click Fast Checkout
+@router.callback_query(OrderState.confirm_saved_details, F.data.startswith("fast_chk:"))
+async def fast_checkout_selected(callback: CallbackQuery, state: FSMContext):
+    action = callback.data.split(":")[1]
+    if action == "cancel":
+        await state.clear()
+        is_adm = db.is_staff(callback.from_user.id)
+        await callback.message.edit_text("Оформление заказа отменено.")
+        await callback.message.answer("Главное меню:", reply_markup=main_reply_keyboard(is_admin=is_adm))
+        await callback.answer()
+        return
+
+    if action == "manual":
+        await callback.answer()
+        await start_manual_checkout(callback.message, state)
+        return
+
+    if action == "delivery":
+        await state.update_data(order_type="🛵 Доставка курьером")
+        await state.set_state(OrderState.waiting_for_payment)
+        await callback.message.edit_text(
+            "Способ получения: <b>🛵 Доставка курьером (быстрый заказ)</b>\n\n"
+            "Шаг 2 из 2: Выберите удобный способ оплаты:",
+            parse_mode="HTML",
+            reply_markup=order_payment_keyboard()
+        )
+        await callback.answer()
+        return
+
+    if action == "pickup":
+        await state.update_data(
+            order_type="🛍 Самовывоз из ресторана",
+            customer_address="Самовывоз из ресторана (ул. Хуснабад, 5 проезд, 1а)"
+        )
+        await state.set_state(OrderState.waiting_for_payment)
+        await callback.message.edit_text(
+            "Способ получения: <b>🛍 Самовывоз из ресторана (быстрый заказ)</b>\n\n"
+            "Шаг 2 из 2: Выберите удобный способ оплаты:",
+            parse_mode="HTML",
+            reply_markup=order_payment_keyboard()
+        )
+        await callback.answer()
+        return
 
 @router.callback_query(OrderState.waiting_for_type, F.data.startswith("ord_type:"))
 async def order_type_selected(callback: CallbackQuery, state: FSMContext):
@@ -287,6 +356,18 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
         items=named_items,
         total_price=total
     )
+
+    # Auto-update guest profile in customers table
+    try:
+        is_delivery = "доставка" in str(data.get("order_type", "")).lower()
+        db.upsert_customer(
+            user_id=user_id,
+            full_name=data.get("customer_name"),
+            phone=data.get("customer_phone"),
+            default_address=data.get("customer_address") if is_delivery else None
+        )
+    except Exception:
+        pass
     
     summary = [
         f"🎉 <b>ЗАКАЗ №{order_num} ПРИНЯТ В ОБРАБОТКУ!</b>\n",
@@ -311,6 +392,24 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
     
     summary_text = "\n".join(summary)
     
+    import base64
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    payment_buttons = []
+    if payment == "Click":
+        click_url = f"https://my.click.uz/services/pay?service_id=32541&merchant_id=24150&amount={total}&transaction_param=WEB-{order_num}"
+        payment_buttons.append([InlineKeyboardButton(text="💳 Оплатить через Click (онлайн)", url=click_url)])
+    elif payment == "Payme":
+        payme_raw = f"m=64f1d4f208c900e527d2c3e1;ac.order_id=WEB-{order_num};a={total*100}"
+        payme_b64 = base64.b64encode(payme_raw.encode()).decode()
+        payme_url = f"https://checkout.paycom.uz/{payme_b64}"
+        payment_buttons.append([InlineKeyboardButton(text="💳 Оплатить через Payme (онлайн)", url=payme_url)])
+
+    payment_buttons.append([
+        InlineKeyboardButton(text="👤 Мой профиль / Заказы", callback_data="view_profile"),
+        InlineKeyboardButton(text="📖 Меню ресторана", callback_data="cuisines_menu")
+    ])
+
     # Clear user's cart in DB
     db.clear_user_cart(user_id)
     await state.clear()
@@ -319,6 +418,10 @@ async def order_payment_received(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         summary_text,
         parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=payment_buttons)
+    )
+    await callback.message.answer(
+        "Вы можете в любой момент отслеживать статус заказа в меню:",
         reply_markup=main_reply_keyboard(is_admin=is_adm)
     )
     
