@@ -868,7 +868,7 @@ function getRoleIcon(roleName = '') {
   return 'users';
 }
 
-function AddStaffModal({ isOpen, onClose, onSave, toast }) {
+function StaffModal({ isOpen, onClose, onSave, initialStaff, toast }) {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('Курьер');
   const [userName, setUserName] = useState('');
@@ -879,19 +879,32 @@ function AddStaffModal({ isOpen, onClose, onSave, toast }) {
   const [vehicle, setVehicle] = useState('Автомобиль');
   const [submitting, setSubmitting] = useState(false);
 
+  const isEditing = Boolean(initialStaff && (initialStaff.id || initialStaff.user_id));
+
   useEffect(() => {
     if (isOpen) {
-      setFullName('');
-      setRole('Курьер');
-      setUserName('');
-      setTelegramId('');
-      setPhone('+998 ');
-      setShift('11:00 – 23:00');
-      setStatus('online');
-      setVehicle('Автомобиль');
+      if (initialStaff) {
+        setFullName(initialStaff.name || initialStaff.full_name || '');
+        setRole(initialStaff.role || 'Курьер');
+        setUserName(initialStaff.user_name || '');
+        setTelegramId(initialStaff.telegram_id ? String(initialStaff.telegram_id) : '');
+        setPhone(initialStaff.phone || '+998 ');
+        setShift(initialStaff.shift || '11:00 – 23:00');
+        setStatus(initialStaff.status || 'online');
+        setVehicle(initialStaff.vehicle || 'Автомобиль');
+      } else {
+        setFullName('');
+        setRole('Курьер');
+        setUserName('');
+        setTelegramId('');
+        setPhone('+998 ');
+        setShift('11:00 – 23:00');
+        setStatus('online');
+        setVehicle('Автомобиль');
+      }
       setSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialStaff]);
 
   if (!isOpen) return null;
 
@@ -906,23 +919,25 @@ function AddStaffModal({ isOpen, onClose, onSave, toast }) {
     setSubmitting(true);
     try {
       const cleanShift = shift.split(' (')[0].trim();
+      const payload = {
+        user_id: isEditing ? (initialStaff.id || initialStaff.user_id) : undefined,
+        full_name: fullName.trim(),
+        role: role.trim(),
+        user_name: userName.replace(/^@/, '').trim(),
+        telegram_id: telegramId.trim(),
+        phone: phone.trim(),
+        shift: cleanShift,
+        status,
+        vehicle: isCourier ? vehicle : '',
+      };
       const res = await fetch('/api/admin/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          full_name: fullName.trim(),
-          role: role.trim(),
-          user_name: userName.replace(/^@/, '').trim(),
-          telegram_id: telegramId.trim(),
-          phone: phone.trim(),
-          shift: cleanShift,
-          status,
-          vehicle: isCourier ? vehicle : '',
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.ok) {
-        toast(`Сотрудник ${fullName.trim()} успешно добавлен`, 'ok', 'check');
+        toast(isEditing ? `Данные сотрудника ${fullName.trim()} обновлены` : `Сотрудник ${fullName.trim()} успешно добавлен`, 'ok', 'check');
         onSave && onSave();
         onClose();
       } else {
@@ -965,10 +980,10 @@ function AddStaffModal({ isOpen, onClose, onSave, toast }) {
         }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
-              Новый сотрудник смены
+              {isEditing ? 'Редактирование сотрудника' : 'Новый сотрудник смены'}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>
-              Штатное расписание Fenix & интеграция с Telegram-ботом
+              {isEditing ? `Обновление профиля: ${initialStaff.name || initialStaff.full_name}` : 'Штатное расписание Fenix & интеграция с Telegram-ботом'}
             </div>
           </div>
           <button
@@ -1246,7 +1261,7 @@ function AddStaffModal({ isOpen, onClose, onSave, toast }) {
               icon="check"
               disabled={submitting}
             >
-              {submitting ? 'Сохранение...' : 'Сохранить сотрудника'}
+              {submitting ? 'Сохранение...' : (isEditing ? 'Сохранить изменения' : 'Сохранить сотрудника')}
             </Btn>
           </div>
         </form>
@@ -1257,7 +1272,8 @@ function AddStaffModal({ isOpen, onClose, onSave, toast }) {
 
 function Staff({ t, toast }) {
   const [team, setTeam] = useState(FX.staff);
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState(null);
   const [filterRole, setFilterRole] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -1272,7 +1288,9 @@ function Staff({ t, toast }) {
               : '??';
             return {
               id: s.user_id,
+              user_id: s.user_id,
               name: s.full_name,
+              full_name: s.full_name,
               role: s.role,
               shift: s.shift || '11:00 – 23:00',
               status: s.status || 'online',
@@ -1293,13 +1311,23 @@ function Staff({ t, toast }) {
     fetchStaff();
   }, []);
 
+  const handleOpenAdd = () => {
+    setEditingStaff(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (m) => {
+    setEditingStaff(m);
+    setModalOpen(true);
+  };
+
   const toggleStatus = async (m) => {
     const nextStatus = m.status === 'online' ? 'off' : 'online';
     try {
       const res = await fetch('/api/admin/staff/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: m.id, status: nextStatus })
+        body: JSON.stringify({ userId: m.id || m.user_id, status: nextStatus })
       });
       const data = await res.json();
       if (data.ok) {
@@ -1317,7 +1345,7 @@ function Staff({ t, toast }) {
       const res = await fetch('/api/admin/staff/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: m.id })
+        body: JSON.stringify({ userId: m.id || m.user_id })
       });
       const data = await res.json();
       if (data.ok) {
@@ -1446,7 +1474,7 @@ function Staff({ t, toast }) {
         <span className="grow" />
 
         {/* Add staff button */}
-        <Btn size="sm" variant="accent" icon="plus" onClick={() => setAddModalOpen(true)}>
+        <Btn size="sm" variant="accent" icon="plus" onClick={handleOpenAdd}>
           Добавить сотрудника
         </Btn>
       </div>
@@ -1456,11 +1484,11 @@ function Staff({ t, toast }) {
         <div className="tbl-wrap">
           <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
-              <col style={{ width: '32%' }} />
+              <col style={{ width: '30%' }} />
               <col style={{ width: '22%' }} />
               <col style={{ width: '18%' }} />
               <col style={{ width: '16%' }} />
-              <col style={{ width: '12%' }} />
+              <col style={{ width: '14%' }} />
             </colgroup>
             <thead>
               <tr>
@@ -1482,18 +1510,29 @@ function Staff({ t, toast }) {
                 filteredTeam.map((m) => {
                   const isCourier = m.role.toLowerCase().includes('курьер') || m.role === 'courier';
                   return (
-                    <tr key={m.id || m.name}>
+                    <tr
+                      key={m.id || m.name}
+                      onClick={() => handleEdit(m)}
+                      title="Нажмите на строку для редактирования сотрудника"
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td style={{ paddingLeft: 20 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span className="avatar" data-tone={isCourier ? 'info' : 'accent'}>{m.initials}</span>
                           <div>
-                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{m.name}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>{m.name}</span>
+                              <span style={{ color: 'var(--text-3)', opacity: 0.6 }} title="Редактировать">
+                                <Icon name="edit" size={10} />
+                              </span>
+                            </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                               {m.user_name ? (
                                 <a
                                   href={`https://t.me/${m.user_name}`}
                                   target="_blank"
                                   rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
                                   className="mono"
                                   style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 10.5 }}
                                 >
@@ -1527,6 +1566,7 @@ function Staff({ t, toast }) {
                       <td>
                         <a
                           href={`tel:${m.phone}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="mono"
                           style={{
                             color: 'var(--text-2)',
@@ -1548,7 +1588,7 @@ function Staff({ t, toast }) {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
                           <button
                             type="button"
-                            onClick={() => toggleStatus(m)}
+                            onClick={(e) => { e.stopPropagation(); toggleStatus(m); }}
                             title="Нажмите для переключения статуса смены"
                             style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
                           >
@@ -1559,8 +1599,17 @@ function Staff({ t, toast }) {
                           <button
                             type="button"
                             className="btn btn-sm btn-ghost"
+                            title="Редактировать сотрудника"
+                            onClick={(e) => { e.stopPropagation(); handleEdit(m); }}
+                            style={{ width: 28, height: 28, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Icon name="edit" size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ghost"
                             title="Удалить сотрудника"
-                            onClick={() => handleDelete(m)}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(m); }}
                             style={{ width: 28, height: 28, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             <Icon name="trash" size={12} />
@@ -1576,10 +1625,11 @@ function Staff({ t, toast }) {
         </div>
       </div>
 
-      {/* Add Staff Modal */}
-      <AddStaffModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
+      {/* Staff Modal (Add or Edit) */}
+      <StaffModal
+        isOpen={modalOpen}
+        onClose={() => { setModalOpen(false); setEditingStaff(null); }}
+        initialStaff={editingStaff}
         onSave={fetchStaff}
         toast={toast}
       />

@@ -1255,7 +1255,14 @@ const server = http.createServer(async (req, res) => {
         const cleanVehicle = (vehicle || '').trim();
 
         // Check if member exists by user_id or username
-        const existing = db.prepare("SELECT user_id FROM staff WHERE user_id = ? OR (user_name != '' AND user_name = ?)").get(String(assignedId), cleanUsername);
+        let existing = null;
+        if (user_id) {
+          existing = db.prepare("SELECT user_id FROM staff WHERE user_id = ?").get(String(user_id));
+        }
+        if (!existing && (assignedId || cleanUsername)) {
+          existing = db.prepare("SELECT user_id FROM staff WHERE user_id = ? OR (user_name != '' AND user_name = ?)").get(String(assignedId), cleanUsername);
+        }
+
         if (existing) {
           db.prepare(`
             UPDATE staff
