@@ -304,19 +304,50 @@ def format_price(amount: int) -> str:
 
 def refresh_menu_from_db():
     try:
-        from db import get_menu_price_map
+        try:
+            from db import get_menu_price_map, get_all_menu_items
+        except ImportError:
+            from bot.db import get_menu_price_map, get_all_menu_items
         price_map = get_menu_price_map()
-        if not price_map:
-            return
-        for cat in MENU["categories"]:
-            for it in cat["items"]:
-                name_key = it.get("name", "").strip().lower()
-                id_key = it.get("id", "").strip().lower()
-                if name_key in price_map:
-                    it["price"] = price_map[name_key]
-                elif id_key in price_map:
-                    it["price"] = price_map[id_key]
-                ITEMS_BY_ID[it["id"]] = it
+        if price_map:
+            for cat in MENU["categories"]:
+                for it in cat["items"]:
+                    name_key = it.get("name", "").strip().lower()
+                    id_key = it.get("id", "").strip().lower()
+                    if name_key in price_map:
+                        it["price"] = price_map[name_key]
+                    elif id_key in price_map:
+                        it["price"] = price_map[id_key]
+                    ITEMS_BY_ID[it["id"]] = it
+
+        # Also dynamically append newly added items from SQLite menu_items
+        all_items = get_all_menu_items()
+        existing_names = {it.get("name", "").strip().lower() for it in ITEMS_BY_ID.values()}
+        for item in all_items:
+            name_norm = item.get("name", "").strip().lower()
+            if name_norm not in existing_names:
+                cuisine = item.get("cuisine", "europe")
+                # Find matching or fallback category
+                target_cat = None
+                for cat in MENU["categories"]:
+                    if cat.get("section") == ("euro" if cuisine == "europe" else cuisine):
+                        target_cat = cat
+                        break
+                if not target_cat and MENU["categories"]:
+                    target_cat = MENU["categories"][0]
+
+                new_dish = {
+                    "id": item.get("id") or f"dyn_{len(ITEMS_BY_ID)+1}",
+                    "name": item.get("name"),
+                    "price": item.get("price", 0),
+                    "unit": item.get("size") or "порция",
+                    "desc": item.get("note") or "",
+                    "category_name": target_cat["name"] if target_cat else "Меню"
+                }
+                if target_cat:
+                    target_cat["items"].append(new_dish)
+                ITEMS_BY_ID[new_dish["id"]] = new_dish
+                existing_names.add(name_norm)
     except Exception as e:
         print("[Menu Data Sync Error]:", e)
 

@@ -611,6 +611,33 @@ function MenuScreen({ t, toast }) {
     setEditDish(null);
   };
 
+  const handleDeleteDish = async (dish) => {
+    if (!dish) return;
+    if (!window.confirm(`Вы уверены, что хотите удалить блюдо "${dish.n}" из меню?`)) return;
+    try {
+      const res = await fetch('/api/admin/menu/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: dish.id, name: dish.n })
+      });
+      const dataRes = await res.json();
+      if (dataRes && dataRes.ok) {
+        setData((prev) =>
+          prev.map((c) => ({
+            ...c,
+            items: c.items.filter((it) => it.id !== dish.id && it.n !== dish.n)
+          })).filter((c) => c.items.length > 0)
+        );
+        toast(`Блюдо "${dish.n}" удалено из меню`, 'ok', 'trash');
+        setEditDish(null);
+      } else {
+        toast(dataRes?.error || 'Ошибка при удалении блюда', 'err');
+      }
+    } catch (err) {
+      toast('Ошибка соединения с сервером', 'err');
+    }
+  };
+
   const handleCreateDish = async () => {
     if (!newDishData.name || !newDishData.price) {
       toast('Укажите название и цену блюда', 'err');
@@ -675,6 +702,8 @@ function MenuScreen({ t, toast }) {
           }
           return [{ cat: groupKey, section: secRu, cuisine: cuisineLabel, menuType: newDishData.cuisine, items: [newDishObj] }, ...prev];
         });
+
+        setActiveCuisine(newDishData.cuisine);
 
         setNewDishData({
           name: '',
@@ -977,9 +1006,12 @@ function MenuScreen({ t, toast }) {
               }}
             />
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn btn-sm btn-ghost" onClick={() => setEditDish(null)}>Отмена</button>
-              <Btn size="sm" variant="accent" icon="check" onClick={handleSavePrice}>Сохранить цену</Btn>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+              <Btn size="sm" variant="danger" icon="trash" onClick={() => handleDeleteDish(editDish)}>Удалить блюдо</Btn>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-sm btn-ghost" onClick={() => setEditDish(null)}>Отмена</button>
+                <Btn size="sm" variant="accent" icon="check" onClick={handleSavePrice}>Сохранить цену</Btn>
+              </div>
             </div>
           </div>
         </div>

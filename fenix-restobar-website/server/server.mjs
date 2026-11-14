@@ -261,22 +261,25 @@ function syncMenuFiles(dbInstance) {
       ORDER BY rowid ASC
     `).all();
 
-    const items = rows.map((r) => [
-      r.id,
-      r.cuisine,
-      r.category,
-      r.name,
-      r.name_uz || "",
-      r.name_en || "",
-      r.price,
-      r.price_alt || null,
-      r.size || null,
-      r.note || null,
-      null,
-      null,
-      [],
-      "db"
-    ]);
+    const items = rows.map((r) => {
+      const isPreorder = (r.id === "europe-012" || r.id === "europe-013" || r.id === "europe-014" || (r.note && r.note.toLowerCase().includes("предзаказ")));
+      return [
+        r.id,
+        r.cuisine,
+        r.category,
+        r.name,
+        r.name_uz || "",
+        r.name_en || "",
+        r.price,
+        r.price_alt || null,
+        r.size || null,
+        r.note || null,
+        null,
+        null,
+        isPreorder ? ["preorder"] : [],
+        "db"
+      ];
+    });
 
     const fileContent = `/* FENIX RESTAURANT — Auto-synced from SQLite menu_items */\nwindow.FENIX_MENU = ${JSON.stringify({ sections, items })};\n`;
     fs.writeFileSync(filePath, fileContent, "utf-8");
@@ -1158,33 +1161,34 @@ const server = http.createServer(async (req, res) => {
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
 
     const { id, code, status, table } = payload;
-    if ((!status && !table) || (!id && !code)) {
+    if ((!status && table === undefined) || (!id && !code)) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/code, status/table)" }));
       return;
     }
 
+    const finalTable = (table === "" || table === "—") ? null : table;
     if (db) {
       try {
         const num = code || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
         if (num) {
-          if (status && table) {
-            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE code = ? OR id = ?").run(status, table, num, num);
+          if (status && table !== undefined) {
+            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE code = ? OR id = ?").run(status, finalTable, num, num);
           } else if (status) {
             db.prepare("UPDATE reservations SET status = ? WHERE code = ? OR id = ?").run(status, num, num);
-          } else if (table) {
-            db.prepare("UPDATE reservations SET table_assigned = ? WHERE code = ? OR id = ?").run(table, num, num);
+          } else if (table !== undefined) {
+            db.prepare("UPDATE reservations SET table_assigned = ? WHERE code = ? OR id = ?").run(finalTable, num, num);
           }
         } else if (id) {
-          if (status && table) {
-            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE id = ?").run(status, table, id);
+          if (status && table !== undefined) {
+            db.prepare("UPDATE reservations SET status = ?, table_assigned = ? WHERE id = ?").run(status, finalTable, id);
           } else if (status) {
             db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(status, id);
-          } else if (table) {
-            db.prepare("UPDATE reservations SET table_assigned = ? WHERE id = ?").run(table, id);
+          } else if (table !== undefined) {
+            db.prepare("UPDATE reservations SET table_assigned = ? WHERE id = ?").run(finalTable, id);
           }
         }
-        console.log(`[Admin] Updated reservation ${id || code} status="${status}", table="${table}"`);
+        console.log(`[Admin] Updated reservation ${id || code} status="${status}", table="${finalTable}"`);
       } catch (err) {
         console.error("[Admin Reservation Status Error]:", err.message);
       }

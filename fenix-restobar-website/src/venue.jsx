@@ -97,7 +97,7 @@ function Bookings({ t, toast }) {
   const bookingsTodayCount = rows.filter((b) => isTodayDate(b.date)).length;
 
   const act = async (id, status, newTable = null) => {
-    setRows((r) => r.map((b) => (b.id === id ? { ...b, status, ...(newTable ? { table: newTable } : {}) } : b)));
+    setRows((r) => r.map((b) => (b.id === id ? { ...b, status, ...(newTable !== null ? { table: newTable || '—' } : {}) } : b)));
     const msg = status === 'confirmed'
       ? 'Бронь подтверждена'
       : status === 'seated'
@@ -116,6 +116,7 @@ function Bookings({ t, toast }) {
       : 'отменена';
     const target = rows.find((b) => b.id === id);
     const code = target?.code || parseInt(String(id).replace(/\D/g, ''));
+    const tableToPersist = newTable !== null ? (newTable || '') : (target?.table && target?.table !== '—' ? target.table : '');
     try {
       await fetch('/api/admin/reservations/status', {
         method: 'POST',
@@ -124,7 +125,7 @@ function Bookings({ t, toast }) {
           id: target?.dbId,
           code,
           status: backendStatus,
-          table: newTable || target?.table,
+          table: tableToPersist,
         }),
       });
     } catch (e) {
