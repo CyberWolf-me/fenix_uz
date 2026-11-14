@@ -213,20 +213,24 @@
       let items = S.items.filter(i => i.menu === menu && i.section === s.id);
       if (q) items = items.filter(i => Object.values(i.name).some(n => n.toLowerCase().includes(q)));
       if (!items.length) return '';
-      // Show items with photos first
-      items.sort((a, b) => (S.DISH_PHOTOS.has(b.id) ? 1 : 0) - (S.DISH_PHOTOS.has(a.id) ? 1 : 0));
-
       return `<section class="mcat" id="m-${menu}-${s.id}" data-sec="${s.id}">
         <div class="mcat-h"><h2>${e(s[L()] || s.ru)}</h2><span>${items.length} ${e(t('menu.items'))}</span></div>
+        ${(() => {
+          const ph = items.filter(i => S.DISH_PHOTOS.has(i.id));
+          return ph.length ? `<div class="dstrip">${ph.map(it => `
+            <button type="button" class="dcard" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}">
+              <span class="dimg"><img src="img/dish/${it.id}.webp" width="560" height="560" alt="" loading="lazy" decoding="async"></span>
+              <span class="dn">${e(S.iName(it))}</span>
+              <span class="price">${S.iPrice(it)}</span>
+            </button>`).join('')}</div>` : '';
+        })()}
         ${items.map(it => {
-          const hasPhoto = S.DISH_PHOTOS.has(it.id);
           const alt = L() !== 'ru' && it.name.ru !== S.iName(it) ? `<p class="alt" lang="ru">${e(it.name.ru)}</p>` : '';
           const tags = [it.tags.includes('preorder') ? `<span class="tag acc">${e(t('menu.preorder'))}</span>` : '', it.tags.includes('seasonal') ? `<span class="tag">${e(t('menu.seasonal'))}</span>` : '', it.source === 'tg' ? '' : ''].join('');
           const size = S.iSize(it);
           const q2 = S.cart[it.id] || 0;
           const ctl = !showAdd ? '' : (q2 ? `<span class="qty"><button type="button" data-qty="${it.id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q2}</span><button type="button" data-qty="${it.id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>` : `<button class="add" type="button" data-qty="${it.id}" data-d="1" aria-label="${e(t('menu.add'))}: ${e(S.iName(it))}">${I('plus')}</button>`);
-          const thumb = hasPhoto ? `<button type="button" class="mi-thumb" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}"><img src="img/dish/${it.id}.webp" width="60" height="60" alt="" loading="lazy" decoding="async"></button>` : '';
-          return `<div class="mi${hasPhoto ? ' has-thumb' : ''}">${thumb}<div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
+          return `<div class="mi"><div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
         }).join('')}
         ${s.id === 'coffee' || s.id === 'snacks' || (menu === 'bar' && s.id === 'lemonades') ? `<p class="label" style="margin-top:10px">${e(t('menu.srcTg'))}</p>` : ''}
       </section>`;
