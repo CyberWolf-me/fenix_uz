@@ -22,6 +22,10 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8672936517:AAE47sv
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || process.env.ADMIN_CHAT_ID || "";
 const BOT_USERNAME = process.env.BOT_USERNAME || "FenixRestaurantBot";
 
+// Dedicated Courier Bot (Option 2 + Option 3 Logistics Bot)
+const COURIER_BOT_TOKEN = process.env.COURIER_BOT_TOKEN || "9201007435:AAE4DhtNItloWXOlTdLuWRWzrJbK3c8_-ZE";
+const COURIER_BOT_USERNAME = process.env.COURIER_BOT_USERNAME || "FenixRestaurantCourierBot";
+
 // Locate fenix_restaurant.db from Telegram Bot project
 const DB_CANDIDATES = [
   path.resolve(__dirname, "../../bot/fenix_restaurant.db"),
@@ -216,9 +220,10 @@ function extractCoords(addr) {
   return [41.3111, 69.2797];
 }
 
-async function sendTelegramNotification(text, replyMarkup = null, targetChatIds = null) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.log("[Telegram skipped — TELEGRAM_BOT_TOKEN not configured]");
+async function sendTelegramNotification(text, replyMarkup = null, targetChatIds = null, tokenOverride = null) {
+  const token = tokenOverride || TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    console.log("[Telegram skipped — token not configured]");
     return;
   }
 
@@ -237,13 +242,13 @@ async function sendTelegramNotification(text, replyMarkup = null, targetChatIds 
   }
 
   if (recipientIds.size === 0) {
-    console.log("\n[Telegram Alert Preview - No staff registered in DB yet]:");
+    console.log("\n[Telegram Alert Preview - No recipients found]:");
     console.log(text.replace(/<[^>]*>/g, ""));
-    console.log("👉 Tip: Authorize staff by sending '/admin fenix' or '/courier' in @FenixRestaurantBot, or set TELEGRAM_CHAT_ID in environment.\n");
+    console.log("👉 Tip: Authorize staff in @FenixRestaurantBot or add @FenixRestaurantCourierBot to your courier group with /set_courier_group.\n");
     return;
   }
 
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
   for (const chatId of recipientIds) {
     try {
       const payload = {
@@ -361,7 +366,7 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null) {
     ? [String(targetCourierId)]
     : (courierGroupId ? [courierGroupId] : null);
 
-  await sendTelegramNotification(text, replyMarkup, targetIds);
+  await sendTelegramNotification(text, replyMarkup, targetIds, COURIER_BOT_TOKEN);
 }
 
 const MIME = {

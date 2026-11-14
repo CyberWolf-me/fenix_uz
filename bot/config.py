@@ -20,9 +20,13 @@ except ImportError:
             except Exception:
                 pass
 
-# Bot Token provided by user
+# Bot Token provided by user (Customer Bot)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8672936517:AAE47svUKGoNamhC2KSBNfxu1zd_R5s-8lI")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "FenixRestaurantBot")
+
+# Dedicated Courier Bot Token (Option 2 + Option 3 Logistics Bot)
+COURIER_BOT_TOKEN = os.getenv("COURIER_BOT_TOKEN", "9201007435:AAE4DhtNItloWXOlTdLuWRWzrJbK3c8_-ZE")
+COURIER_BOT_USERNAME = os.getenv("COURIER_BOT_USERNAME", "FenixRestaurantCourierBot")
 
 # Optional: Admin Chat IDs (comma-separated if multiple)
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_CHAT_ID", "").split(",") if x.strip().isdigit()]

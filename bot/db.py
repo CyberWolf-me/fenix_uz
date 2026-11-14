@@ -325,6 +325,53 @@ def complete_order_delivery(order_num: int | str, user_id: int | str, user_name:
     conn.close()
     return True, "Успешно"
 
+def get_courier_active_orders(courier_id: int | str) -> list[dict]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+    SELECT * FROM orders 
+    WHERE (courier_id = ? OR courier_name LIKE ?) AND status = 'в пути'
+    ORDER BY id DESC
+    """, (str(courier_id), f"%{courier_id}%"))
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_courier_stats(courier_id: int | str) -> dict:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+    SELECT COUNT(*), COALESCE(SUM(total_price), 0) FROM orders 
+    WHERE (courier_id = ? OR courier_name LIKE ?) AND status = 'выполнен'
+    """, (str(courier_id), f"%{courier_id}%"))
+    total_count, total_sum = c.fetchone()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    c.execute("""
+    SELECT COUNT(*), COALESCE(SUM(total_price), 0) FROM orders 
+    WHERE (courier_id = ? OR courier_name LIKE ?) AND status = 'выполнен' AND created_at >= ?
+    """, (str(courier_id), f"%{courier_id}%", today_str))
+    today_count, today_sum = c.fetchone()
+    conn.close()
+    return {
+        "total_count": total_count or 0,
+        "total_sum": total_sum or 0,
+        "today_count": today_count or 0,
+        "today_sum": today_sum or 0
+    }
+
+def get_unclaimed_delivery_orders(limit: int = 5) -> list[dict]:
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+    SELECT * FROM orders 
+    WHERE (courier_name IS NULL OR courier_name = '')
+      AND status IN ('новый', 'кухня готовит', 'в пути')
+    ORDER BY id DESC LIMIT ?
+    """, (limit,))
+    rows = c.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 # User language settings
 def get_user_language(user_id: int) -> str:
     conn = get_connection()
