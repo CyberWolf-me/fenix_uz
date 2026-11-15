@@ -364,6 +364,10 @@ function extractCoords(addr) {
   return [41.3111, 69.2797];
 }
 
+// In-memory geocoding caches (Tashkent delivery)
+const reverseGeoCache = new Map();
+const searchGeoCache = new Map();
+
 function syncMenuFiles(dbInstance) {
   if (!dbInstance) return;
   try {
@@ -859,6 +863,136 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: false, error: "Unauthorized. Please log in." }));
       return;
     }
+  }
+
+  // ── GEOCODING & MAP PROXY (Yandex Eats / Uzum Tezkor style for Tashkent) ──
+  if (req.method === "GET" && url.pathname === "/api/geo/reverse") {
+    const lat = parseFloat(url.searchParams.get("lat"));
+    const lon = parseFloat(url.searchParams.get("lon"));
+    const lang = url.searchParams.get("lang") || "ru";
+    if (isNaN(lat) || isNaN(lon)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Invalid coordinates" }));
+      return;
+    }
+    const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)},${lang}`;
+    if (reverseGeoCache.has(cacheKey)) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(reverseGeoCache.get(cacheKey)));
+      return;
+    }
+    try {
+      const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=${lang}`;
+      const nomRes = await fetch(nomUrl, {
+        headers: { "User-Agent": "FenixRestobarApp/2.0 (tashkent delivery map)" },
+        signal: AbortSignal.timeout(4500)
+      });
+      const data = await nomRes.json();
+      const a = data.address || {};
+      const road = a.road || a.street || a.pedestrian || a.suburb || a.neighbourhood || "";
+      const house = a.house_number ? (lang === "uz" ? `${a.house_number}-uy` : `д. ${a.house_number}`) : "";
+      const street = [road, house].filter(Boolean).join(", ") || data.name || (lang === "uz" ? "Xaritadagi nuqta" : "Точка на карте");
+      const district = a.district || a.city_district || a.suburb || (lang === "uz" ? "Toshkent" : "Ташкент");
+      const city = a.city || (lang === "uz" ? "Toshkent sh." : "г. Ташкент");
+      const full = [city, district, street].filter(Boolean).join(", ");
+      const payload = { ok: true, full, street, district, city, lat, lon };
+      if (reverseGeoCache.size > 2000) reverseGeoCache.clear();
+      reverseGeoCache.set(cacheKey, payload);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(payload));
+      return;
+    } catch (err) {
+      const fallback = {
+        ok: true,
+        full: `${lang === "uz" ? "Toshkent, koordinatalar" : "Ташкент, координаты"} (${lat.toFixed(4)}, ${lon.toFixed(4)})`,
+        street: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        district: lang === "uz" ? "Toshkent" : "Ташкент",
+        city: lang === "uz" ? "Toshkent sh." : "г. Ташкент",
+        lat,
+        lon
+      };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(fallback));
+      return;
+    }
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/geo/search") {
+    const q = (url.searchParams.get("q") || "").trim();
+    const lang = url.searchParams.get("lang") || "ru";
+    if (!q || q.length < 2) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, results: [] }));
+      return;
+    }
+    const cacheKey = `${q.toLowerCase()},${lang}`;
+    if (searchGeoCache.has(cacheKey)) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(searchGeoCache.get(cacheKey)));
+      return;
+    }
+    let results = [];
+    try {
+      const pUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=41.311081&lon=69.240562&limit=10`;
+      const pRes = await fetch(pUrl, { signal: AbortSignal.timeout(3500) });
+      const pData = await pRes.json();
+      for (const f of (pData.features || [])) {
+        const p = f.properties || {};
+        const coords = f.geometry?.coordinates || [];
+        const lat = coords[1];
+        const lon = coords[0];
+        if (lat >= 41.10 && lat <= 41.45 && lon >= 69.05 && lon <= 69.50) {
+          results.push({
+            title: p.name || p.street || q,
+            subtitle: [p.street, p.district, p.city].filter(Boolean).join(", ") || (lang === "uz" ? "Toshkent" : "Ташкент"),
+            street: p.street || p.name || "",
+            district: p.district || "",
+            lat,
+            lon
+          });
+        }
+      }
+    } catch (_) {}
+
+    if (results.length < 2) {
+      try {
+        const nomSearchUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent("Ташкент " + q)}&countrycodes=uz&limit=6&accept-language=${lang}`;
+        const nRes = await fetch(nomSearchUrl, {
+          headers: { "User-Agent": "FenixRestobarApp/2.0 (tashkent delivery map search)" },
+          signal: AbortSignal.timeout(3500)
+        });
+        const nData = await nRes.json();
+        for (const item of (nData || [])) {
+          const lat = parseFloat(item.lat);
+          const lon = parseFloat(item.lon);
+          results.push({
+            title: item.name,
+            subtitle: (item.display_name || "").split(",").slice(1, 4).join(",").trim(),
+            street: item.name,
+            district: "",
+            lat,
+            lon
+          });
+        }
+      } catch (_) {}
+    }
+
+    // Deduplicate
+    const seen = new Set();
+    const finalResults = [];
+    for (const r of results) {
+      const k = `${r.title}|${r.lat.toFixed(3)}|${r.lon.toFixed(3)}`;
+      if (!seen.has(k)) {
+        seen.add(k);
+        finalResults.push(r);
+      }
+    }
+    const payload = { ok: true, results: finalResults.slice(0, 6) };
+    if (searchGeoCache.size > 1000) searchGeoCache.clear();
+    searchGeoCache.set(cacheKey, payload);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(payload));
+    return;
   }
 
   // Healthcheck & Bot Integration Status endpoint
