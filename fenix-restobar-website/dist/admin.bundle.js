@@ -1069,26 +1069,60 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
       b != null && /* @__PURE__ */ React.createElement("span", { className: "nav-badge", "data-tone": it.badge === "live" ? "accent" : "muted" }, b),
       rail && b != null && /* @__PURE__ */ React.createElement("span", { className: "nav-dot" })
     );
-  })))), /* @__PURE__ */ React.createElement("div", { className: "nav-foot" }, /* @__PURE__ */ React.createElement(
-    "button",
+  })))), /* @__PURE__ */ React.createElement(
+    "div",
     {
-      type: "button",
-      className: "nav-user",
-      onClick: onSwitchUser,
-      title: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u0441\u043C\u0435\u043D\u044B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u0441\u043C\u0435\u043D\u044B"
+      className: "nav-foot",
+      style: rail ? {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "10px 0",
+        gap: 10,
+        width: "100%",
+        boxSizing: "border-box"
+      } : void 0
     },
-    /* @__PURE__ */ React.createElement("span", { className: "avatar", "data-tone": "accent" }, displayInitials),
-    /* @__PURE__ */ React.createElement("span", { className: "nav-user-txt" }, /* @__PURE__ */ React.createElement("span", { className: "nav-user-name" }, displayName), /* @__PURE__ */ React.createElement("span", { className: "nav-user-role" }, displayRole))
-  ), onLogout && /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      className: "nav-logout-btn",
-      onClick: onLogout,
-      title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B"
-    },
-    /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 16 })
-  ))));
+    /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "nav-user",
+        onClick: onSwitchUser,
+        title: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u0441\u043C\u0435\u043D\u044B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u0441\u043C\u0435\u043D\u044B",
+        style: rail ? {
+          flex: "none",
+          width: 36,
+          height: 36,
+          padding: 0,
+          justifyContent: "center",
+          alignItems: "center",
+          margin: "0 auto"
+        } : void 0
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "avatar", "data-tone": "accent" }, displayInitials),
+      !rail && /* @__PURE__ */ React.createElement("span", { className: "nav-user-txt", style: { display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0, flex: 1, gap: 2, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("span", { className: "nav-user-name", style: { display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.25, width: "100%" } }, displayName), /* @__PURE__ */ React.createElement("span", { className: "nav-user-role", style: { display: "block", fontSize: 9.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", lineHeight: 1.2, width: "100%" } }, displayRole))
+    ),
+    onLogout && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "nav-logout-btn",
+        onClick: onLogout,
+        title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B",
+        style: rail ? {
+          margin: "0 auto",
+          display: "grid",
+          placeItems: "center",
+          flex: "none",
+          width: 34,
+          height: 34
+        } : void 0
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 16 })
+    )
+  )));
 }
 function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu, currentShift, onOpenShiftModal }) {
   const hh = new Date(now);
@@ -2095,7 +2129,25 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   }, [orders, q, typeF, sort]);
   const lateCount = filtered.filter((o) => slaState(o).late && o.col !== "done").length;
   const newCount = filtered.filter((o) => o.col === "new").length;
-  return /* @__PURE__ */ React.createElement("div", { className: "page page-flush dispatch-page" }, /* @__PURE__ */ React.createElement(Kpis, { t, orders, bookingsCount, collapsed: kpisCollapsed, onToggleCollapse: toggleKpis }), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-left" }, /* @__PURE__ */ React.createElement("div", { className: "chips" }, ["all", "delivery", "pickup", "hall"].map((k) => /* @__PURE__ */ React.createElement("button", { key: k, className: "chip", "data-on": typeF === k ? "1" : "0", onClick: () => setTypeF(k) }, k === "all" ? t("all") : t(k)))), lateCount > 0 && /* @__PURE__ */ React.createElement(Pill, { tone: "danger", dot: true }, lateCount, " ", t("late"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-center" }, /* @__PURE__ */ React.createElement("div", { className: "search" }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 13 }), /* @__PURE__ */ React.createElement(
+  const handleWheel = (e) => {
+    if (e.deltaY > 20 && !kpisCollapsed) {
+      setKpisCollapsed(true);
+      try {
+        localStorage.setItem("fx.admin.kpis_collapsed", "1");
+      } catch (_) {
+      }
+    } else if (e.deltaY < -20 && kpisCollapsed) {
+      const el = e.currentTarget;
+      if (el && el.scrollTop <= 5) {
+        setKpisCollapsed(false);
+        try {
+          localStorage.setItem("fx.admin.kpis_collapsed", "0");
+        } catch (_) {
+        }
+      }
+    }
+  };
+  return /* @__PURE__ */ React.createElement("div", { className: "page page-flush dispatch-page", onWheel: handleWheel }, /* @__PURE__ */ React.createElement(Kpis, { t, orders, bookingsCount, collapsed: kpisCollapsed, onToggleCollapse: toggleKpis }), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-left" }, /* @__PURE__ */ React.createElement("div", { className: "chips" }, ["all", "delivery", "pickup", "hall"].map((k) => /* @__PURE__ */ React.createElement("button", { key: k, className: "chip", "data-on": typeF === k ? "1" : "0", onClick: () => setTypeF(k) }, k === "all" ? t("all") : t(k)))), lateCount > 0 && /* @__PURE__ */ React.createElement(Pill, { tone: "danger", dot: true }, lateCount, " ", t("late"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-center" }, /* @__PURE__ */ React.createElement("div", { className: "search" }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 13 }), /* @__PURE__ */ React.createElement(
     "input",
     {
       value: q,

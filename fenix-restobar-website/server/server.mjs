@@ -3073,8 +3073,16 @@ function normalizeOrderItems(rawItems, priceMap = null) {
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
     const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
-    if (reqPath.includes("menu-data.js") || reqPath.includes("app.html")) {
-      headers["Cache-Control"] = "no-cache, must-revalidate";
+    if (
+      reqPath.includes("admin") ||
+      reqPath.includes("dist/") ||
+      reqPath.includes("src/") ||
+      reqPath.includes("menu-data.js") ||
+      reqPath.includes("app.html")
+    ) {
+      headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
+      headers["Pragma"] = "no-cache";
+      headers["Expires"] = "0";
     }
     res.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(res);

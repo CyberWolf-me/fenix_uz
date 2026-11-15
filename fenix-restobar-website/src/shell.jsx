@@ -83,18 +83,41 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
             </div>
           ))}
         </div>
-        <div className="nav-foot">
+        <div
+          className="nav-foot"
+          style={rail ? {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '10px 0',
+            gap: 10,
+            width: '100%',
+            boxSizing: 'border-box'
+          } : undefined}
+        >
           <button
             type="button"
             className="nav-user"
             onClick={onSwitchUser}
             title="Нажмите для смены активного оператора смены"
+            style={rail ? {
+              flex: 'none',
+              width: 36,
+              height: 36,
+              padding: 0,
+              justifyContent: 'center',
+              alignItems: 'center',
+              margin: '0 auto'
+            } : undefined}
           >
             <span className="avatar" data-tone="accent">{displayInitials}</span>
-            <span className="nav-user-txt">
-              <span className="nav-user-name">{displayName}</span>
-              <span className="nav-user-role">{displayRole}</span>
-            </span>
+            {!rail && (
+              <span className="nav-user-txt" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0, flex: 1, gap: 2, overflow: 'hidden' }}>
+                <span className="nav-user-name" style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25, width: '100%' }}>{displayName}</span>
+                <span className="nav-user-role" style={{ display: 'block', fontSize: 9.5, fontWeight: 700, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2, width: '100%' }}>{displayRole}</span>
+              </span>
+            )}
           </button>
           {onLogout && (
             <button
@@ -102,6 +125,14 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
               className="nav-logout-btn"
               onClick={onLogout}
               title="Выйти из системы"
+              style={rail ? {
+                margin: '0 auto',
+                display: 'grid',
+                placeItems: 'center',
+                flex: 'none',
+                width: 34,
+                height: 34
+              } : undefined}
             >
               <Icon name="logOut" size={16} />
             </button>

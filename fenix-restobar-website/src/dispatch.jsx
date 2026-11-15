@@ -877,8 +877,22 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const lateCount = filtered.filter((o) => slaState(o).late && o.col !== 'done').length;
   const newCount = filtered.filter((o) => o.col === 'new').length;
 
+  // Vertical Slide: wheel scroll down smoothly slides KPIs away to expand all 4 columns
+  const handleWheel = (e) => {
+    if (e.deltaY > 20 && !kpisCollapsed) {
+      setKpisCollapsed(true);
+      try { localStorage.setItem('fx.admin.kpis_collapsed', '1'); } catch (_) {}
+    } else if (e.deltaY < -20 && kpisCollapsed) {
+      const el = e.currentTarget;
+      if (el && el.scrollTop <= 5) {
+        setKpisCollapsed(false);
+        try { localStorage.setItem('fx.admin.kpis_collapsed', '0'); } catch (_) {}
+      }
+    }
+  };
+
   return (
-    <div className="page page-flush dispatch-page">
+    <div className="page page-flush dispatch-page" onWheel={handleWheel}>
       <Kpis t={t} orders={orders} bookingsCount={bookingsCount} collapsed={kpisCollapsed} onToggleCollapse={toggleKpis} />
 
       {/* Spacious Unified Toolbar (Single Elegant Row on Desktop, Adaptive on Mobile) */}

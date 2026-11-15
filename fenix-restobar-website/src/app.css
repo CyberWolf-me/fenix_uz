@@ -418,14 +418,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 130px);
+  min-height: calc(100vh - 120px);
 }
 .board {
   display: grid;
   gap: 16px;
   flex: 1;
-  min-height: calc(100vh - 145px);
-  height: calc(100vh - 145px);
+  min-height: calc(100vh - 120px);
   grid-template-columns: repeat(4, minmax(260px, 1fr));
 }
 .board[data-view="list"] { display: block; }
@@ -434,12 +433,16 @@
   background: var(--surface-2); border-radius: var(--r);
   border: 1px solid var(--line-soft);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  height: 100%;
 }
 .col-head {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 15px 11px; flex: none; min-width: 0;
   border-bottom: var(--kanban-rule) solid var(--line-soft);
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface-2);
 }
 .col-head::after {
   content: ''; position: absolute; left: 11px; right: 11px; bottom: -1px; height: var(--kanban-rule);
