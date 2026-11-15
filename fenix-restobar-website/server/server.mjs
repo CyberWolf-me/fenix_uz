@@ -919,8 +919,15 @@ const server = http.createServer(async (req, res) => {
         if (!found && cleanNum) {
           const ord = db.prepare("SELECT * FROM orders WHERE order_num = ? ORDER BY id DESC LIMIT 1").get(cleanNum);
           if (ord) {
-            let items = {};
-            try { items = JSON.parse(ord.items_json); } catch (_) {}
+            const priceMap = new Map();
+            try {
+              const menuRows = db.prepare("SELECT id, name, price FROM menu_items WHERE is_active = 1").all();
+              for (const row of menuRows) {
+                if (row.id) priceMap.set(String(row.id).toLowerCase().trim(), Number(row.price || 0));
+                if (row.name) priceMap.set(String(row.name).toLowerCase().trim(), Number(row.price || 0));
+              }
+            } catch (_) {}
+            const items = normalizeOrderItems(ord.items_json, priceMap);
             found = {
               type: "order",
               code: `WEB-${ord.order_num}`,
@@ -956,8 +963,15 @@ const server = http.createServer(async (req, res) => {
           } else {
             const ord = db.prepare("SELECT * FROM orders WHERE customer_phone LIKE ? ORDER BY id DESC LIMIT 1").get(`%${cleanPhone.slice(-7)}%`);
             if (ord) {
-              let items = {};
-              try { items = JSON.parse(ord.items_json); } catch (_) {}
+              const priceMap = new Map();
+              try {
+                const menuRows = db.prepare("SELECT id, name, price FROM menu_items WHERE is_active = 1").all();
+                for (const row of menuRows) {
+                  if (row.id) priceMap.set(String(row.id).toLowerCase().trim(), Number(row.price || 0));
+                  if (row.name) priceMap.set(String(row.name).toLowerCase().trim(), Number(row.price || 0));
+                }
+              } catch (_) {}
+              const items = normalizeOrderItems(ord.items_json, priceMap);
               found = {
                 type: "order",
                 code: `WEB-${ord.order_num}`,
@@ -985,7 +999,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Customer Profile API (Unified Mini App & Telegram Bot Sync)
+  
+function normalizeOrderItems(rawItems, priceMap = null) {
+  if (!rawItems) return [];
+  let parsed = rawItems;
+  if (typeof rawItems === "string") {
+    try { parsed = JSON.parse(rawItems); } catch (_) { return []; }
+  }
+  const result = [];
+  if (Array.isArray(parsed)) {
+    for (const it of parsed) {
+      if (!it) continue;
+      const name = it.name || it.n || it.id || "Позиция";
+      const qty = Number(it.count || it.qty || it.quantity || 1);
+      let price = Number(it.price || 0);
+      if (!price && priceMap && priceMap.has(String(name).toLowerCase().trim())) {
+        price = priceMap.get(String(name).toLowerCase().trim());
+      }
+      result.push({ name, qty, price });
+    }
+  } else if (parsed && typeof parsed === "object") {
+    for (const [name, val] of Object.entries(parsed)) {
+      const qty = typeof val === "object" ? Number(val.qty || val.count || 1) : Number(val || 1);
+      let price = typeof val === "object" ? Number(val.price || 0) : 0;
+      if (!price && priceMap && priceMap.has(String(name).toLowerCase().trim())) {
+        price = priceMap.get(String(name).toLowerCase().trim());
+      }
+      result.push({ name, qty, price });
+    }
+  }
+  return result;
+}
+
+// Customer Profile API (Unified Mini App & Telegram Bot Sync)
   if (req.method === "GET" && url.pathname === "/api/profile") {
     const rawInitData = (req.headers["x-telegram-init-data"] || "").trim();
     let verifiedUser = null;
@@ -1022,17 +1068,26 @@ const server = http.createServer(async (req, res) => {
           customer = db.prepare("SELECT * FROM customers WHERE phone = ?").get(rawPhone);
         }
 
-        // Fetch recent orders
+        // Fetch menu price map for item price enrichment
+        const priceMap = new Map();
+        try {
+          const menuRows = db.prepare("SELECT id, name, price FROM menu_items WHERE is_active = 1").all();
+          for (const row of menuRows) {
+            if (row.id) priceMap.set(String(row.id).toLowerCase().trim(), Number(row.price || 0));
+            if (row.name) priceMap.set(String(row.name).toLowerCase().trim(), Number(row.price || 0));
+          }
+        } catch (_) {}
+
+        // Fetch recent orders (up to 50 for client-side pagination & Show More)
         const ordStmt = db.prepare(`
           SELECT order_num, order_type, address, total_price, status, created_at, items_json
           FROM orders
           WHERE (user_id = ? AND user_id > 0) OR (customer_phone = ? AND customer_phone != '')
-          ORDER BY id DESC LIMIT 5
+          ORDER BY id DESC LIMIT 50
         `);
         const ordRows = ordStmt.all(uid || -1, rawPhone || (customer?.phone || ""));
         orders = ordRows.map(o => {
-          let items = [];
-          try { items = JSON.parse(o.items_json); } catch (_) {}
+          const items = normalizeOrderItems(o.items_json, priceMap);
           return {
             order_num: o.order_num,
             order_type: o.order_type,
@@ -1062,7 +1117,7 @@ const server = http.createServer(async (req, res) => {
           SELECT code, customer_name, customer_phone, res_date, res_time, guests, zone, table_assigned, status, created_at
           FROM reservations
           WHERE (user_id = ? AND user_id > 0) OR (customer_phone = ? AND customer_phone != '')
-          ORDER BY id DESC LIMIT 5
+          ORDER BY id DESC LIMIT 20
         `);
         reservations = resStmt.all(uid || -1, rawPhone || (customer?.phone || ""));
       } catch (err) {

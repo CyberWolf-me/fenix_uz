@@ -1255,6 +1255,181 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
   color: var(--text-faint);
   margin-top: 4px;
 }
+/* ── Profile Order History Expandable Card & Show More ── */
+.order-history-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.order-history-card:hover {
+  border-color: rgba(192, 138, 62, 0.4);
+}
+.order-history-card.expanded {
+  border-color: var(--gold);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+html[data-theme="light"] .order-history-card.expanded {
+  box-shadow: 0 4px 16px rgba(192, 138, 62, 0.12);
+}
+.order-card-chevron {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.order-history-card.expanded .order-card-chevron {
+  transform: rotate(180deg);
+}
+.order-details-drawer {
+  display: none;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-subtle);
+  animation: orderFadeSlide 0.22s ease-out;
+}
+.order-history-card.expanded .order-details-drawer {
+  display: block;
+}
+@keyframes orderFadeSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.order-details-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.order-dishes-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.order-dish-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+html[data-theme="light"] .order-dish-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.order-dish-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.order-dish-name {
+  font-family: 'Jost', sans-serif;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.order-dish-qty {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-hi);
+  background: rgba(192, 138, 62, 0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.order-dish-price {
+  font-family: 'Jost', sans-serif;
+  font-weight: 600;
+  color: var(--gold);
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.order-drawer-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+html[data-theme="light"] .order-drawer-meta {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.order-actions-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.order-track-btn {
+  background: transparent;
+  border: 1px solid var(--line-subtle);
+  color: var(--text-main);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.order-track-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.btn-more-orders {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(192, 138, 62, 0.08);
+  border: 1px solid rgba(192, 138, 62, 0.35);
+  color: var(--gold-hi);
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Jost', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+.btn-more-orders:hover {
+  background: rgba(192, 138, 62, 0.16);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+.btn-more-orders:active {
+  transform: scale(0.98);
+}
+.btn-more-orders .chevron-more {
+  transition: transform 0.25s ease;
+}
+.btn-more-orders.expanded .chevron-more {
+  transform: rotate(180deg);
+}
 
 /* ── Live Tracking Card ── */
 .tracking-card {
@@ -3568,6 +3743,16 @@ html[data-theme="light"] .recent-item-type {
       profGuestName: 'Гость FENIX',
       profPhoneEmpty: 'Телефон не указан',
       profRepeatOrderBtn: 'Повторить заказ',
+      showMoreOrders: (n) => `Показать ещё (${n})`,
+      showLessOrders: 'Свернуть',
+      orderDetailsTitle: 'Состав заказа',
+      orderTrackBtn: 'Отследить статус',
+      orderDeliveryCourier: 'Доставка курьером',
+      orderPickupRest: 'Самовывоз из ресторана',
+      orderInHall: 'Заказ в зале',
+      orderAddressLabel: 'Адрес',
+      orderMethodLabel: 'Способ получения',
+      orderTotalLabel: 'Итого',
       tableLabel: 'Стол',
       guestsWord: 'чел.',
       dishWord: 'Блюдо',
@@ -3781,6 +3966,16 @@ html[data-theme="light"] .recent-item-type {
       profGuestName: 'FENIX Mehmoni',
       profPhoneEmpty: 'Telefon kiritilmagan',
       profRepeatOrderBtn: 'Buyurtmani takrorlash',
+      showMoreOrders: (n) => `Yana ko‘rsatish (${n})`,
+      showLessOrders: 'Kamroq ko‘rsatish',
+      orderDetailsTitle: 'Buyurtma tarkibi',
+      orderTrackBtn: 'Holatni kuzatish',
+      orderDeliveryCourier: 'Kuryer orqali yetkazish',
+      orderPickupRest: 'Restorandan olib ketish',
+      orderInHall: 'Zaldagi buyurtma',
+      orderAddressLabel: 'Manzil',
+      orderMethodLabel: 'Qabul qilish usuli',
+      orderTotalLabel: 'Jami',
       tableLabel: 'Stol',
       guestsWord: 'kishi',
       dishWord: 'Taom',
@@ -3994,6 +4189,16 @@ html[data-theme="light"] .recent-item-type {
       profGuestName: 'FENIX Guest',
       profPhoneEmpty: 'Phone not set',
       profRepeatOrderBtn: 'Repeat order',
+      showMoreOrders: (n) => `Show more (${n})`,
+      showLessOrders: 'Show less',
+      orderDetailsTitle: 'Order items',
+      orderTrackBtn: 'Track status',
+      orderDeliveryCourier: 'Courier delivery',
+      orderPickupRest: 'Pickup from restaurant',
+      orderInHall: 'Dine-in order',
+      orderAddressLabel: 'Address',
+      orderMethodLabel: 'Delivery method',
+      orderTotalLabel: 'Total',
       tableLabel: 'Table',
       guestsWord: 'guests',
       dishWord: 'Dish',
@@ -4593,7 +4798,9 @@ html[data-theme="light"] .recent-item-type {
           date: new Date().toLocaleString(currentLang === 'uz' ? 'uz-UZ' : currentLang === 'en' ? 'en-US' : 'ru-RU'),
           total: data.total || getCartSummary().total,
           mode: orderMode === 'delivery' ? 'delivery' : 'pickup',
-          itemsCount: items.reduce((s, i) => s + i.qty, 0)
+          itemsCount: items.reduce((s, i) => s + i.qty, 0),
+          items: items.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+          address: orderMode === 'delivery' ? (userAddress || '') : ''
         };
         recentHistory.unshift(historyItem);
         localStorage.setItem('fenix_user_history', JSON.stringify(recentHistory.slice(0, 10)));
@@ -5135,6 +5342,202 @@ html[data-theme="light"] .recent-item-type {
   }
 
   // ── Profile Tab View Controller ──
+  // Profile Order History Pagination & Expandable State
+  let profileOrdersData = [];
+  let profileOrdersExpanded = false;
+  const expandedOrderCardIds = new Set();
+
+  function renderProfileOrdersList(ordersList = null) {
+    const ordersListEl = document.getElementById('profile-orders-list');
+    if (!ordersListEl) return;
+
+    if (ordersList !== null) {
+      profileOrdersData = ordersList;
+    }
+
+    // Fallback to recentHistory if profileOrdersData is empty
+    let listToRender = profileOrdersData;
+    if (!listToRender || listToRender.length === 0) {
+      if (recentHistory && recentHistory.some(it => it.type === 'order')) {
+        listToRender = recentHistory.filter(it => it.type === 'order');
+      }
+    }
+
+    if (!listToRender || listToRender.length === 0) {
+      ordersListEl.innerHTML = `<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">${t('profOrdersEmpty')}</p>`;
+      return;
+    }
+
+    const totalOrdersCount = listToRender.length;
+    // Show only 3 last orders by default, show all if expanded
+    const displayOrders = profileOrdersExpanded ? listToRender : listToRender.slice(0, 3);
+
+    const cardsHtml = displayOrders.map((o, idx) => {
+      const rawNum = o.order_num || o.code || (idx + 1);
+      const cleanNum = String(rawNum).replace(/^#?WEB-/, '');
+      const codeDisplay = String(rawNum).startsWith('#') ? rawNum : (String(rawNum).startsWith('WEB-') ? `#${rawNum}` : `#WEB-${rawNum}`);
+      const cardDomId = `prof-order-card-${cleanNum}`;
+      const isExpanded = expandedOrderCardIds.has(cardDomId);
+      const statusBadge = translateStatus(o.status || 'новый', 'order');
+      const totalFormatted = money(o.total_price || o.total || 0);
+
+      // Normalize items list for dish-by-dish view
+      let items = [];
+      const rawItems = o.items;
+      if (Array.isArray(rawItems)) {
+        items = rawItems.map(it => ({
+          name: it.name || it.n || it.id || t('dishWord'),
+          qty: Number(it.count || it.qty || it.quantity || 1),
+          price: Number(it.price || 0)
+        }));
+      } else if (rawItems && typeof rawItems === 'object') {
+        items = Object.entries(rawItems).map(([name, val]) => ({
+          name,
+          qty: typeof val === 'object' ? Number(val.qty || val.count || 1) : Number(val || 1),
+          price: typeof val === 'object' ? Number(val.price || 0) : 0
+        }));
+      }
+
+      // Summary string for collapsed preview
+      const itemsSummaryStr = items.length > 0
+        ? items.map(it => `${it.name} × ${it.qty}`).join(', ')
+        : (typeof o.itemsCount === 'number' && typeof t('dishesCountWord') === 'function' ? t('dishesCountWord')(o.itemsCount) : t('orderFromMenu'));
+
+      // Date string
+      const dateStr = o.created_at || o.date || '';
+
+      // Delivery method translation
+      const rawType = String(o.order_type || o.mode || '').toLowerCase();
+      let methodStr = t('orderDeliveryCourier');
+      if (rawType.includes('самовывоз') || rawType.includes('pickup')) {
+        methodStr = t('orderPickupRest');
+      } else if (rawType.includes('зал') || rawType.includes('hall')) {
+        methodStr = t('orderInHall');
+      }
+
+      const addressStr = o.address && o.address !== 'Самовывоз' && o.address !== 'В зале' ? o.address : '';
+
+      // Detailed items breakdown
+      const dishesTableHtml = items.length > 0 ? items.map(it => {
+        const itemLineTotal = it.price > 0 ? money(it.price * it.qty) : '';
+        return `
+          <div class="order-dish-row">
+            <div class="order-dish-left">
+              <span class="order-dish-name">${it.name}</span>
+              <span class="order-dish-qty">× ${it.qty}</span>
+            </div>
+            ${itemLineTotal ? `<span class="order-dish-price">${itemLineTotal}</span>` : ''}
+          </div>
+        `;
+      }).join('') : `<div style="font-size:11px;color:var(--text-muted);padding:4px 0;">${t('orderFromMenu')}</div>`;
+
+      return `
+        <div class="order-history-card ${isExpanded ? 'expanded' : ''}" id="${cardDomId}" onclick="window.FX_APP.toggleOrderCard('${cardDomId}')">
+          <div class="recent-item-top" style="margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="recent-item-code">${codeDisplay}</span>
+              ${dateStr ? `<span class="recent-item-date" style="margin:0;font-size:11px;">${dateStr}</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;border:1px solid rgba(192,138,62,0.25);">${statusBadge}</span>
+              <span class="order-card-chevron">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Preview summary in collapsed state -->
+          <div class="recent-item-summary" style="margin:6px 0 4px 0;display:flex;justify-content:space-between;align-items:center;">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px;font-size:12px;">${itemsSummaryStr}</span>
+            <span style="font-weight:700;color:var(--gold);font-size:13px;white-space:nowrap;font-family:'Jost',sans-serif;">${totalFormatted}</span>
+          </div>
+
+          <!-- Expanded drawer showing what the user ordered -->
+          <div class="order-details-drawer">
+            <div class="order-details-title">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>${t('orderDetailsTitle')}</span>
+            </div>
+
+            <div class="order-dishes-table">
+              ${dishesTableHtml}
+            </div>
+
+            <div class="order-drawer-meta">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                <span>${t('orderMethodLabel')}:</span>
+                <strong style="color:var(--text-main);">${methodStr}</strong>
+              </div>
+              ${addressStr ? `
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px;gap:8px;">
+                <span style="white-space:nowrap;">${t('orderAddressLabel')}:</span>
+                <span style="text-align:right;color:var(--text-main);word-break:break-word;">${addressStr}</span>
+              </div>` : ''}
+              <div style="display:flex;justify-content:space-between;padding-top:4px;border-top:1px dashed var(--line-subtle);font-weight:600;">
+                <span>${t('orderTotalLabel')}:</span>
+                <strong style="color:var(--gold);font-family:'Jost',sans-serif;font-size:13px;">${totalFormatted}</strong>
+              </div>
+            </div>
+
+            <div class="order-actions-row">
+              <button type="button" class="order-track-btn" onclick="event.stopPropagation(); window.FX_APP.lookupCode('WEB-${cleanNum}')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>${t('orderTrackBtn')}</span>
+              </button>
+              <button type="button" class="repeat-order-btn" onclick="event.stopPropagation(); window.FX_APP.repeatOrderFromProfile('${cleanNum}')">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:3px;vertical-align:middle;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                <span>${t('profRepeatOrderBtn')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // If there are more than 3 orders, render the Show more / Show less toggle button
+    let moreBtnHtml = '';
+    if (totalOrdersCount > 3) {
+      const remainingCount = totalOrdersCount - 3;
+      const moreLabel = profileOrdersExpanded
+        ? t('showLessOrders')
+        : (typeof t('showMoreOrders') === 'function' ? t('showMoreOrders')(remainingCount) : `${t('showMoreOrders')} (${remainingCount})`);
+      
+      moreBtnHtml = `
+        <div style="text-align:center;margin-top:10px;margin-bottom:4px;">
+          <button type="button" class="btn-more-orders ${profileOrdersExpanded ? 'expanded' : ''}" onclick="window.FX_APP.toggleProfileOrdersExpanded()">
+            <span>${moreLabel}</span>
+            <svg class="chevron-more" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    ordersListEl.innerHTML = cardsHtml + moreBtnHtml;
+  }
+
+  function toggleOrderCard(cardDomId) {
+    haptic('light');
+    if (expandedOrderCardIds.has(cardDomId)) {
+      expandedOrderCardIds.delete(cardDomId);
+    } else {
+      expandedOrderCardIds.add(cardDomId);
+    }
+    const cardEl = document.getElementById(cardDomId);
+    if (cardEl) {
+      cardEl.classList.toggle('expanded', expandedOrderCardIds.has(cardDomId));
+    }
+  }
+
+  function toggleProfileOrdersExpanded() {
+    haptic('light');
+    profileOrdersExpanded = !profileOrdersExpanded;
+    renderProfileOrdersList();
+  }
+
   async function renderProfileView() {
     const nameEl = document.getElementById('profile-user-name');
     const phoneEl = document.getElementById('profile-user-phone');
@@ -5236,6 +5639,9 @@ html[data-theme="light"] .recent-item-type {
       };
     }
 
+    // Initial orders render (from memory or recentHistory)
+    renderProfileOrdersList();
+
     // Fetch live profile from backend if user_id or phone is known
     const queryUid = tgUser ? tgUser.id : (localStorage.getItem('fx.uid') || '');
     const queryPhone = userPhone || '';
@@ -5264,46 +5670,9 @@ html[data-theme="light"] .recent-item-type {
             }
           }
 
-          // Render Recent Orders with Repeat Order button
+          // Render Recent Orders via renderProfileOrdersList
           if (ordersListEl) {
-            if (data.orders && data.orders.length > 0) {
-              ordersListEl.innerHTML = data.orders.map(o => {
-                const num = o.order_num;
-                const status = translateStatus(o.status || 'новый', 'order');
-                const total = money(o.total_price);
-                const itemsStr = Array.isArray(o.items) 
-                  ? o.items.map(it => `${it.name || it.n || t('dishWord')} × ${it.count || it.qty || 1}`).join(', ')
-                  : t('orderFromMenu');
-                return `
-                  <div class="recent-item-card" style="margin-bottom:10px;">
-                    <div class="recent-item-top">
-                      <span class="recent-item-code">#WEB-${num}</span>
-                      <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;border:1px solid rgba(192,138,62,0.25);">${status}</span>
-                    </div>
-                    <div class="recent-item-summary" style="margin:6px 0;">${itemsStr}</div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-                      <span style="font-weight:700;color:var(--gold);font-size:13px;">${total}</span>
-                      <button type="button" class="repeat-order-btn" onclick="window.FX_APP.repeatOrderFromProfile('${num}')">
-                        ${t('profRepeatOrderBtn')}
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('');
-            } else if (recentHistory && recentHistory.some(it => it.type === 'order')) {
-              const orderItems = recentHistory.filter(it => it.type === 'order');
-              ordersListEl.innerHTML = orderItems.map(o => `
-                <div class="recent-item-card" style="margin-bottom:10px;" onclick="window.FX_APP.lookupCode('${o.code}')">
-                  <div class="recent-item-top">
-                    <span class="recent-item-code">${o.code}</span>
-                    <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;">${translateStatus(o.status || 'новый', 'order')}</span>
-                  </div>
-                  <div class="recent-item-summary" style="margin:4px 0;">${money(o.total)} • ${o.date || ''}</div>
-                </div>
-              `).join('');
-            } else {
-              ordersListEl.innerHTML = `<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">${t('profOrdersEmpty')}</p>`;
-            }
+            renderProfileOrdersList(data.orders || []);
           }
 
           // Render Recent Reservations
@@ -5353,14 +5722,37 @@ html[data-theme="light"] .recent-item-type {
   async function repeatOrderFromProfile(orderNum) {
     haptic('medium');
     try {
-      const res = await fetch(`/api/lookup?q=${orderNum}`);
+      const cleanNum = String(orderNum).replace(/^#?WEB-/, '');
+      // Check in-memory profile orders first
+      const inMemory = profileOrdersData.find(o => String(o.order_num) === cleanNum || String(o.code) === cleanNum || String(o.code) === `WEB-${cleanNum}`);
+      if (inMemory && Array.isArray(inMemory.items) && inMemory.items.length > 0) {
+        let addedCount = 0;
+        inMemory.items.forEach(it => {
+          const itName = (it.name || it.n || '').toLowerCase().trim();
+          const match = MENU_ITEMS.find(m => (m.name && m.name.ru && m.name.ru.toLowerCase() === itName) || (m.name && typeof m.name === 'string' && m.name.toLowerCase() === itName) || m.id === it.name);
+          if (match) {
+            updateCart(match.id, it.qty || it.count || 1);
+            addedCount++;
+          }
+        });
+        if (addedCount > 0) {
+          switchTab('tab-cart');
+          return;
+        }
+      }
+
+      const res = await fetch(`/api/lookup?q=${cleanNum}`);
       const data = await res.json();
       if (data.ok && data.record && data.record.items) {
         let addedCount = 0;
-        data.record.items.forEach(it => {
-          const match = MENU_ITEMS.find(m => (m.name && m.name.ru && m.name.ru.toLowerCase() === (it.name || '').toLowerCase()) || m.id === it.name);
+        let itemsList = Array.isArray(data.record.items) 
+          ? data.record.items 
+          : Object.entries(data.record.items).map(([name, val]) => ({ name, qty: typeof val === 'object' ? (val.qty || val.count || 1) : Number(val || 1) }));
+        itemsList.forEach(it => {
+          const itName = (it.name || it.n || '').toLowerCase().trim();
+          const match = MENU_ITEMS.find(m => (m.name && m.name.ru && m.name.ru.toLowerCase() === itName) || (m.name && typeof m.name === 'string' && m.name.toLowerCase() === itName) || m.id === it.name);
           if (match) {
-            updateCart(match.id, it.count || 1);
+            updateCart(match.id, it.qty || it.count || 1);
             addedCount++;
           }
         });
@@ -5971,7 +6363,9 @@ html[data-theme="light"] .recent-item-type {
     openWizard,
     closeWizard,
     renderProfileView,
-    repeatOrderFromProfile
+    repeatOrderFromProfile,
+    toggleOrderCard,
+    toggleProfileOrdersExpanded
   };
 
   // ── Boot & Event Listeners ──
