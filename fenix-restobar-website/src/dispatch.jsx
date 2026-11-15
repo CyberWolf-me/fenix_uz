@@ -822,8 +822,6 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [cancellingOrder, setCancellingOrder] = useState(null);
-  const [stopListCount, setStopListCount] = useState(0);
-  const [stopListDismissed, setStopListDismissed] = useState(false);
   const [kpisCollapsed, setKpisCollapsed] = useState(() => {
     try { return localStorage.getItem('fx.admin.kpis_collapsed') === '1'; } catch (_) { return false; }
   });
@@ -833,31 +831,6 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
       try { localStorage.setItem('fx.admin.kpis_collapsed', next ? '1' : '0'); } catch (_) {}
       return next;
     });
-  };
-
-  useEffect(() => {
-    fetch('/api/admin/overview')
-      .then(r => r.json())
-      .then(d => {
-        if (d && d.ok && d.overview) {
-          if (d.overview.stopListCount > 0) setStopListCount(d.overview.stopListCount);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const enableAllDishes = async () => {
-    try {
-      const res = await fetch('/api/admin/menu/stoplist/enable-all', { method: 'POST' });
-      const data = await res.json();
-      if (data && data.ok) {
-        toast && toast('Все блюда возвращены в меню!', 'ok', 'check');
-        setStopListCount(0);
-        setStopListDismissed(true);
-      }
-    } catch (_) {
-      toast && toast('Ошибка при включении блюд', 'danger');
-    }
   };
 
   const filtered = useMemo(() => {
@@ -965,32 +938,6 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
           )}
         </div>
       </div>
-
-      {/* Morning Stop-List Reminder Banner */}
-      {stopListCount > 0 && !stopListDismissed && (
-        <div className="stoplist-banner" style={{ margin: '0 14px 10px' }}>
-          <Icon name="alert" size={15} />
-          <span>
-            {t('stoplist_warning').replace('{count}', stopListCount)}
-          </span>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={enableAllDishes}
-            style={{ color: 'var(--accent)', fontWeight: 600, border: '1px solid var(--accent)' }}
-          >
-            {t('enable_all')}
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost btn-icon btn-sm"
-            onClick={() => setStopListDismissed(true)}
-            title={t('dismiss')}
-          >
-            <Icon name="x" size={13} />
-          </button>
-        </div>
-      )}
 
       {/* Mobile Stage Selector Tabs (Purpose-built for handheld touch ergonomics) */}
       {view === 'board' && (

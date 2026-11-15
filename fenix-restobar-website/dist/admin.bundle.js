@@ -2074,8 +2074,6 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [cancellingOrder, setCancellingOrder] = useState(null);
-  const [stopListCount, setStopListCount] = useState(0);
-  const [stopListDismissed, setStopListDismissed] = useState(false);
   const [kpisCollapsed, setKpisCollapsed] = useState(() => {
     try {
       return localStorage.getItem("fx.admin.kpis_collapsed") === "1";
@@ -2092,27 +2090,6 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
       }
       return next;
     });
-  };
-  useEffect(() => {
-    fetch("/api/admin/overview").then((r) => r.json()).then((d) => {
-      if (d && d.ok && d.overview) {
-        if (d.overview.stopListCount > 0) setStopListCount(d.overview.stopListCount);
-      }
-    }).catch(() => {
-    });
-  }, []);
-  const enableAllDishes = async () => {
-    try {
-      const res = await fetch("/api/admin/menu/stoplist/enable-all", { method: "POST" });
-      const data = await res.json();
-      if (data && data.ok) {
-        toast && toast("\u0412\u0441\u0435 \u0431\u043B\u044E\u0434\u0430 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u044B \u0432 \u043C\u0435\u043D\u044E!", "ok", "check");
-        setStopListCount(0);
-        setStopListDismissed(true);
-      }
-    } catch (_) {
-      toast && toast("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0438 \u0431\u043B\u044E\u0434", "danger");
-    }
   };
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
@@ -2165,25 +2142,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
     },
     /* @__PURE__ */ React.createElement(Icon, { name: kpisCollapsed ? "chevronD" : "chevronU", size: 12 }),
     /* @__PURE__ */ React.createElement("span", null, kpisCollapsed ? t("expand_kpis") : t("collapse_kpis"))
-  ), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile" }, /* @__PURE__ */ React.createElement("button", { "data-on": sort === "sla" ? "1" : "0", onClick: () => setSort("sla"), title: t("sort_sla") }, "SLA"), /* @__PURE__ */ React.createElement("button", { "data-on": sort === "total" ? "1" : "0", onClick: () => setSort("total"), title: t("sort_total") }, "\u03A3")), /* @__PURE__ */ React.createElement("div", { className: "seg" }, /* @__PURE__ */ React.createElement("button", { "data-on": view === "board" ? "1" : "0", onClick: () => setView("board"), title: t("board") }, /* @__PURE__ */ React.createElement(Icon, { name: "grid", size: 12 })), /* @__PURE__ */ React.createElement("button", { "data-on": view === "list" ? "1" : "0", onClick: () => setView("list"), title: t("list") }, /* @__PURE__ */ React.createElement(Icon, { name: "bookStack", size: 12 }))), newCount > 0 && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => dispatch("acceptAll"), title: t("accept_all") }, /* @__PURE__ */ React.createElement("span", null, t("accept_all"))))), stopListCount > 0 && !stopListDismissed && /* @__PURE__ */ React.createElement("div", { className: "stoplist-banner", style: { margin: "0 14px 10px" } }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 15 }), /* @__PURE__ */ React.createElement("span", null, t("stoplist_warning").replace("{count}", stopListCount)), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      className: "btn btn-ghost btn-sm",
-      onClick: enableAllDishes,
-      style: { color: "var(--accent)", fontWeight: 600, border: "1px solid var(--accent)" }
-    },
-    t("enable_all")
-  ), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      className: "btn btn-ghost btn-icon btn-sm",
-      onClick: () => setStopListDismissed(true),
-      title: t("dismiss")
-    },
-    /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 13 })
-  )), view === "board" && /* @__PURE__ */ React.createElement("div", { className: "mobile-stage-tabs", role: "tablist", "aria-label": "\u0421\u0442\u0430\u0442\u0443\u0441\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432" }, COLUMNS.map((c) => {
+  ), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile" }, /* @__PURE__ */ React.createElement("button", { "data-on": sort === "sla" ? "1" : "0", onClick: () => setSort("sla"), title: t("sort_sla") }, "SLA"), /* @__PURE__ */ React.createElement("button", { "data-on": sort === "total" ? "1" : "0", onClick: () => setSort("total"), title: t("sort_total") }, "\u03A3")), /* @__PURE__ */ React.createElement("div", { className: "seg" }, /* @__PURE__ */ React.createElement("button", { "data-on": view === "board" ? "1" : "0", onClick: () => setView("board"), title: t("board") }, /* @__PURE__ */ React.createElement(Icon, { name: "grid", size: 12 })), /* @__PURE__ */ React.createElement("button", { "data-on": view === "list" ? "1" : "0", onClick: () => setView("list"), title: t("list") }, /* @__PURE__ */ React.createElement(Icon, { name: "bookStack", size: 12 }))), newCount > 0 && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => dispatch("acceptAll"), title: t("accept_all") }, /* @__PURE__ */ React.createElement("span", null, t("accept_all"))))), view === "board" && /* @__PURE__ */ React.createElement("div", { className: "mobile-stage-tabs", role: "tablist", "aria-label": "\u0421\u0442\u0430\u0442\u0443\u0441\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432" }, COLUMNS.map((c) => {
     const list = filtered.filter((o) => o.col === c.id);
     const on = mobileStage === c.id;
     return /* @__PURE__ */ React.createElement(
