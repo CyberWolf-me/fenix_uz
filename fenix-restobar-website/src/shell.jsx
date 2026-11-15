@@ -83,11 +83,10 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
             </div>
           ))}
         </div>
-        <div className="nav-foot" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="nav-foot">
           <button
             type="button"
             className="nav-user"
-            style={{ flex: 1, cursor: 'pointer', textAlign: 'left', border: 'none', background: 'transparent' }}
             onClick={onSwitchUser}
             title="Нажмите для смены активного оператора смены"
           >
@@ -100,12 +99,9 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
           {onLogout && (
             <button
               type="button"
-              className="btn btn-ghost btn-icon btn-sm"
+              className="nav-logout-btn"
               onClick={onLogout}
               title="Выйти из системы"
-              style={{ color: 'var(--text-3)', padding: '8px', cursor: 'pointer' }}
-              onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
-              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-3)'}
             >
               <Icon name="logOut" size={16} />
             </button>
@@ -116,7 +112,7 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
   );
 }
 
-function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu }) {
+function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu, currentShift, onOpenShiftModal }) {
   const hh = new Date(now);
   const clock = [hh.getHours(), hh.getMinutes(), hh.getSeconds()]
     .map((x) => String(x).padStart(2, '0')).join(':');
@@ -140,6 +136,15 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
 
       <div className="topbar-mid">
         <span className="live"><i />{t('live')}</span>
+        <button
+          type="button"
+          className="topbar-shift-badge"
+          onClick={onOpenShiftModal}
+          title="Нажмите для просмотра итогов или завершения смены"
+        >
+          <span className="shift-status-dot" />
+          <span>Смена #{currentShift?.shiftNum || 1}</span>
+        </button>
         <span className="clock"><Icon name="clock" size={13} />{t('shift')}: <b>{clock}</b></span>
       </div>
 
@@ -167,9 +172,17 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
           {lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : 'ЎЗ'}
         </button>
 
-        <button className="btn btn-ghost btn-icon btn-sm" title={t('attention')} onClick={() => toast('6 заказов требуют подтверждения', 'warn', 'alert')}>
-          <Icon name="bell" size={15} />
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm hide-mobile"
+          onClick={onOpenShiftModal}
+          title="Завершить смену / Z-отчёт"
+          style={{ gap: 5, color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' }}
+        >
+          <Icon name="check" size={13} />
+          <span>Итог дня</span>
         </button>
+
         <Btn size="sm" variant="accent" icon="plus" onClick={onNew}>{t('create')}</Btn>
         {onLogout && (
           <button className="btn btn-ghost btn-icon btn-sm hide-mobile" title="Выйти из системы" onClick={onLogout} style={{ color: 'var(--text-3)' }}>
@@ -303,7 +316,7 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
   const [address, setAddress] = useState('');
   const [table, setTable] = useState('Стол 1 · Основной зал');
   const [itemsNote, setItemsNote] = useState('');
-  const [pay, setPay] = useState('card');
+  const [pay, setPay] = useState('cash');
   const [total, setTotal] = useState(150000);
 
   const [bDate, setBDate] = useState('today');
@@ -470,8 +483,8 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
                 <label className="label">Оплата</label>
                 <select style={{ width: '100%', marginTop: 4, padding: '7px 10px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-xs)', color: 'var(--text)', outline: 'none' }}
                         value={pay} onChange={e => setPay(e.target.value)}>
-                  <option value="card">Карта / Онлайн</option>
-                  <option value="cash">Наличные</option>
+                  <option value="cash">Наличные (при получении)</option>
+                  <option value="card">Карта / Онлайн (терминал)</option>
                 </select>
               </div>
               <div>
@@ -549,4 +562,156 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
   );
 }
 
-Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, MobileBottomNav, CommandPalette, CreateModal, THEMES, DIRECTIONS });
+function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast }) {
+  const [loading, setLoading] = useState(false);
+  const [shiftData, setShiftData] = useState(null);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetch('/api/admin/shift/current')
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.ok && d.shift) setShiftData(d.shift);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleCloseShift = async (force = true) => {
+    setClosing(true);
+    try {
+      const res = await fetch('/api/admin/shift/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          closedBy: currentUser?.full_name || currentUser?.name || 'Администратор Fenix',
+          force
+        })
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast(`Смена успешно закрыта! Начата смена #${data.newShift?.shiftNum || ''}`, 'ok', 'check');
+        onShiftClosed && onShiftClosed(data);
+        onClose();
+      } else if (data && data.warning === 'open_orders') {
+        toast && toast(`В смене ${data.openOrdersCount} открытых заказов. Завершите или подтвердите перенос.`, 'warn', 'alert');
+      } else {
+        toast && toast(data?.error || 'Не удалось закрыть смену', 'danger');
+      }
+    } catch (err) {
+      toast && toast('Сетевая ошибка при закрытии смены', 'danger');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const s = shiftData || {};
+
+  return (
+    <Modal onClose={onClose} width={540} label="Итоги смены">
+      <div className="modal-head">
+        <Icon name="wallet" size={16} style={{ color: 'var(--accent)' }} />
+        <div className="modal-title grow">
+          Смена #{s.shiftNum || 1} · Текущие итоги
+        </div>
+        <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><Icon name="x" size={14} /></button>
+      </div>
+      <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-3)' }}>Загрузка данных смены...</div>
+        ) : (
+          <>
+            {s.openOrdersCount > 0 && (
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: 'var(--r-sm)',
+                background: 'var(--warn-soft)',
+                border: '1px solid color-mix(in srgb, var(--warn) 30%, transparent)',
+                color: 'var(--warn)',
+                fontSize: 12
+              }}>
+                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="alert" size={14} />
+                  <span>Внимание: {s.openOrdersCount} активных заказа(ов) ещё не завершены!</span>
+                </div>
+                <div style={{ fontSize: 11, marginTop: 4, color: 'var(--text-2)' }}>
+                  При закрытии смены они автоматически перейдут в следующую смену.
+                </div>
+              </div>
+            )}
+
+            <div className="shift-report-grid">
+              <div className="shift-report-box">
+                <div className="label">Выручка за смену</div>
+                <div className="val" style={{ color: 'var(--accent)' }}>
+                  {summ(s.totalRevenue || 0)} <small style={{ fontSize: 11, fontWeight: 500 }}>сум</small>
+                </div>
+                <div className="hint">{s.totalOrders || 0} оформленных чеков</div>
+              </div>
+
+              <div className="shift-report-box">
+                <div className="label">Средний чек</div>
+                <div className="val">
+                  {summ(s.totalOrders > 0 ? Math.round((s.totalRevenue || 0) / s.totalOrders) : 0)} <small style={{ fontSize: 11, fontWeight: 500 }}>сум</small>
+                </div>
+                <div className="hint">по всем заказам</div>
+              </div>
+
+              <div className="shift-report-box">
+                <div className="label">Наличные (курьеры / самовывоз)</div>
+                <div className="val" style={{ color: 'var(--ok)' }}>
+                  {summ(s.cashTotal || 0)} <small style={{ fontSize: 11, fontWeight: 500 }}>сум</small>
+                </div>
+                <div className="hint">сумма к сдаче в кассу</div>
+              </div>
+
+              <div className="shift-report-box">
+                <div className="label">Онлайн / Терминал</div>
+                <div className="val" style={{ color: 'var(--info)' }}>
+                  {summ(s.cardTotal || 0)} <small style={{ fontSize: 11, fontWeight: 500 }}>сум</small>
+                </div>
+                <div className="hint">безналичная оплата</div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '10px 14px', background: 'var(--surface-2)' }}>
+              <div className="label" style={{ marginBottom: 6 }}>Разбивка по каналам заказов</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 11.5 }}>
+                <div>Доставка: <b>{s.deliveryOrders || 0}</b></div>
+                <div>Самовывоз: <b>{s.pickupOrders || 0}</b></div>
+                <div>В зале: <b>{s.hallOrders || 0}</b></div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
+              Смена открыта: <b>{s.openedAt ? new Date(s.openedAt).toLocaleString('ru-RU') : '—'}</b> (оператор: {s.openedBy || 'admin'}).
+              После нажатия «Завершить смену» текущий день будет сохранён в архиве, а рабочий экран заказов и кассы сбросится до 0.
+            </div>
+          </>
+        )}
+      </div>
+      <div className="modal-foot">
+        <Btn
+          type="submit"
+          variant="accent"
+          icon="check"
+          className="grow"
+          disabled={loading || closing}
+          onClick={() => handleCloseShift(true)}
+        >
+          {closing ? 'Закрытие смены...' : 'Завершить смену / Сохранить день'}
+        </Btn>
+        <Btn type="button" variant="ghost" onClick={onClose} disabled={closing}>
+          Отмена
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
+Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, MobileBottomNav, CommandPalette, CreateModal, ShiftCloseModal, THEMES, DIRECTIONS });

@@ -1,132 +1,382 @@
 /* ═══════════ ANALYTICS · SETTINGS ═══════════ */
 
 function Analytics({ t, orders = [] }) {
-  const completedOrders = orders.filter((o) => o.col === 'done');
-  const total = orders.reduce((s, o) => s + (o.total || 0), 0);
-  const completedTotal = completedOrders.reduce((s, o) => s + (o.total || 0), 0);
-  const totalOrders = orders.length;
-  const completedCount = completedOrders.length;
-  const cancelledCount = orders.filter((o) => (o.status || '').includes('отмен')).length;
+  const [tab, setTab] = useState('shift'); // 'shift' | '7d' | '30d' | 'archive'
+  const [data, setData] = useState(null);
+  const [archive, setArchive] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const avgCheck = totalOrders > 0 ? Math.round(total / totalOrders) : 0;
-  const completionRate = totalOrders > 0 ? Math.round((completedCount / totalOrders) * 100) : 100;
+  // Fetch summary or archive data whenever tab changes
+  useEffect(() => {
+    setLoading(true);
+    if (tab === 'archive') {
+      fetch('/api/admin/shifts/history')
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.ok && Array.isArray(d.shifts)) setArchive(d.shifts);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      fetch(`/api/admin/analytics/summary?period=${tab}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.ok) setData(d);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [tab]);
 
-  // Real hourly distribution (from 11:00 to 23:00)
+  const summary = data?.summary || {
+    totalOrders: 0,
+    totalRevenue: 0,
+    avgCheck: 0,
+    completedCount: 0,
+    cancelledCount: 0,
+    completionRate: 100,
+    cashTotal: 0,
+    cardTotal: 0,
+    deliveryCount: 0,
+    pickupCount: 0,
+    hallCount: 0
+  };
+
   const hours = ['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
-  const realHourly = hours.map((h) => {
-    const hr = parseInt(h.split(':')[0]);
-    const inHour = orders.filter((o) => {
-      const d = new Date(o.createdAt || Date.now());
-      return d.getHours() === hr;
-    });
-    return Math.round(inHour.reduce((s, o) => s + (o.total || 0), 0) / 1000);
+  const hourlySeries = hours.map(h => {
+    const found = (data?.hourly || []).find(x => x.hour === h);
+    return found ? Math.round((found.revenue || 0) / 1000) : 0;
   });
 
-  // Calculate actual top items from orders
-  const itemCounts = {};
-  orders.forEach((o) => {
-    (o.items || []).forEach((it) => {
-      const n = it.n || 'Блюдо';
-      itemCounts[n] = (itemCounts[n] || 0) + (it.q || 1);
-    });
-  });
-  const topList = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  const maxTop = topList.length > 0 ? Math.max(...topList.map((x) => x[1])) : 1;
+  const topDishes = data?.topDishes || [];
+  const maxDish = topDishes.length > 0 ? Math.max(...topDishes.map(x => x.count)) : 1;
 
-  // Order types breakdown
-  const delCount = orders.filter((o) => o.type === 'delivery').length;
-  const pickCount = orders.filter((o) => o.type === 'pickup').length;
-  const hallCount = orders.filter((o) => o.type === 'hall').length;
-  const safeTotal = totalOrders || 1;
+  // 7-day daily series
+  const dailyList = data?.daily || [];
+  const maxDailyRev = dailyList.length > 0 ? Math.max(...dailyList.map(x => x.revenue || 0), 100000) : 100000;
 
   return (
     <div className="page">
-      <div className="kpis">
+      {/* 4 Views Sub-Navigation Bar */}
+      <div className="analytics-subnav">
         {[
-          { l: 'revenue_today', v: summ(total), f: `${totalOrders} чеков за смену`, icon: 'wallet' },
-          { l: 'avg_check', v: summ(avgCheck), f: 'Средний чек заказа', icon: 'receipt' },
-          { l: 'completed', v: completedCount, f: `Из ${totalOrders} заказов · ${completionRate}%`, icon: 'check' },
-          { l: 'cancellations', v: cancelledCount, f: `${cancelledCount} отмен`, icon: 'x', warn: cancelledCount > 0 },
-        ].map((c) => (
-          <div className="card kpi" key={c.l}>
-            <div className="kpi-top">
-              <span className="label">{t(c.l)}</span>
-              <span className="kpi-ico" style={c.warn ? { color: 'var(--danger)', background: 'var(--danger-soft)' } : undefined}>
-                <Icon name={c.icon} size={14} />
-              </span>
-            </div>
-            <div className="kpi-body">
-              <div className="stat-num">{c.v}</div>
-            </div>
-            <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
-          </div>
+          { id: 'shift', label: 'Текущая смена' },
+          { id: '7d', label: 'По дням (7 дней)' },
+          { id: '30d', label: 'Месяц и год (30 дней)' },
+          { id: 'archive', label: 'Архив закрытых смен' },
+        ].map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className="analytics-tab-btn"
+            data-active={tab === item.id ? '1' : '0'}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 12, marginTop: 13 }}>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-3)' }}>
+          Загрузка аналитических данных...
+        </div>
+      ) : tab === 'archive' ? (
+        /* 4. Saved Shifts Archive View */
         <div className="card" style={{ padding: 14 }}>
           <div className="row" style={{ marginBottom: 12 }}>
             <div>
-              <div className="label">{t('rev_by_hour')}</div>
-              <div className="money-lg" style={{ fontSize: 21, marginTop: 2 }}>
-                {summ(total)} <span style={{ fontSize: 10, fontFamily: 'var(--f-body)', fontWeight: 600, color: 'var(--text-3)' }}>сум</span>
+              <div className="label">Архив закрытых смен</div>
+              <div className="dim" style={{ fontSize: 11, marginTop: 2 }}>
+                История всех завершённых смен ресторана FENIX с разбивкой по кассе
               </div>
             </div>
             <span className="grow" />
-            <div className="row" style={{ gap: 10, fontSize: 9.5 }}>
-              <span className="row" style={{ gap: 4, color: 'var(--text-2)' }}>
-                <span style={{ width: 14, height: 2, background: 'var(--accent)', display: 'block', borderRadius: 2 }} />Сегодня
-              </span>
-            </div>
+            <span className="badge">{archive.length} смен в архиве</span>
           </div>
-          <LineChart
-            labels={hours}
-            series={[
-              { data: realHourly, color: 'var(--accent)', fill: true },
-            ]} height={168} />
-        </div>
 
-        <div className="card" style={{ padding: 14 }}>
-          <div className="label">{t('kitchen_load')}</div>
-          <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>
-            {orders.filter((o) => o.col === 'kitchen').length} готовятся · {orders.filter((o) => o.col === 'way').length} на доставке
+          <div style={{ overflowX: 'auto' }}>
+            <table className="shift-archive-tbl">
+              <thead>
+                <tr>
+                  <th>Смена</th>
+                  <th>Открыта</th>
+                  <th>Закрыта</th>
+                  <th>Кто закрыл</th>
+                  <th style={{ textAlign: 'right' }}>Чеков</th>
+                  <th style={{ textAlign: 'right' }}>Наличные</th>
+                  <th style={{ textAlign: 'right' }}>Карты / Онлайн</th>
+                  <th style={{ textAlign: 'right' }}>Итого выручка</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archive.map(s => (
+                  <tr key={s.id}>
+                    <td className="mono" style={{ fontWeight: 700, color: 'var(--accent)' }}>
+                      #{s.shift_num}
+                    </td>
+                    <td>{s.opened_at ? new Date(s.opened_at.replace(' ', 'T')).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                    <td>{s.closed_at ? new Date(s.closed_at.replace(' ', 'T')).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                    <td>
+                      {s.auto_closed === 1 ? (
+                        <span className="pill" style={{ background: 'var(--warn-soft)', color: 'var(--warn)', fontSize: 9.5, padding: '2px 6px', borderRadius: 4 }}>
+                          Авто (04:00)
+                        </span>
+                      ) : (
+                        <span>{s.closed_by || 'Администратор'}</span>
+                      )}
+                    </td>
+                    <td className="mono" style={{ textAlign: 'right' }}>{s.total_orders || 0}</td>
+                    <td className="mono" style={{ textAlign: 'right', color: 'var(--ok)' }}>{summ(s.cash_total || 0)}</td>
+                    <td className="mono" style={{ textAlign: 'right', color: 'var(--info)' }}>{summ(s.card_total || 0)}</td>
+                    <td className="mono" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>
+                      {summ(s.total_revenue || 0)} <small style={{ fontSize: 9.5 }}>сум</small>
+                    </td>
+                  </tr>
+                ))}
+                {!archive.length && (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--text-3)' }}>
+                      Закрытых смен пока нет. Текущая смена активна.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          <div style={{ marginTop: 13, paddingTop: 11, borderTop: '1px solid var(--line-soft)' }}>
-            <div className="label">{t('top_items')}</div>
-            <div className="col-flex" style={{ marginTop: 7, gap: 6 }}>
-              {topList.map(([n, v]) => (
-                <div key={n} className="row" style={{ gap: 7, fontSize: 10.5 }}>
-                  <span className="grow trunc">{n}</span>
-                  <div style={{ width: 52, height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ width: (v / maxTop) * 100 + '%', height: '100%', background: 'var(--accent)', opacity: 0.8 }} />
-                  </div>
-                  <span className="mono dim" style={{ fontSize: 9, width: 16, textAlign: 'right' }}>{v}</span>
+        </div>
+      ) : tab === '7d' ? (
+        /* 2. Last 7 Days View */
+        <>
+          <div className="kpis">
+            {[
+              { l: 'Выручка за 7 дней', v: summ(summary.totalRevenue), f: `${summary.totalOrders} чеков`, icon: 'wallet' },
+              { l: 'Средний чек (7д)', v: summ(summary.avgCheck), f: 'За заказ', icon: 'receipt' },
+              { l: 'Наличные в кассу', v: summ(summary.cashTotal), f: 'От курьеров и самовывоза', icon: 'check' },
+              { l: 'Онлайн / Карты', v: summ(summary.cardTotal), f: 'Безналичные платежи', icon: 'card' },
+            ].map(c => (
+              <div className="card kpi" key={c.l}>
+                <div className="kpi-top">
+                  <span className="label">{c.l}</span>
+                  <span className="kpi-ico"><Icon name={c.icon} size={14} /></span>
                 </div>
-              ))}
-              {!topList.length && (
-                <div className="dim" style={{ fontSize: 11 }}>Заказов с позициями меню пока нет</div>
-              )}
-            </div>
+                <div className="kpi-body">
+                  <div className="stat-num">{c.v}</div>
+                </div>
+                <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12 }}>
-        {[
-          { l: 'delivery', v: delCount, c: 'var(--info)', f: `${Math.round((delCount / safeTotal) * 100)}% всех заказов` },
-          { l: 'pickup', v: pickCount, c: 'var(--warn)', f: `${Math.round((pickCount / safeTotal) * 100)}% всех заказов` },
-          { l: 'hall', v: hallCount, c: 'var(--violet)', f: `${Math.round((hallCount / safeTotal) * 100)}% всех заказов` },
-        ].map((s) => (
-          <div key={s.l} className="card" style={{ padding: 13 }}>
-            <div className="row">
-              <span className="label">{t(s.l)}</span>
-              <span className="grow" />
-              <span className="stat-num" style={{ fontSize: 18, color: s.c }}>{s.v}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 12, marginTop: 13 }}>
+            <div className="card" style={{ padding: 14 }}>
+              <div className="label">Сравнение выручки по дням (последние 7 дней)</div>
+              <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 12 }}>
+                Ежедневный доход от доставки, самовывоза и зала
+              </div>
+
+              <div className="bar-chart-container">
+                {dailyList.map(d => {
+                  const pct = Math.max(4, Math.round((d.revenue / maxDailyRev) * 100));
+                  const dayName = new Date(d.date).toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'numeric' });
+                  return (
+                    <div className="bar-col" key={d.date}>
+                      <div className="bar-val">{d.revenue > 0 ? `${Math.round(d.revenue / 1000)}k` : '0'}</div>
+                      <div className="bar-fill-track">
+                        <div className="bar-fill" style={{ height: `${pct}%` }} />
+                      </div>
+                      <div className="bar-label">{dayName}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="dim trunc" style={{ fontSize: 10, marginTop: 4 }}>{s.f}</div>
+
+            <div className="card" style={{ padding: 14 }}>
+              <div className="label">Популярные блюда за неделю</div>
+              <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>
+                Лидеры заказов за 7 дней
+              </div>
+              <div className="col-flex" style={{ gap: 7, marginTop: 8 }}>
+                {topDishes.map(it => (
+                  <div key={it.name} className="row" style={{ gap: 7, fontSize: 11 }}>
+                    <span className="grow trunc">{it.name}</span>
+                    <div style={{ width: 52, height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ width: `${(it.count / maxDish) * 100}%`, height: '100%', background: 'var(--accent)', opacity: 0.8 }} />
+                    </div>
+                    <span className="mono dim" style={{ fontSize: 9.5, width: 20, textAlign: 'right' }}>{it.count}</span>
+                  </div>
+                ))}
+                {!topDishes.length && (
+                  <div className="dim" style={{ fontSize: 11 }}>Нет данных о продажах за период</div>
+                )}
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
+        </>
+      ) : tab === '30d' ? (
+        /* 3. Monthly / Year View */
+        <>
+          <div className="kpis">
+            {[
+              { l: 'Выручка за 30 дней', v: summ(summary.totalRevenue), f: `${summary.totalOrders} чеков`, icon: 'wallet' },
+              { l: 'Средний чек', v: summ(summary.avgCheck), f: 'В среднем за месяц', icon: 'receipt' },
+              { l: 'Выполнено заказов', v: summary.completedCount, f: `${summary.completionRate}% успешных`, icon: 'check' },
+              { l: 'Отмен заказов', v: summary.cancelledCount, f: 'По всем причинам', icon: 'x', warn: summary.cancelledCount > 0 },
+            ].map(c => (
+              <div className="card kpi" key={c.l}>
+                <div className="kpi-top">
+                  <span className="label">{c.l}</span>
+                  <span className="kpi-ico" style={c.warn ? { color: 'var(--danger)', background: 'var(--danger-soft)' } : undefined}>
+                    <Icon name={c.icon} size={14} />
+                  </span>
+                </div>
+                <div className="kpi-body">
+                  <div className="stat-num">{c.v}</div>
+                </div>
+                <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 12, marginTop: 13 }}>
+            <div className="card" style={{ padding: 14 }}>
+              <div className="label">Пиковые часы нагрузки (11:00 — 23:00)</div>
+              <div className="money-lg" style={{ fontSize: 20, marginTop: 2, marginBottom: 12 }}>
+                {summ(summary.totalRevenue)} <small style={{ fontSize: 10, color: 'var(--text-3)' }}>сум за 30 дней</small>
+              </div>
+              <LineChart
+                labels={hours}
+                series={[
+                  { data: hourlySeries, color: 'var(--accent)', fill: true },
+                ]} height={168} />
+            </div>
+
+            <div className="card" style={{ padding: 14 }}>
+              <div className="label">Топ позиций меню за 30 дней</div>
+              <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>
+                Самые заказываемые блюда ресторана
+              </div>
+              <div className="col-flex" style={{ gap: 7, marginTop: 8 }}>
+                {topDishes.map(it => (
+                  <div key={it.name} className="row" style={{ gap: 7, fontSize: 11 }}>
+                    <span className="grow trunc">{it.name}</span>
+                    <div style={{ width: 52, height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ width: `${(it.count / maxDish) * 100}%`, height: '100%', background: 'var(--accent)', opacity: 0.8 }} />
+                    </div>
+                    <span className="mono dim" style={{ fontSize: 9.5, width: 22, textAlign: 'right' }}>{it.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12 }}>
+            {[
+              { l: 'delivery', v: summary.deliveryCount, c: 'var(--info)', f: `${summary.totalOrders > 0 ? Math.round((summary.deliveryCount / summary.totalOrders) * 100) : 0}% всех заказов` },
+              { l: 'pickup', v: summary.pickupCount, c: 'var(--warn)', f: `${summary.totalOrders > 0 ? Math.round((summary.pickupCount / summary.totalOrders) * 100) : 0}% всех заказов` },
+              { l: 'hall', v: summary.hallCount, c: 'var(--violet)', f: `${summary.totalOrders > 0 ? Math.round((summary.hallCount / summary.totalOrders) * 100) : 0}% всех заказов` },
+            ].map(s => (
+              <div key={s.l} className="card" style={{ padding: 13 }}>
+                <div className="row">
+                  <span className="label">{t(s.l)}</span>
+                  <span className="grow" />
+                  <span className="stat-num" style={{ fontSize: 18, color: s.c }}>{s.v}</span>
+                </div>
+                <div className="dim trunc" style={{ fontSize: 10, marginTop: 4 }}>{s.f}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* 1. Current Shift View */
+        <>
+          <div className="kpis">
+            {[
+              { l: 'Выручка смены', v: summ(summary.totalRevenue), f: `${summary.totalOrders} чеков за смену`, icon: 'wallet' },
+              { l: 'Средний чек', v: summ(summary.avgCheck), f: 'Текущая смена', icon: 'receipt' },
+              { l: 'Наличные в кассу', v: summ(summary.cashTotal), f: 'К сдаче курьерами', icon: 'check' },
+              { l: 'Карта / Онлайн', v: summ(summary.cardTotal), f: 'Безналичная оплата', icon: 'card' },
+            ].map(c => (
+              <div className="card kpi" key={c.l}>
+                <div className="kpi-top">
+                  <span className="label">{c.l}</span>
+                  <span className="kpi-ico"><Icon name={c.icon} size={14} /></span>
+                </div>
+                <div className="kpi-body">
+                  <div className="stat-num">{c.v}</div>
+                </div>
+                <div className="kpi-foot"><span className="trunc">{c.f}</span></div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 12, marginTop: 13 }}>
+            <div className="card" style={{ padding: 14 }}>
+              <div className="row" style={{ marginBottom: 12 }}>
+                <div>
+                  <div className="label">Динамика заказов текущей смены</div>
+                  <div className="money-lg" style={{ fontSize: 21, marginTop: 2 }}>
+                    {summ(summary.totalRevenue)} <span style={{ fontSize: 10, fontFamily: 'var(--f-body)', fontWeight: 600, color: 'var(--text-3)' }}>сум</span>
+                  </div>
+                </div>
+                <span className="grow" />
+                <div className="row" style={{ gap: 10, fontSize: 9.5 }}>
+                  <span className="row" style={{ gap: 4, color: 'var(--text-2)' }}>
+                    <span style={{ width: 14, height: 2, background: 'var(--accent)', display: 'block', borderRadius: 2 }} />
+                    Смена #{data?.currentShift?.shiftNum || 1}
+                  </span>
+                </div>
+              </div>
+              <LineChart
+                labels={hours}
+                series={[
+                  { data: hourlySeries, color: 'var(--accent)', fill: true },
+                ]} height={168} />
+            </div>
+
+            <div className="card" style={{ padding: 14 }}>
+              <div className="label">Блюда текущей смены</div>
+              <div className="dim" style={{ fontSize: 10, marginTop: 2, marginBottom: 11 }}>
+                Заказы, приготовленные сегодня на кухне
+              </div>
+              <div className="col-flex" style={{ marginTop: 7, gap: 6 }}>
+                {topDishes.map(it => (
+                  <div key={it.name} className="row" style={{ gap: 7, fontSize: 10.5 }}>
+                    <span className="grow trunc">{it.name}</span>
+                    <div style={{ width: 52, height: 4, background: 'var(--surface-3)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ width: `${(it.count / maxDish) * 100}%`, height: '100%', background: 'var(--accent)', opacity: 0.8 }} />
+                    </div>
+                    <span className="mono dim" style={{ fontSize: 9, width: 16, textAlign: 'right' }}>{it.count}</span>
+                  </div>
+                ))}
+                {!topDishes.length && (
+                  <div className="dim" style={{ fontSize: 11, padding: '14px 0' }}>
+                    В текущей смене блюда ещё не заказывались
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12 }}>
+            {[
+              { l: 'delivery', v: summary.deliveryCount, c: 'var(--info)', f: `${summary.totalOrders > 0 ? Math.round((summary.deliveryCount / summary.totalOrders) * 100) : 0}% заказов смены` },
+              { l: 'pickup', v: summary.pickupCount, c: 'var(--warn)', f: `${summary.totalOrders > 0 ? Math.round((summary.pickupCount / summary.totalOrders) * 100) : 0}% заказов смены` },
+              { l: 'hall', v: summary.hallCount, c: 'var(--violet)', f: `${summary.totalOrders > 0 ? Math.round((summary.hallCount / summary.totalOrders) * 100) : 0}% заказов смены` },
+            ].map(s => (
+              <div key={s.l} className="card" style={{ padding: 13 }}>
+                <div className="row">
+                  <span className="label">{t(s.l)}</span>
+                  <span className="grow" />
+                  <span className="stat-num" style={{ fontSize: 18, color: s.c }}>{s.v}</span>
+                </div>
+                <div className="dim trunc" style={{ fontSize: 10, marginTop: 4 }}>{s.f}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

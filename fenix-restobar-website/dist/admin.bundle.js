@@ -1069,12 +1069,11 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
       b != null && /* @__PURE__ */ React.createElement("span", { className: "nav-badge", "data-tone": it.badge === "live" ? "accent" : "muted" }, b),
       rail && b != null && /* @__PURE__ */ React.createElement("span", { className: "nav-dot" })
     );
-  })))), /* @__PURE__ */ React.createElement("div", { className: "nav-foot", style: { display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(
+  })))), /* @__PURE__ */ React.createElement("div", { className: "nav-foot" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
       className: "nav-user",
-      style: { flex: 1, cursor: "pointer", textAlign: "left", border: "none", background: "transparent" },
       onClick: onSwitchUser,
       title: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u0441\u043C\u0435\u043D\u044B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u0441\u043C\u0435\u043D\u044B"
     },
@@ -1084,21 +1083,28 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
     "button",
     {
       type: "button",
-      className: "btn btn-ghost btn-icon btn-sm",
+      className: "nav-logout-btn",
       onClick: onLogout,
-      title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B",
-      style: { color: "var(--text-3)", padding: "8px", cursor: "pointer" },
-      onMouseOver: (e) => e.currentTarget.style.color = "var(--danger)",
-      onMouseOut: (e) => e.currentTarget.style.color = "var(--text-3)"
+      title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 16 })
   ))));
 }
-function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu }) {
+function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, setLang, onNew, toast, onLogout, onToggleMenu, currentShift, onOpenShiftModal }) {
   const hh = new Date(now);
   const clock = [hh.getHours(), hh.getMinutes(), hh.getSeconds()].map((x) => String(x).padStart(2, "0")).join(":");
   const meta = PAGE_META[page] || {};
-  return /* @__PURE__ */ React.createElement("header", { className: "topbar" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon mobile-menu-btn", onClick: onToggleMenu, title: "\u041C\u0435\u043D\u044E \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438" }, /* @__PURE__ */ React.createElement(Icon, { name: "hamburger", size: 17 })), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon desktop-rail-btn", onClick: () => setRail(!rail), title: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C" }, /* @__PURE__ */ React.createElement(Icon, { name: "panel", size: 16 })), /* @__PURE__ */ React.createElement("div", { className: "topbar-page" }, /* @__PURE__ */ React.createElement("div", { className: "topbar-eyebrow" }, meta.eyebrow), /* @__PURE__ */ React.createElement("h1", { className: "topbar-title", "data-screen-label": t(page) }, t(page))), /* @__PURE__ */ React.createElement("div", { className: "topbar-mid" }, /* @__PURE__ */ React.createElement("span", { className: "live" }, /* @__PURE__ */ React.createElement("i", null), t("live")), /* @__PURE__ */ React.createElement("span", { className: "clock" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 13 }), t("shift"), ": ", /* @__PURE__ */ React.createElement("b", null, clock))), /* @__PURE__ */ React.createElement("div", { className: "topbar-right" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", onClick: onSearch, title: t("search_short"), style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 14 }), /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K")), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile", role: "group", "aria-label": t("theme") }, THEMES.map((th) => /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("header", { className: "topbar" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon mobile-menu-btn", onClick: onToggleMenu, title: "\u041C\u0435\u043D\u044E \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438" }, /* @__PURE__ */ React.createElement(Icon, { name: "hamburger", size: 17 })), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon desktop-rail-btn", onClick: () => setRail(!rail), title: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C" }, /* @__PURE__ */ React.createElement(Icon, { name: "panel", size: 16 })), /* @__PURE__ */ React.createElement("div", { className: "topbar-page" }, /* @__PURE__ */ React.createElement("div", { className: "topbar-eyebrow" }, meta.eyebrow), /* @__PURE__ */ React.createElement("h1", { className: "topbar-title", "data-screen-label": t(page) }, t(page))), /* @__PURE__ */ React.createElement("div", { className: "topbar-mid" }, /* @__PURE__ */ React.createElement("span", { className: "live" }, /* @__PURE__ */ React.createElement("i", null), t("live")), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "topbar-shift-badge",
+      onClick: onOpenShiftModal,
+      title: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0438\u0442\u043E\u0433\u043E\u0432 \u0438\u043B\u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u0441\u043C\u0435\u043D\u044B"
+    },
+    /* @__PURE__ */ React.createElement("span", { className: "shift-status-dot" }),
+    /* @__PURE__ */ React.createElement("span", null, "\u0421\u043C\u0435\u043D\u0430 #", currentShift?.shiftNum || 1)
+  ), /* @__PURE__ */ React.createElement("span", { className: "clock" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 13 }), t("shift"), ": ", /* @__PURE__ */ React.createElement("b", null, clock))), /* @__PURE__ */ React.createElement("div", { className: "topbar-right" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", onClick: onSearch, title: t("search_short"), style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 14 }), /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K")), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile", role: "group", "aria-label": t("theme") }, THEMES.map((th) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: th.id,
@@ -1124,7 +1130,18 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
       style: { fontFamily: "var(--f-mono)", fontSize: 10, letterSpacing: ".04em", padding: "0 6px" }
     },
     lang === "ru" ? "RU" : lang === "uz" ? "UZ" : "\u040E\u0417"
-  ), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm", title: t("attention"), onClick: () => toast("6 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0442\u0440\u0435\u0431\u0443\u044E\u0442 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F", "warn", "alert") }, /* @__PURE__ */ React.createElement(Icon, { name: "bell", size: 15 })), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: onNew }, t("create")), onLogout && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm hide-mobile", title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B", onClick: onLogout, style: { color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 15 }))));
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-sm hide-mobile",
+      onClick: onOpenShiftModal,
+      title: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0441\u043C\u0435\u043D\u0443 / Z-\u043E\u0442\u0447\u0451\u0442",
+      style: { gap: 5, color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }
+    },
+    /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 13 }),
+    /* @__PURE__ */ React.createElement("span", null, "\u0418\u0442\u043E\u0433 \u0434\u043D\u044F")
+  ), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: onNew }, t("create")), onLogout && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm hide-mobile", title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B", onClick: onLogout, style: { color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 15 }))));
 }
 function MobileBottomNav({ page, setPage, counts, onOpenDrawer }) {
   const PRIMARY_TABS = [
@@ -1244,7 +1261,7 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
   const [address, setAddress] = useState("");
   const [table, setTable] = useState("\u0421\u0442\u043E\u043B 1 \xB7 \u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0437\u0430\u043B");
   const [itemsNote, setItemsNote] = useState("");
-  const [pay, setPay] = useState("card");
+  const [pay, setPay] = useState("cash");
   const [total, setTotal] = useState(15e4);
   const [bDate, setBDate] = useState("today");
   const [bTime, setBTime] = useState("19:00");
@@ -1403,8 +1420,8 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
       value: pay,
       onChange: (e) => setPay(e.target.value)
     },
-    /* @__PURE__ */ React.createElement("option", { value: "card" }, "\u041A\u0430\u0440\u0442\u0430 / \u041E\u043D\u043B\u0430\u0439\u043D"),
-    /* @__PURE__ */ React.createElement("option", { value: "cash" }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435")
+    /* @__PURE__ */ React.createElement("option", { value: "cash" }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 (\u043F\u0440\u0438 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0438\u0438)"),
+    /* @__PURE__ */ React.createElement("option", { value: "card" }, "\u041A\u0430\u0440\u0442\u0430 / \u041E\u043D\u043B\u0430\u0439\u043D (\u0442\u0435\u0440\u043C\u0438\u043D\u0430\u043B)")
   )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "label" }, "\u0421\u0443\u043C\u043C\u0430 (\u0441\u0443\u043C)"), /* @__PURE__ */ React.createElement(
     "input",
     {
@@ -1475,14 +1492,76 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
     /* @__PURE__ */ React.createElement("option", { value: "VIP-\u043A\u0430\u0431\u0438\u043D\u0430" }, "VIP-\u043A\u0430\u0431\u0438\u043D\u0430")
   ))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot", style: { marginTop: 8, padding: 0 } }, /* @__PURE__ */ React.createElement(Btn, { type: "submit", variant: "accent", icon: "check", className: "grow", disabled: loading }, loading ? "\u0411\u0440\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435..." : "\u0417\u0430\u0431\u0440\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0442\u043E\u043B"), /* @__PURE__ */ React.createElement(Btn, { type: "button", variant: "ghost", onClick: onClose }, "\u041E\u0442\u043C\u0435\u043D\u0430")))));
 }
-Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, MobileBottomNav, CommandPalette, CreateModal, THEMES, DIRECTIONS });
+function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast }) {
+  const [loading, setLoading] = useState(false);
+  const [shiftData, setShiftData] = useState(null);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetch("/api/admin/shift/current").then((r) => r.json()).then((d) => {
+        if (d && d.ok && d.shift) setShiftData(d.shift);
+      }).catch(() => {
+      }).finally(() => setLoading(false));
+    }
+  }, [isOpen]);
+  if (!isOpen) return null;
+  const handleCloseShift = async (force = true) => {
+    setClosing(true);
+    try {
+      const res = await fetch("/api/admin/shift/close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          closedBy: currentUser?.full_name || currentUser?.name || "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440 Fenix",
+          force
+        })
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast(`\u0421\u043C\u0435\u043D\u0430 \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0437\u0430\u043A\u0440\u044B\u0442\u0430! \u041D\u0430\u0447\u0430\u0442\u0430 \u0441\u043C\u0435\u043D\u0430 #${data.newShift?.shiftNum || ""}`, "ok", "check");
+        onShiftClosed && onShiftClosed(data);
+        onClose();
+      } else if (data && data.warning === "open_orders") {
+        toast && toast(`\u0412 \u0441\u043C\u0435\u043D\u0435 ${data.openOrdersCount} \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432. \u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u0438\u043B\u0438 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u043F\u0435\u0440\u0435\u043D\u043E\u0441.`, "warn", "alert");
+      } else {
+        toast && toast(data?.error || "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u043A\u0440\u044B\u0442\u044C \u0441\u043C\u0435\u043D\u0443", "danger");
+      }
+    } catch (err) {
+      toast && toast("\u0421\u0435\u0442\u0435\u0432\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u0438 \u0441\u043C\u0435\u043D\u044B", "danger");
+    } finally {
+      setClosing(false);
+    }
+  };
+  const s = shiftData || {};
+  return /* @__PURE__ */ React.createElement(Modal, { onClose, width: 540, label: "\u0418\u0442\u043E\u0433\u0438 \u0441\u043C\u0435\u043D\u044B" }, /* @__PURE__ */ React.createElement("div", { className: "modal-head" }, /* @__PURE__ */ React.createElement(Icon, { name: "wallet", size: 16, style: { color: "var(--accent)" } }), /* @__PURE__ */ React.createElement("div", { className: "modal-title grow" }, "\u0421\u043C\u0435\u043D\u0430 #", s.shiftNum || 1, " \xB7 \u0422\u0435\u043A\u0443\u0449\u0438\u0435 \u0438\u0442\u043E\u0433\u0438"), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm", onClick: onClose }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "modal-body", style: { display: "flex", flexDirection: "column", gap: 14 } }, loading ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: 30, color: "var(--text-3)" } }, "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445 \u0441\u043C\u0435\u043D\u044B...") : /* @__PURE__ */ React.createElement(React.Fragment, null, s.openOrdersCount > 0 && /* @__PURE__ */ React.createElement("div", { style: {
+    padding: "10px 14px",
+    borderRadius: "var(--r-sm)",
+    background: "var(--warn-soft)",
+    border: "1px solid color-mix(in srgb, var(--warn) 30%, transparent)",
+    color: "var(--warn)",
+    fontSize: 12
+  } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 14 }), /* @__PURE__ */ React.createElement("span", null, "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: ", s.openOrdersCount, " \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u0430(\u043E\u0432) \u0435\u0449\u0451 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u044B!")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 4, color: "var(--text-2)" } }, "\u041F\u0440\u0438 \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u0438 \u0441\u043C\u0435\u043D\u044B \u043E\u043D\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0435\u0440\u0435\u0439\u0434\u0443\u0442 \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0443\u044E \u0441\u043C\u0435\u043D\u0443.")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-grid" }, /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0437\u0430 \u0441\u043C\u0435\u043D\u0443"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--accent)" } }, summ(s.totalRevenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, s.totalOrders || 0, " \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u043D\u044B\u0445 \u0447\u0435\u043A\u043E\u0432")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A"), /* @__PURE__ */ React.createElement("div", { className: "val" }, summ(s.totalOrders > 0 ? Math.round((s.totalRevenue || 0) / s.totalOrders) : 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u043F\u043E \u0432\u0441\u0435\u043C \u0437\u0430\u043A\u0430\u0437\u0430\u043C")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 (\u043A\u0443\u0440\u044C\u0435\u0440\u044B / \u0441\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437)"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--ok)" } }, summ(s.cashTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0441\u0443\u043C\u043C\u0430 \u043A \u0441\u0434\u0430\u0447\u0435 \u0432 \u043A\u0430\u0441\u0441\u0443")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041E\u043D\u043B\u0430\u0439\u043D / \u0422\u0435\u0440\u043C\u0438\u043D\u0430\u043B"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--info)" } }, summ(s.cardTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0431\u0435\u0437\u043D\u0430\u043B\u0438\u0447\u043D\u0430\u044F \u043E\u043F\u043B\u0430\u0442\u0430"))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "10px 14px", background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { marginBottom: 6 } }, "\u0420\u0430\u0437\u0431\u0438\u0432\u043A\u0430 \u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C \u0437\u0430\u043A\u0430\u0437\u043E\u0432"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, fontSize: 11.5 } }, /* @__PURE__ */ React.createElement("div", null, "\u0414\u043E\u0441\u0442\u0430\u0432\u043A\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.deliveryOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0421\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437: ", /* @__PURE__ */ React.createElement("b", null, s.pickupOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0412 \u0437\u0430\u043B\u0435: ", /* @__PURE__ */ React.createElement("b", null, s.hallOrders || 0)))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 } }, "\u0421\u043C\u0435\u043D\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.openedAt ? new Date(s.openedAt).toLocaleString("ru-RU") : "\u2014"), " (\u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440: ", s.openedBy || "admin", "). \u041F\u043E\u0441\u043B\u0435 \u043D\u0430\u0436\u0430\u0442\u0438\u044F \xAB\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0441\u043C\u0435\u043D\u0443\xBB \u0442\u0435\u043A\u0443\u0449\u0438\u0439 \u0434\u0435\u043D\u044C \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435, \u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0439 \u044D\u043A\u0440\u0430\u043D \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0438 \u043A\u0430\u0441\u0441\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u0441\u044F \u0434\u043E 0."))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(
+    Btn,
+    {
+      type: "submit",
+      variant: "accent",
+      icon: "check",
+      className: "grow",
+      disabled: loading || closing,
+      onClick: () => handleCloseShift(true)
+    },
+    closing ? "\u0417\u0430\u043A\u0440\u044B\u0442\u0438\u0435 \u0441\u043C\u0435\u043D\u044B..." : "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0441\u043C\u0435\u043D\u0443 / \u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0434\u0435\u043D\u044C"
+  ), /* @__PURE__ */ React.createElement(Btn, { type: "button", variant: "ghost", onClick: onClose, disabled: closing }, "\u041E\u0442\u043C\u0435\u043D\u0430")));
+}
+Object.assign(window, { NAV, PAGE_META, Sidebar, Topbar, MobileBottomNav, CommandPalette, CreateModal, ShiftCloseModal, THEMES, DIRECTIONS });
 const COLUMNS = [
   { id: "new", idx: "01", label: "new", tone: "var(--accent)" },
   { id: "kitchen", idx: "02", label: "kitchen", tone: "var(--info)" },
   { id: "way", idx: "03", label: "way", tone: "var(--violet)" },
   { id: "done", idx: "04", label: "done", tone: "var(--ok)" }
 ];
-function Kpis({ t, orders = [], bookingsCount = 0 }) {
+function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCollapse }) {
   const [expandedMobile, setExpandedMobile] = useState(false);
   const active = orders.filter((o) => o.col !== "done").length;
   const inKitchen = orders.filter((o) => o.col === "kitchen").length;
@@ -1536,9 +1615,31 @@ function Kpis({ t, orders = [], bookingsCount = 0 }) {
     },
     /* @__PURE__ */ React.createElement("div", { className: "kpis-mobile-items" }, /* @__PURE__ */ React.createElement("span", { className: "kpis-mobile-pill active" }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot active" }), /* @__PURE__ */ React.createElement("b", { className: "mono" }, active), " \u0432 \u0440\u0430\u0431\u043E\u0442\u0435"), /* @__PURE__ */ React.createElement("span", { className: "kpis-mobile-pill rev" }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot rev" }), /* @__PURE__ */ React.createElement("b", { className: "mono" }, summ(rev)), " \u0441\u0443\u043C"), attentionCount > 0 ? /* @__PURE__ */ React.createElement("span", { className: "kpis-mobile-pill warn" }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot warn" }), /* @__PURE__ */ React.createElement("b", { className: "mono" }, attentionCount), " \u0432\u043D\u0438\u043C.") : /* @__PURE__ */ React.createElement("span", { className: "kpis-mobile-pill" }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot info" }), /* @__PURE__ */ React.createElement("b", { className: "mono" }, bookingsCount), " \u0431\u0440\u043E\u043D.")),
     /* @__PURE__ */ React.createElement("span", { className: "kpis-mobile-toggle" }, /* @__PURE__ */ React.createElement("span", null, expandedMobile ? "\u0421\u043A\u0440\u044B\u0442\u044C" : "\u0421\u0432\u043E\u0434\u043A\u0430"), /* @__PURE__ */ React.createElement(Icon, { name: expandedMobile ? "chevronU" : "chevronD", size: 12 }))
-  )), /* @__PURE__ */ React.createElement("div", { className: `kpis ${expandedMobile ? "mobile-expanded" : ""}` }, cards.map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.label }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(c.label)), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico", style: c.alert ? { color: "var(--warn)", background: "var(--warn-soft)" } : void 0 }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.num, c.suffix && /* @__PURE__ */ React.createElement("small", null, c.suffix)), c.delta && /* @__PURE__ */ React.createElement("span", { className: "delta", "data-up": c.up ? "1" : "0" }, /* @__PURE__ */ React.createElement(Icon, { name: "arrowUp", size: 10, stroke: 2.2 }), c.delta)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.foot), c.pills.map((p) => /* @__PURE__ */ React.createElement(Pill, { key: p.text, tone: p.tone, dot: p.tone === "ok" }, /* @__PURE__ */ React.createElement("span", null, p.text))))))));
+  )), collapsed && /* @__PURE__ */ React.createElement("div", { className: "kpis-desktop-compact hide-mobile" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 16 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot active" }), /* @__PURE__ */ React.createElement("b", { className: "mono", style: { color: "var(--text)" } }, active), " \u0432 \u0440\u0430\u0431\u043E\u0442\u0435"), /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot rev" }), /* @__PURE__ */ React.createElement("b", { className: "mono", style: { color: "var(--accent)" } }, summ(rev)), " \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot info" }), /* @__PURE__ */ React.createElement("b", { className: "mono", style: { color: "var(--text)" } }, bookingsCount), " \u0431\u0440\u043E\u043D\u0435\u0439"), attentionCount > 0 && /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--warn)" } }, /* @__PURE__ */ React.createElement("span", { className: "kpis-dot warn" }), /* @__PURE__ */ React.createElement("b", { className: "mono" }, attentionCount), " \u0442\u0440\u0435\u0431\u0443\u044E\u0442 \u043E\u0442\u0432\u0435\u0442\u0430")), onToggleCollapse && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-sm",
+      onClick: onToggleCollapse,
+      style: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--accent)" },
+      title: "\u0420\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0435 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043C\u0435\u0442\u0440\u0438\u043A"
+    },
+    /* @__PURE__ */ React.createElement("span", null, "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438"),
+    /* @__PURE__ */ React.createElement(Icon, { name: "chevronD", size: 12 })
+  )), /* @__PURE__ */ React.createElement("div", { className: `kpis-desktop-wrap hide-mobile ${collapsed ? "is-collapsed" : ""}` }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", marginBottom: 6 } }, onToggleCollapse && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-xs",
+      onClick: onToggleCollapse,
+      style: { fontSize: 10.5, color: "var(--text-3)", padding: "2px 8px", gap: 4 },
+      title: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0431\u043B\u043E\u043A \u043C\u0435\u0442\u0440\u0438\u043A, \u0447\u0442\u043E\u0431\u044B \u0440\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044C 4 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043D\u0430 \u0432\u0435\u0441\u044C \u044D\u043A\u0440\u0430\u043D"
+    },
+    /* @__PURE__ */ React.createElement("span", null, "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0438"),
+    /* @__PURE__ */ React.createElement(Icon, { name: "chevronU", size: 10 })
+  )), /* @__PURE__ */ React.createElement("div", { className: "kpis" }, cards.map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.label }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(c.label)), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico", style: c.alert ? { color: "var(--warn)", background: "var(--warn-soft)" } : void 0 }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.num, c.suffix && /* @__PURE__ */ React.createElement("small", null, c.suffix)), c.delta && /* @__PURE__ */ React.createElement("span", { className: "delta", "data-up": c.up ? "1" : "0" }, /* @__PURE__ */ React.createElement(Icon, { name: "arrowUp", size: 10, stroke: 2.2 }), c.delta)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.foot), c.pills.map((p) => /* @__PURE__ */ React.createElement(Pill, { key: p.text, tone: p.tone, dot: p.tone === "ok" }, /* @__PURE__ */ React.createElement("span", null, p.text)))))))), /* @__PURE__ */ React.createElement("div", { className: `kpis hide-desktop ${expandedMobile ? "mobile-expanded" : ""}` }, cards.map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.label }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(c.label)), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico", style: c.alert ? { color: "var(--warn)", background: "var(--warn-soft)" } : void 0 }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.num, c.suffix && /* @__PURE__ */ React.createElement("small", null, c.suffix)), c.delta && /* @__PURE__ */ React.createElement("span", { className: "delta", "data-up": c.up ? "1" : "0" }, /* @__PURE__ */ React.createElement(Icon, { name: "arrowUp", size: 10, stroke: 2.2 }), c.delta)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.foot), c.pills.map((p) => /* @__PURE__ */ React.createElement(Pill, { key: p.text, tone: p.tone, dot: p.tone === "ok" }, /* @__PURE__ */ React.createElement("span", null, p.text))))))));
 }
-function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) {
+function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete, onCancel }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const s = slaState(o);
   const nextLabel = { new: "accept", kitchen: "ready", way: "mark_done", done: null }[o.col];
@@ -1646,6 +1747,19 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) 
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "bookStack", size: 13 }),
       /* @__PURE__ */ React.createElement("span", null, "\u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0430 \u0437\u0430\u043A\u0430\u0437\u0430")
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "context-menu-item danger",
+        onClick: (e) => {
+          e.stopPropagation();
+          setMenuOpen(false);
+          onCancel && onCancel(o);
+        }
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 13 }),
+      /* @__PURE__ */ React.createElement("span", null, "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437...")
     ), /* @__PURE__ */ React.createElement("div", { className: "context-menu-divider" }), /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1662,7 +1776,7 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) 
     )))))
   );
 }
-function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast }) {
+function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast, onCancel }) {
   const s = slaState(o);
   const steps = [
     { id: "new", label: t("accepted") || "\u041F\u0440\u0438\u043D\u044F\u0442" },
@@ -1683,7 +1797,10 @@ function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast }) {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
-  } }, st.label))))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11, background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 7 } }, /* @__PURE__ */ React.createElement(TypeTag, { type: o.type, t }), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("client")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, marginTop: 2 } }, o.client)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("phone")), /* @__PURE__ */ React.createElement("a", { href: "tel:" + o.phone.replace(/\s/g, ""), className: "mono", style: { fontSize: 11, marginTop: 2, display: "block", color: "var(--accent)", textDecoration: "none" } }, o.phone)), o.addr && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("address")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2, color: "var(--text-2)" } }, o.addr)), o.table && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("table")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.table)), o.courier && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("courier")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.courier)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("status")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3 } }, /* @__PURE__ */ React.createElement(Pill, { tone: s.late ? "danger" : "ok" }, s.late ? t("late") : t("on_time")))))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "sect-title" }, t("items")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "4px 11px" } }, o.items.map((it, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "row", style: { padding: "8px 0", borderBottom: i < o.items.length - 1 ? "1px solid var(--line-soft)" : 0 } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11.5 } }, it.n), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 10 } }, "\xD7 ", it.q), /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontSize: 11, minWidth: 62, textAlign: "right" } }, summ(it.q * it.p)))))), o.note && /* @__PURE__ */ React.createElement("div", { style: { padding: "9px 11px", borderRadius: "var(--r-sm)", background: "var(--warn-soft)", border: "1px solid color-mix(in srgb, var(--warn) 24%, transparent)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { color: "var(--warn)" } }, t("notes")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.note)), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("subtotal")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, summ(o.total - o.fee))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("delivery_fee")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, o.fee ? summ(o.fee) : "\u2014")), /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-2)" } }, t("total")), /* @__PURE__ */ React.createElement("span", { className: "ototal", style: { fontSize: 17 } }, summ(o.total), /* @__PURE__ */ React.createElement("small", null, "\u0441\u0443\u043C")))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Btn, { icon: "phone", onClick: () => onToast("\u0417\u0432\u043E\u043D\u043E\u043A: " + o.phone), style: { flex: 1 } }, t("call_client")), /* @__PURE__ */ React.createElement(Btn, { icon: "printer", onClick: () => onPrint(o), style: { flex: 1 } }, t("print")))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(Btn, { variant: "accent", icon: "check", className: "grow", onClick: () => onAdvance(o) }, o.col === "new" ? t("accept") : o.col === "kitchen" ? t("ready") : o.col === "way" ? t("mark_done") : t("done")), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: onClose }, t("close"))));
+  } }, st.label))))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11, background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 7 } }, /* @__PURE__ */ React.createElement(TypeTag, { type: o.type, t }), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("client")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, marginTop: 2 } }, o.client)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("phone")), /* @__PURE__ */ React.createElement("a", { href: "tel:" + o.phone.replace(/\s/g, ""), className: "mono", style: { fontSize: 11, marginTop: 2, display: "block", color: "var(--accent)", textDecoration: "none" } }, o.phone)), o.addr && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("address")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2, color: "var(--text-2)" } }, o.addr)), o.table && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("table")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.table)), o.courier && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("courier")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.courier)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("status")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3 } }, /* @__PURE__ */ React.createElement(Pill, { tone: s.late ? "danger" : "ok" }, s.late ? t("late") : t("on_time")))))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "sect-title" }, t("items")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "4px 11px" } }, o.items.map((it, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "row", style: { padding: "8px 0", borderBottom: i < o.items.length - 1 ? "1px solid var(--line-soft)" : 0 } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11.5 } }, it.n), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 10 } }, "\xD7 ", it.q), /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontSize: 11, minWidth: 62, textAlign: "right" } }, summ(it.q * it.p)))))), o.note && /* @__PURE__ */ React.createElement("div", { style: { padding: "9px 11px", borderRadius: "var(--r-sm)", background: "var(--warn-soft)", border: "1px solid color-mix(in srgb, var(--warn) 24%, transparent)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { color: "var(--warn)" } }, t("notes")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.note)), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("subtotal")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, summ(o.total - o.fee))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("delivery_fee")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, o.fee ? summ(o.fee) : "\u2014")), /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-2)" } }, t("total")), /* @__PURE__ */ React.createElement("span", { className: "ototal", style: { fontSize: 17 } }, summ(o.total), /* @__PURE__ */ React.createElement("small", null, "\u0441\u0443\u043C")))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Btn, { icon: "phone", onClick: () => onToast("\u0417\u0432\u043E\u043D\u043E\u043A: " + o.phone), style: { flex: 1 } }, t("call_client")), /* @__PURE__ */ React.createElement(Btn, { icon: "printer", onClick: () => onPrint(o), style: { flex: 1 } }, t("print")), /* @__PURE__ */ React.createElement(Btn, { icon: "x", onClick: () => {
+    onClose();
+    onCancel && onCancel(o);
+  }, style: { flex: 1, color: "var(--danger)" } }, "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C"))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(Btn, { variant: "accent", icon: "check", className: "grow", onClick: () => onAdvance(o) }, o.col === "new" ? t("accept") : o.col === "kitchen" ? t("ready") : o.col === "way" ? t("mark_done") : t("done")), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: onClose }, t("close"))));
 }
 function ReceiptModal({ o, onClose, t }) {
   const r = FX.restaurant;
@@ -1837,6 +1954,84 @@ function DeleteConfirmModal({ o, onClose, onDeleted, toast }) {
   };
   return /* @__PURE__ */ React.createElement(Modal, { onClose, label: `\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437 #${o.id}` }, /* @__PURE__ */ React.createElement("div", { className: "modal-head" }, /* @__PURE__ */ React.createElement(Icon, { name: "trash", size: 16, style: { color: "var(--danger)" } }), /* @__PURE__ */ React.createElement("div", { className: "grow" }, /* @__PURE__ */ React.createElement("div", { className: "modal-title", style: { color: "var(--danger)" } }, "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 #", o.id), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10, color: "var(--text-3)" } }, "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F")), /* @__PURE__ */ React.createElement("button", { type: "button", className: "btn btn-ghost btn-icon btn-sm", onClick: onClose }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "modal-body", style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.5 } }, "\u0412\u044B \u0443\u0432\u0435\u0440\u0435\u043D\u044B, \u0447\u0442\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437 ", /* @__PURE__ */ React.createElement("b", null, "#", o.id), " \u043A\u043B\u0438\u0435\u043D\u0442\u0430 ", /* @__PURE__ */ React.createElement("b", null, o.client), " \u043D\u0430 \u0441\u0443\u043C\u043C\u0443 ", /* @__PURE__ */ React.createElement("b", null, summ(o.total), " \u0441\u0443\u043C"), "?"), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 11.5, color: "var(--danger)", background: "var(--danger-soft)", padding: "8px 12px", borderRadius: "var(--r-xs)" } }, "\u042D\u0442\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0431\u0435\u0437\u0432\u043E\u0437\u0432\u0440\u0430\u0442\u043D\u043E \u0443\u0434\u0430\u043B\u0438\u0442 \u0437\u0430\u043F\u0438\u0441\u044C \u0438\u0437 \u0431\u0430\u0437\u044B \u0434\u0430\u043D\u043D\u044B\u0445 SQLite \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430.")), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(Btn, { type: "button", variant: "danger", icon: "trash", className: "grow", disabled: loading, onClick: handleDelete }, loading ? "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435..." : "\u0414\u0430, \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437"), /* @__PURE__ */ React.createElement(Btn, { type: "button", variant: "ghost", onClick: onClose }, "\u041E\u0442\u043C\u0435\u043D\u0430")));
 }
+function CancelOrderModal({ o, onClose, onConfirm, toast }) {
+  const [reason, setReason] = useState("\u041A\u043B\u0438\u0435\u043D\u0442 \u043E\u0442\u043C\u0435\u043D\u0438\u043B");
+  const [loading, setLoading] = useState(false);
+  const REASONS = [
+    {
+      id: "\u041A\u043B\u0438\u0435\u043D\u0442 \u043E\u0442\u043C\u0435\u043D\u0438\u043B",
+      title: "\u041A\u043B\u0438\u0435\u043D\u0442 \u043E\u0442\u043C\u0435\u043D\u0438\u043B",
+      desc: "\u0413\u043E\u0441\u0442\u044C \u0441\u0430\u043C \u043E\u0442\u043A\u0430\u0437\u0430\u043B\u0441\u044F \u043E\u0442 \u0437\u0430\u043A\u0430\u0437\u0430 \u0438\u043B\u0438 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C \u043F\u043B\u0430\u043D\u044B"
+    },
+    {
+      id: "\u0421\u0442\u043E\u043F-\u043B\u0438\u0441\u0442 / \u041D\u0435\u0442 \u0431\u043B\u044E\u0434\u0430",
+      title: "\u0421\u0442\u043E\u043F-\u043B\u0438\u0441\u0442 / \u041D\u0435\u0442 \u0431\u043B\u044E\u0434\u0430",
+      desc: "\u0417\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C \u0438\u043D\u0433\u0440\u0435\u0434\u0438\u0435\u043D\u0442\u044B \u0438\u043B\u0438 \u0431\u043B\u044E\u0434\u043E \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u043E \u043D\u0430 \u043F\u0430\u0443\u0437\u0443"
+    },
+    {
+      id: "\u0422\u0435\u0441\u0442 / \u0414\u0443\u0431\u043B\u0438\u043A\u0430\u0442",
+      title: "\u0422\u0435\u0441\u0442 / \u0414\u0443\u0431\u043B\u0438\u043A\u0430\u0442",
+      desc: "\u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0430 \u0438\u043B\u0438 \u0434\u0443\u0431\u043B\u0438\u043A\u0430\u0442 (\u0438\u0441\u043A\u043B\u044E\u0447\u0430\u0435\u0442\u0441\u044F \u0438\u0437 \u0432\u044B\u0440\u0443\u0447\u043A\u0438 \u0438 \u043E\u0442\u0447\u0435\u0442\u043E\u0432)"
+    }
+  ];
+  const handleCancel = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/orders/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: o.dbId || o.id,
+          orderNum: o.orderNum,
+          status: "\u043E\u0442\u043C\u0435\u043D\u0451\u043D",
+          cancelReason: reason
+        })
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast(`\u0417\u0430\u043A\u0430\u0437 #${o.id} \u043E\u0442\u043C\u0435\u043D\u0451\u043D (${reason})`, "info", "x");
+        onConfirm && onConfirm(o.id, reason);
+        onClose();
+      } else {
+        toast && toast("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u043C\u0435\u043D\u0435 \u0437\u0430\u043A\u0430\u0437\u0430", "danger");
+      }
+    } catch (_) {
+      toast && toast("\u0421\u0435\u0442\u0435\u0432\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u043C\u0435\u043D\u0435", "danger");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return /* @__PURE__ */ React.createElement(Modal, { onClose, width: 440, label: "\u041E\u0442\u043C\u0435\u043D\u0430 \u0437\u0430\u043A\u0430\u0437\u0430" }, /* @__PURE__ */ React.createElement("div", { className: "modal-head" }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 16, style: { color: "var(--danger)" } }), /* @__PURE__ */ React.createElement("div", { className: "modal-title grow" }, "\u041E\u0442\u043C\u0435\u043D\u0430 \u0437\u0430\u043A\u0430\u0437\u0430 #", o.id), /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm", onClick: onClose }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "modal-body", style: { display: "flex", flexDirection: "column", gap: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "var(--text-2)" } }, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u0438\u0447\u0438\u043D\u0443 \u043E\u0442\u043C\u0435\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u0430:"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, REASONS.map((r) => /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      key: r.id,
+      className: "cancel-reason-card",
+      "data-active": reason === r.id ? "1" : "0",
+      onClick: () => setReason(r.id)
+    },
+    /* @__PURE__ */ React.createElement("div", { style: {
+      width: 16,
+      height: 16,
+      borderRadius: "50%",
+      border: "2px solid " + (reason === r.id ? "var(--accent)" : "var(--line-strong)"),
+      display: "grid",
+      placeItems: "center",
+      flex: "none"
+    } }, reason === r.id && /* @__PURE__ */ React.createElement("div", { style: { width: 8, height: 8, borderRadius: "50%", background: "var(--accent)" } })),
+    /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, fontWeight: 600, color: reason === r.id ? "var(--accent)" : "var(--text)" } }, r.title), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 10.5, color: "var(--text-3)", marginTop: 2 } }, r.desc))
+  )))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(
+    Btn,
+    {
+      type: "button",
+      variant: "danger",
+      icon: "x",
+      className: "grow",
+      disabled: loading,
+      onClick: handleCancel
+    },
+    loading ? "\u041E\u0442\u043C\u0435\u043D\u0430..." : "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u043E\u0442\u043C\u0435\u043D\u0443"
+  ), /* @__PURE__ */ React.createElement(Btn, { type: "button", variant: "ghost", onClick: onClose, disabled: loading }, "\u041D\u0430\u0437\u0430\u0434")));
+}
 function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang, bookingsCount = 0, onUpdateOrder, onDeleteOrder }) {
   const [q, setQ] = useState("");
   const [typeF, setTypeF] = useState("all");
@@ -1844,6 +2039,47 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const [mobileStage, setMobileStage] = useState("new");
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [stopListCount, setStopListCount] = useState(0);
+  const [stopListDismissed, setStopListDismissed] = useState(false);
+  const [kpisCollapsed, setKpisCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("fx.admin.kpis_collapsed") === "1";
+    } catch (_) {
+      return false;
+    }
+  });
+  const toggleKpis = () => {
+    setKpisCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("fx.admin.kpis_collapsed", next ? "1" : "0");
+      } catch (_) {
+      }
+      return next;
+    });
+  };
+  useEffect(() => {
+    fetch("/api/admin/overview").then((r) => r.json()).then((d) => {
+      if (d && d.ok && d.overview) {
+        if (d.overview.stopListCount > 0) setStopListCount(d.overview.stopListCount);
+      }
+    }).catch(() => {
+    });
+  }, []);
+  const enableAllDishes = async () => {
+    try {
+      const res = await fetch("/api/admin/menu/stoplist/enable-all", { method: "POST" });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast("\u0412\u0441\u0435 \u0431\u043B\u044E\u0434\u0430 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u044B \u0432 \u043C\u0435\u043D\u044E!", "ok", "check");
+        setStopListCount(0);
+        setStopListDismissed(true);
+      }
+    } catch (_) {
+      toast && toast("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0438 \u0431\u043B\u044E\u0434", "danger");
+    }
+  };
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
       if (q) {
@@ -1859,14 +2095,43 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   }, [orders, q, typeF, sort]);
   const lateCount = filtered.filter((o) => slaState(o).late && o.col !== "done").length;
   const newCount = filtered.filter((o) => o.col === "new").length;
-  return /* @__PURE__ */ React.createElement("div", { className: "page page-flush dispatch-page" }, /* @__PURE__ */ React.createElement(Kpis, { t, orders, bookingsCount }), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-left" }, /* @__PURE__ */ React.createElement("div", { className: "chips" }, ["all", "delivery", "pickup", "hall"].map((k) => /* @__PURE__ */ React.createElement("button", { key: k, className: "chip", "data-on": typeF === k ? "1" : "0", onClick: () => setTypeF(k) }, k === "all" ? t("all") : t(k)))), lateCount > 0 && /* @__PURE__ */ React.createElement(Pill, { tone: "danger", dot: true }, lateCount, " ", t("late"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-center" }, /* @__PURE__ */ React.createElement("div", { className: "search" }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 13 }), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "page page-flush dispatch-page" }, /* @__PURE__ */ React.createElement(Kpis, { t, orders, bookingsCount, collapsed: kpisCollapsed, onToggleCollapse: toggleKpis }), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar" }, /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-left" }, /* @__PURE__ */ React.createElement("div", { className: "chips" }, ["all", "delivery", "pickup", "hall"].map((k) => /* @__PURE__ */ React.createElement("button", { key: k, className: "chip", "data-on": typeF === k ? "1" : "0", onClick: () => setTypeF(k) }, k === "all" ? t("all") : t(k)))), lateCount > 0 && /* @__PURE__ */ React.createElement(Pill, { tone: "danger", dot: true }, lateCount, " ", t("late"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-center" }, /* @__PURE__ */ React.createElement("div", { className: "search" }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 13 }), /* @__PURE__ */ React.createElement(
     "input",
     {
       value: q,
       onChange: (e) => setQ(e.target.value),
       placeholder: "\u041F\u043E\u0438\u0441\u043A \u043F\u043E \u043D\u043E\u043C\u0435\u0440\u0443, \u0438\u043C\u0435\u043D\u0438 \u0438\u043B\u0438 \u0430\u0434\u0440\u0435\u0441\u0443..."
     }
-  ), q ? /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm", onClick: () => setQ(""), title: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C" }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 11 })) : /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-right" }, /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile" }, /* @__PURE__ */ React.createElement("button", { "data-on": sort === "sla" ? "1" : "0", onClick: () => setSort("sla"), title: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0441\u0440\u043E\u0447\u043D\u043E\u0441\u0442\u0438 SLA" }, "SLA"), /* @__PURE__ */ React.createElement("button", { "data-on": sort === "total" ? "1" : "0", onClick: () => setSort("total"), title: "\u041F\u043E \u0441\u0443\u043C\u043C\u0435 \u0447\u0435\u043A\u0430" }, "\u03A3")), /* @__PURE__ */ React.createElement("div", { className: "seg" }, /* @__PURE__ */ React.createElement("button", { "data-on": view === "board" ? "1" : "0", onClick: () => setView("board"), title: t("board") }, /* @__PURE__ */ React.createElement(Icon, { name: "grid", size: 12 })), /* @__PURE__ */ React.createElement("button", { "data-on": view === "list" ? "1" : "0", onClick: () => setView("list"), title: t("list") }, /* @__PURE__ */ React.createElement(Icon, { name: "bookStack", size: 12 }))), newCount > 0 && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => dispatch("acceptAll"), title: t("accept_all") }, /* @__PURE__ */ React.createElement("span", null, t("accept_all"))))), view === "board" && /* @__PURE__ */ React.createElement("div", { className: "mobile-stage-tabs", role: "tablist", "aria-label": "\u0421\u0442\u0430\u0442\u0443\u0441\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432" }, COLUMNS.map((c) => {
+  ), q ? /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm", onClick: () => setQ(""), title: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C" }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 11 })) : /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K"))), /* @__PURE__ */ React.createElement("div", { className: "dispatch-toolbar-right" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-sm hide-mobile",
+      onClick: toggleKpis,
+      title: kpisCollapsed ? "\u0420\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0431\u043B\u043E\u043A \u043C\u0435\u0442\u0440\u0438\u043A" : "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0431\u043B\u043E\u043A \u043C\u0435\u0442\u0440\u0438\u043A (\u0440\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044C 4 \u0442\u0430\u0431\u043B\u0438\u0446\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432)",
+      style: { fontSize: 11, padding: "4px 9px", gap: 5, color: kpisCollapsed ? "var(--accent)" : "var(--text-3)" }
+    },
+    /* @__PURE__ */ React.createElement(Icon, { name: kpisCollapsed ? "chevronD" : "chevronU", size: 12 }),
+    /* @__PURE__ */ React.createElement("span", null, kpisCollapsed ? "\u041C\u0435\u0442\u0440\u0438\u043A\u0438" : "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C")
+  ), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile" }, /* @__PURE__ */ React.createElement("button", { "data-on": sort === "sla" ? "1" : "0", onClick: () => setSort("sla"), title: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0441\u0440\u043E\u0447\u043D\u043E\u0441\u0442\u0438 SLA" }, "SLA"), /* @__PURE__ */ React.createElement("button", { "data-on": sort === "total" ? "1" : "0", onClick: () => setSort("total"), title: "\u041F\u043E \u0441\u0443\u043C\u043C\u0435 \u0447\u0435\u043A\u0430" }, "\u03A3")), /* @__PURE__ */ React.createElement("div", { className: "seg" }, /* @__PURE__ */ React.createElement("button", { "data-on": view === "board" ? "1" : "0", onClick: () => setView("board"), title: t("board") }, /* @__PURE__ */ React.createElement(Icon, { name: "grid", size: 12 })), /* @__PURE__ */ React.createElement("button", { "data-on": view === "list" ? "1" : "0", onClick: () => setView("list"), title: t("list") }, /* @__PURE__ */ React.createElement(Icon, { name: "bookStack", size: 12 }))), newCount > 0 && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => dispatch("acceptAll"), title: t("accept_all") }, /* @__PURE__ */ React.createElement("span", null, t("accept_all"))))), stopListCount > 0 && !stopListDismissed && /* @__PURE__ */ React.createElement("div", { className: "stoplist-banner", style: { margin: "0 14px 10px" } }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 15 }), /* @__PURE__ */ React.createElement("span", null, "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: \u0432 \u0441\u0442\u043E\u043F-\u043B\u0438\u0441\u0442\u0435 \u043D\u0430\u0445\u043E\u0434\u0438\u0442\u0441\u044F ", /* @__PURE__ */ React.createElement("b", null, stopListCount), " \u0431\u043B\u044E\u0434(\u0430) \u0441 \u043F\u0440\u043E\u0448\u043B\u043E\u0439 \u0441\u043C\u0435\u043D\u044B."), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-sm",
+      onClick: enableAllDishes,
+      style: { color: "var(--accent)", fontWeight: 600, border: "1px solid var(--accent)" }
+    },
+    "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0432\u0441\u0435"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn btn-ghost btn-icon btn-sm",
+      onClick: () => setStopListDismissed(true),
+      title: "\u0421\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435"
+    },
+    /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 13 })
+  )), view === "board" && /* @__PURE__ */ React.createElement("div", { className: "mobile-stage-tabs", role: "tablist", "aria-label": "\u0421\u0442\u0430\u0442\u0443\u0441\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432" }, COLUMNS.map((c) => {
     const list = filtered.filter((o) => o.col === c.id);
     const on = mobileStage === c.id;
     return /* @__PURE__ */ React.createElement(
@@ -1884,7 +2149,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
       /* @__PURE__ */ React.createElement("span", { className: "mobile-stage-tab-name" }, t(c.label)),
       /* @__PURE__ */ React.createElement("span", { className: "mobile-stage-tab-badge", "data-tone": c.id === "new" && list.length > 0 ? "accent" : "normal" }, list.length)
     );
-  })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", paddingBottom: 14 } }, view === "board" ? /* @__PURE__ */ React.createElement("div", { className: "board dispatch-board", "data-mobile-stage": mobileStage }, COLUMNS.map((c) => {
+  })), /* @__PURE__ */ React.createElement("div", { className: "dispatch-board-wrap", style: { flex: 1, minHeight: "calc(100vh - 130px)", display: "flex", flexDirection: "column", paddingBottom: 14 } }, view === "board" ? /* @__PURE__ */ React.createElement("div", { className: "board dispatch-board", "data-mobile-stage": mobileStage }, COLUMNS.map((c) => {
     const list = filtered.filter((o) => o.col === c.id);
     const isMobileActive = mobileStage === c.id;
     return /* @__PURE__ */ React.createElement(
@@ -1905,7 +2170,8 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
           onAdvance,
           onPrint,
           onEdit: (ord) => setEditingOrder(ord),
-          onDelete: (ord) => setDeletingOrder(ord)
+          onDelete: (ord) => setDeletingOrder(ord),
+          onCancel: (ord) => setCancellingOrder(ord)
         }
       )), !list.length && /* @__PURE__ */ React.createElement("div", { className: "empty" }, /* @__PURE__ */ React.createElement(Icon, { name: "box", size: 22 }), /* @__PURE__ */ React.createElement("span", null, c.id === "new" ? "\u041D\u043E\u0432\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043D\u0435\u0442" : c.id === "kitchen" ? "\u041D\u0430 \u043A\u0443\u0445\u043D\u0435 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E" : c.id === "way" ? "\u041D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0432 \u043F\u0443\u0442\u0438" : "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043D\u0435\u0442")))
     );
@@ -1932,10 +2198,24 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
       },
       toast
     }
+  ), cancellingOrder && /* @__PURE__ */ React.createElement(
+    CancelOrderModal,
+    {
+      o: cancellingOrder,
+      onClose: () => setCancellingOrder(null),
+      onConfirm: (id, reason) => {
+        if (reason === "\u0422\u0435\u0441\u0442 / \u0414\u0443\u0431\u043B\u0438\u043A\u0430\u0442") {
+          onDeleteOrder && onDeleteOrder(id);
+        } else {
+          onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: "done", status: "\u043E\u0442\u043C\u0435\u043D\u0451\u043D", cancelReason: reason });
+        }
+      },
+      toast
+    }
   ));
 }
 const COL_TONE = { new: "accent", kitchen: "info", way: "violet", done: "ok" };
-Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, EditOrderModal, DeleteConfirmModal, Kpis, COLUMNS, COL_TONE, OrderCard });
+Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, EditOrderModal, DeleteConfirmModal, CancelOrderModal, Kpis, COLUMNS, COL_TONE, OrderCard });
 const BOOK_TONE = { pending: "warn", confirmed: "ok", seated: "info", cancelled: "muted" };
 function isTodayDate(dStr) {
   if (!dStr) return false;
@@ -4206,55 +4486,119 @@ function Staff({ t, toast }) {
 }
 Object.assign(window, { Couriers, MenuScreen, Staff });
 function Analytics({ t, orders = [] }) {
-  const completedOrders = orders.filter((o) => o.col === "done");
-  const total = orders.reduce((s, o) => s + (o.total || 0), 0);
-  const completedTotal = completedOrders.reduce((s, o) => s + (o.total || 0), 0);
-  const totalOrders = orders.length;
-  const completedCount = completedOrders.length;
-  const cancelledCount = orders.filter((o) => (o.status || "").includes("\u043E\u0442\u043C\u0435\u043D")).length;
-  const avgCheck = totalOrders > 0 ? Math.round(total / totalOrders) : 0;
-  const completionRate = totalOrders > 0 ? Math.round(completedCount / totalOrders * 100) : 100;
-  const hours = ["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
-  const realHourly = hours.map((h) => {
-    const hr = parseInt(h.split(":")[0]);
-    const inHour = orders.filter((o) => {
-      const d = new Date(o.createdAt || Date.now());
-      return d.getHours() === hr;
-    });
-    return Math.round(inHour.reduce((s, o) => s + (o.total || 0), 0) / 1e3);
-  });
-  const itemCounts = {};
-  orders.forEach((o) => {
-    (o.items || []).forEach((it) => {
-      const n = it.n || "\u0411\u043B\u044E\u0434\u043E";
-      itemCounts[n] = (itemCounts[n] || 0) + (it.q || 1);
-    });
-  });
-  const topList = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
-  const maxTop = topList.length > 0 ? Math.max(...topList.map((x) => x[1])) : 1;
-  const delCount = orders.filter((o) => o.type === "delivery").length;
-  const pickCount = orders.filter((o) => o.type === "pickup").length;
-  const hallCount = orders.filter((o) => o.type === "hall").length;
-  const safeTotal = totalOrders || 1;
-  return /* @__PURE__ */ React.createElement("div", { className: "page" }, /* @__PURE__ */ React.createElement("div", { className: "kpis" }, [
-    { l: "revenue_today", v: summ(total), f: `${totalOrders} \u0447\u0435\u043A\u043E\u0432 \u0437\u0430 \u0441\u043C\u0435\u043D\u0443`, icon: "wallet" },
-    { l: "avg_check", v: summ(avgCheck), f: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A \u0437\u0430\u043A\u0430\u0437\u0430", icon: "receipt" },
-    { l: "completed", v: completedCount, f: `\u0418\u0437 ${totalOrders} \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \xB7 ${completionRate}%`, icon: "check" },
-    { l: "cancellations", v: cancelledCount, f: `${cancelledCount} \u043E\u0442\u043C\u0435\u043D`, icon: "x", warn: cancelledCount > 0 }
-  ].map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.l }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(c.l)), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico", style: c.warn ? { color: "var(--danger)", background: "var(--danger-soft)" } : void 0 }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.v)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.f))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginTop: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("rev_by_hour")), /* @__PURE__ */ React.createElement("div", { className: "money-lg", style: { fontSize: 21, marginTop: 2 } }, summ(total), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, fontFamily: "var(--f-body)", fontWeight: 600, color: "var(--text-3)" } }, "\u0441\u0443\u043C"))), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 10, fontSize: 9.5 } }, /* @__PURE__ */ React.createElement("span", { className: "row", style: { gap: 4, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 14, height: 2, background: "var(--accent)", display: "block", borderRadius: 2 } }), "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"))), /* @__PURE__ */ React.createElement(
-    LineChart,
-    {
-      labels: hours,
-      series: [
-        { data: realHourly, color: "var(--accent)", fill: true }
-      ],
-      height: 168
+  const [tab, setTab] = useState("shift");
+  const [data, setData] = useState(null);
+  const [archive, setArchive] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    if (tab === "archive") {
+      fetch("/api/admin/shifts/history").then((r) => r.json()).then((d) => {
+        if (d && d.ok && Array.isArray(d.shifts)) setArchive(d.shifts);
+      }).catch(() => {
+      }).finally(() => setLoading(false));
+    } else {
+      fetch(`/api/admin/analytics/summary?period=${tab}`).then((r) => r.json()).then((d) => {
+        if (d && d.ok) setData(d);
+      }).catch(() => {
+      }).finally(() => setLoading(false));
     }
-  )), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("kitchen_load")), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 10, marginTop: 2, marginBottom: 11 } }, orders.filter((o) => o.col === "kitchen").length, " \u0433\u043E\u0442\u043E\u0432\u044F\u0442\u0441\u044F \xB7 ", orders.filter((o) => o.col === "way").length, " \u043D\u0430 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0435"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 13, paddingTop: 11, borderTop: "1px solid var(--line-soft)" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("top_items")), /* @__PURE__ */ React.createElement("div", { className: "col-flex", style: { marginTop: 7, gap: 6 } }, topList.map(([n, v]) => /* @__PURE__ */ React.createElement("div", { key: n, className: "row", style: { gap: 7, fontSize: 10.5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow trunc" }, n), /* @__PURE__ */ React.createElement("div", { style: { width: 52, height: 4, background: "var(--surface-3)", borderRadius: 99, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: v / maxTop * 100 + "%", height: "100%", background: "var(--accent)", opacity: 0.8 } })), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 9, width: 16, textAlign: "right" } }, v))), !topList.length && /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11 } }, "\u0417\u0430\u043A\u0430\u0437\u043E\u0432 \u0441 \u043F\u043E\u0437\u0438\u0446\u0438\u044F\u043C\u0438 \u043C\u0435\u043D\u044E \u043F\u043E\u043A\u0430 \u043D\u0435\u0442"))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 } }, [
-    { l: "delivery", v: delCount, c: "var(--info)", f: `${Math.round(delCount / safeTotal * 100)}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` },
-    { l: "pickup", v: pickCount, c: "var(--warn)", f: `${Math.round(pickCount / safeTotal * 100)}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` },
-    { l: "hall", v: hallCount, c: "var(--violet)", f: `${Math.round(hallCount / safeTotal * 100)}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` }
-  ].map((s) => /* @__PURE__ */ React.createElement("div", { key: s.l, className: "card", style: { padding: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "row" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(s.l)), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "stat-num", style: { fontSize: 18, color: s.c } }, s.v)), /* @__PURE__ */ React.createElement("div", { className: "dim trunc", style: { fontSize: 10, marginTop: 4 } }, s.f)))));
+  }, [tab]);
+  const summary = data?.summary || {
+    totalOrders: 0,
+    totalRevenue: 0,
+    avgCheck: 0,
+    completedCount: 0,
+    cancelledCount: 0,
+    completionRate: 100,
+    cashTotal: 0,
+    cardTotal: 0,
+    deliveryCount: 0,
+    pickupCount: 0,
+    hallCount: 0
+  };
+  const hours = ["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"];
+  const hourlySeries = hours.map((h) => {
+    const found = (data?.hourly || []).find((x) => x.hour === h);
+    return found ? Math.round((found.revenue || 0) / 1e3) : 0;
+  });
+  const topDishes = data?.topDishes || [];
+  const maxDish = topDishes.length > 0 ? Math.max(...topDishes.map((x) => x.count)) : 1;
+  const dailyList = data?.daily || [];
+  const maxDailyRev = dailyList.length > 0 ? Math.max(...dailyList.map((x) => x.revenue || 0), 1e5) : 1e5;
+  return /* @__PURE__ */ React.createElement("div", { className: "page" }, /* @__PURE__ */ React.createElement("div", { className: "analytics-subnav" }, [
+    { id: "shift", label: "\u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u043C\u0435\u043D\u0430" },
+    { id: "7d", label: "\u041F\u043E \u0434\u043D\u044F\u043C (7 \u0434\u043D\u0435\u0439)" },
+    { id: "30d", label: "\u041C\u0435\u0441\u044F\u0446 \u0438 \u0433\u043E\u0434 (30 \u0434\u043D\u0435\u0439)" },
+    { id: "archive", label: "\u0410\u0440\u0445\u0438\u0432 \u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D" }
+  ].map((item) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: item.id,
+      type: "button",
+      className: "analytics-tab-btn",
+      "data-active": tab === item.id ? "1" : "0",
+      onClick: () => setTab(item.id)
+    },
+    item.label
+  ))), loading ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--text-3)" } }, "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0430\u043D\u0430\u043B\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0434\u0430\u043D\u043D\u044B\u0445...") : tab === "archive" ? (
+    /* 4. Saved Shifts Archive View */
+    /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0410\u0440\u0445\u0438\u0432 \u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11, marginTop: 2 } }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0432\u0441\u0435\u0445 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445 \u0441\u043C\u0435\u043D \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430 FENIX \u0441 \u0440\u0430\u0437\u0431\u0438\u0432\u043A\u043E\u0439 \u043F\u043E \u043A\u0430\u0441\u0441\u0435")), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "badge" }, archive.length, " \u0441\u043C\u0435\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435")), /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { className: "shift-archive-tbl" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "\u0421\u043C\u0435\u043D\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041E\u0442\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u0417\u0430\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041A\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0427\u0435\u043A\u043E\u0432"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041A\u0430\u0440\u0442\u044B / \u041E\u043D\u043B\u0430\u0439\u043D"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0418\u0442\u043E\u0433\u043E \u0432\u044B\u0440\u0443\u0447\u043A\u0430"))), /* @__PURE__ */ React.createElement("tbody", null, archive.map((s) => /* @__PURE__ */ React.createElement("tr", { key: s.id }, /* @__PURE__ */ React.createElement("td", { className: "mono", style: { fontWeight: 700, color: "var(--accent)" } }, "#", s.shift_num), /* @__PURE__ */ React.createElement("td", null, s.opened_at ? new Date(s.opened_at.replace(" ", "T")).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.closed_at ? new Date(s.closed_at.replace(" ", "T")).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.auto_closed === 1 ? /* @__PURE__ */ React.createElement("span", { className: "pill", style: { background: "var(--warn-soft)", color: "var(--warn)", fontSize: 9.5, padding: "2px 6px", borderRadius: 4 } }, "\u0410\u0432\u0442\u043E (04:00)") : /* @__PURE__ */ React.createElement("span", null, s.closed_by || "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440")), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right" } }, s.total_orders || 0), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--ok)" } }, summ(s.cash_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--info)" } }, summ(s.card_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", fontWeight: 700, color: "var(--text)" } }, summ(s.total_revenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 9.5 } }, "\u0441\u0443\u043C")))), !archive.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: 8, style: { textAlign: "center", padding: 30, color: "var(--text-3)" } }, "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u043C\u0435\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0430."))))))
+  ) : tab === "7d" ? (
+    /* 2. Last 7 Days View */
+    /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "kpis" }, [
+      { l: "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0437\u0430 7 \u0434\u043D\u0435\u0439", v: summ(summary.totalRevenue), f: `${summary.totalOrders} \u0447\u0435\u043A\u043E\u0432`, icon: "wallet" },
+      { l: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A (7\u0434)", v: summ(summary.avgCheck), f: "\u0417\u0430 \u0437\u0430\u043A\u0430\u0437", icon: "receipt" },
+      { l: "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 \u0432 \u043A\u0430\u0441\u0441\u0443", v: summ(summary.cashTotal), f: "\u041E\u0442 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432 \u0438 \u0441\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437\u0430", icon: "check" },
+      { l: "\u041E\u043D\u043B\u0430\u0439\u043D / \u041A\u0430\u0440\u0442\u044B", v: summ(summary.cardTotal), f: "\u0411\u0435\u0437\u043D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 \u043F\u043B\u0430\u0442\u0435\u0436\u0438", icon: "card" }
+    ].map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.l }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, c.l), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico" }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.v)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.f))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 12, marginTop: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0421\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u0435 \u0432\u044B\u0440\u0443\u0447\u043A\u0438 \u043F\u043E \u0434\u043D\u044F\u043C (\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 7 \u0434\u043D\u0435\u0439)"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 10, marginTop: 2, marginBottom: 12 } }, "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u044B\u0439 \u0434\u043E\u0445\u043E\u0434 \u043E\u0442 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438, \u0441\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437\u0430 \u0438 \u0437\u0430\u043B\u0430"), /* @__PURE__ */ React.createElement("div", { className: "bar-chart-container" }, dailyList.map((d) => {
+      const pct = Math.max(4, Math.round(d.revenue / maxDailyRev * 100));
+      const dayName = new Date(d.date).toLocaleDateString("ru-RU", { weekday: "short", day: "numeric", month: "numeric" });
+      return /* @__PURE__ */ React.createElement("div", { className: "bar-col", key: d.date }, /* @__PURE__ */ React.createElement("div", { className: "bar-val" }, d.revenue > 0 ? `${Math.round(d.revenue / 1e3)}k` : "0"), /* @__PURE__ */ React.createElement("div", { className: "bar-fill-track" }, /* @__PURE__ */ React.createElement("div", { className: "bar-fill", style: { height: `${pct}%` } })), /* @__PURE__ */ React.createElement("div", { className: "bar-label" }, dayName));
+    }))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041F\u043E\u043F\u0443\u043B\u044F\u0440\u043D\u044B\u0435 \u0431\u043B\u044E\u0434\u0430 \u0437\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 10, marginTop: 2, marginBottom: 11 } }, "\u041B\u0438\u0434\u0435\u0440\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0437\u0430 7 \u0434\u043D\u0435\u0439"), /* @__PURE__ */ React.createElement("div", { className: "col-flex", style: { gap: 7, marginTop: 8 } }, topDishes.map((it) => /* @__PURE__ */ React.createElement("div", { key: it.name, className: "row", style: { gap: 7, fontSize: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "grow trunc" }, it.name), /* @__PURE__ */ React.createElement("div", { style: { width: 52, height: 4, background: "var(--surface-3)", borderRadius: 99, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${it.count / maxDish * 100}%`, height: "100%", background: "var(--accent)", opacity: 0.8 } })), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 9.5, width: 20, textAlign: "right" } }, it.count))), !topDishes.length && /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11 } }, "\u041D\u0435\u0442 \u0434\u0430\u043D\u043D\u044B\u0445 \u043E \u043F\u0440\u043E\u0434\u0430\u0436\u0430\u0445 \u0437\u0430 \u043F\u0435\u0440\u0438\u043E\u0434")))))
+  ) : tab === "30d" ? (
+    /* 3. Monthly / Year View */
+    /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "kpis" }, [
+      { l: "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0437\u0430 30 \u0434\u043D\u0435\u0439", v: summ(summary.totalRevenue), f: `${summary.totalOrders} \u0447\u0435\u043A\u043E\u0432`, icon: "wallet" },
+      { l: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A", v: summ(summary.avgCheck), f: "\u0412 \u0441\u0440\u0435\u0434\u043D\u0435\u043C \u0437\u0430 \u043C\u0435\u0441\u044F\u0446", icon: "receipt" },
+      { l: "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E \u0437\u0430\u043A\u0430\u0437\u043E\u0432", v: summary.completedCount, f: `${summary.completionRate}% \u0443\u0441\u043F\u0435\u0448\u043D\u044B\u0445`, icon: "check" },
+      { l: "\u041E\u0442\u043C\u0435\u043D \u0437\u0430\u043A\u0430\u0437\u043E\u0432", v: summary.cancelledCount, f: "\u041F\u043E \u0432\u0441\u0435\u043C \u043F\u0440\u0438\u0447\u0438\u043D\u0430\u043C", icon: "x", warn: summary.cancelledCount > 0 }
+    ].map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.l }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, c.l), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico", style: c.warn ? { color: "var(--danger)", background: "var(--danger-soft)" } : void 0 }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.v)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.f))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginTop: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041F\u0438\u043A\u043E\u0432\u044B\u0435 \u0447\u0430\u0441\u044B \u043D\u0430\u0433\u0440\u0443\u0437\u043A\u0438 (11:00 \u2014 23:00)"), /* @__PURE__ */ React.createElement("div", { className: "money-lg", style: { fontSize: 20, marginTop: 2, marginBottom: 12 } }, summ(summary.totalRevenue), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 10, color: "var(--text-3)" } }, "\u0441\u0443\u043C \u0437\u0430 30 \u0434\u043D\u0435\u0439")), /* @__PURE__ */ React.createElement(
+      LineChart,
+      {
+        labels: hours,
+        series: [
+          { data: hourlySeries, color: "var(--accent)", fill: true }
+        ],
+        height: 168
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0422\u043E\u043F \u043F\u043E\u0437\u0438\u0446\u0438\u0439 \u043C\u0435\u043D\u044E \u0437\u0430 30 \u0434\u043D\u0435\u0439"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 10, marginTop: 2, marginBottom: 11 } }, "\u0421\u0430\u043C\u044B\u0435 \u0437\u0430\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u043C\u044B\u0435 \u0431\u043B\u044E\u0434\u0430 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430"), /* @__PURE__ */ React.createElement("div", { className: "col-flex", style: { gap: 7, marginTop: 8 } }, topDishes.map((it) => /* @__PURE__ */ React.createElement("div", { key: it.name, className: "row", style: { gap: 7, fontSize: 11 } }, /* @__PURE__ */ React.createElement("span", { className: "grow trunc" }, it.name), /* @__PURE__ */ React.createElement("div", { style: { width: 52, height: 4, background: "var(--surface-3)", borderRadius: 99, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${it.count / maxDish * 100}%`, height: "100%", background: "var(--accent)", opacity: 0.8 } })), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 9.5, width: 22, textAlign: "right" } }, it.count)))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 } }, [
+      { l: "delivery", v: summary.deliveryCount, c: "var(--info)", f: `${summary.totalOrders > 0 ? Math.round(summary.deliveryCount / summary.totalOrders * 100) : 0}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` },
+      { l: "pickup", v: summary.pickupCount, c: "var(--warn)", f: `${summary.totalOrders > 0 ? Math.round(summary.pickupCount / summary.totalOrders * 100) : 0}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` },
+      { l: "hall", v: summary.hallCount, c: "var(--violet)", f: `${summary.totalOrders > 0 ? Math.round(summary.hallCount / summary.totalOrders * 100) : 0}% \u0432\u0441\u0435\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432` }
+    ].map((s) => /* @__PURE__ */ React.createElement("div", { key: s.l, className: "card", style: { padding: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "row" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(s.l)), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "stat-num", style: { fontSize: 18, color: s.c } }, s.v)), /* @__PURE__ */ React.createElement("div", { className: "dim trunc", style: { fontSize: 10, marginTop: 4 } }, s.f)))))
+  ) : (
+    /* 1. Current Shift View */
+    /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "kpis" }, [
+      { l: "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0441\u043C\u0435\u043D\u044B", v: summ(summary.totalRevenue), f: `${summary.totalOrders} \u0447\u0435\u043A\u043E\u0432 \u0437\u0430 \u0441\u043C\u0435\u043D\u0443`, icon: "wallet" },
+      { l: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A", v: summ(summary.avgCheck), f: "\u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u043C\u0435\u043D\u0430", icon: "receipt" },
+      { l: "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 \u0432 \u043A\u0430\u0441\u0441\u0443", v: summ(summary.cashTotal), f: "\u041A \u0441\u0434\u0430\u0447\u0435 \u043A\u0443\u0440\u044C\u0435\u0440\u0430\u043C\u0438", icon: "check" },
+      { l: "\u041A\u0430\u0440\u0442\u0430 / \u041E\u043D\u043B\u0430\u0439\u043D", v: summ(summary.cardTotal), f: "\u0411\u0435\u0437\u043D\u0430\u043B\u0438\u0447\u043D\u0430\u044F \u043E\u043F\u043B\u0430\u0442\u0430", icon: "card" }
+    ].map((c) => /* @__PURE__ */ React.createElement("div", { className: "card kpi", key: c.l }, /* @__PURE__ */ React.createElement("div", { className: "kpi-top" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, c.l), /* @__PURE__ */ React.createElement("span", { className: "kpi-ico" }, /* @__PURE__ */ React.createElement(Icon, { name: c.icon, size: 14 }))), /* @__PURE__ */ React.createElement("div", { className: "kpi-body" }, /* @__PURE__ */ React.createElement("div", { className: "stat-num" }, c.v)), /* @__PURE__ */ React.createElement("div", { className: "kpi-foot" }, /* @__PURE__ */ React.createElement("span", { className: "trunc" }, c.f))))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 12, marginTop: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0414\u0438\u043D\u0430\u043C\u0438\u043A\u0430 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0441\u043C\u0435\u043D\u044B"), /* @__PURE__ */ React.createElement("div", { className: "money-lg", style: { fontSize: 21, marginTop: 2 } }, summ(summary.totalRevenue), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: 10, fontFamily: "var(--f-body)", fontWeight: 600, color: "var(--text-3)" } }, "\u0441\u0443\u043C"))), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 10, fontSize: 9.5 } }, /* @__PURE__ */ React.createElement("span", { className: "row", style: { gap: 4, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 14, height: 2, background: "var(--accent)", display: "block", borderRadius: 2 } }), "\u0421\u043C\u0435\u043D\u0430 #", data?.currentShift?.shiftNum || 1))), /* @__PURE__ */ React.createElement(
+      LineChart,
+      {
+        labels: hours,
+        series: [
+          { data: hourlySeries, color: "var(--accent)", fill: true }
+        ],
+        height: 168
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0411\u043B\u044E\u0434\u0430 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0441\u043C\u0435\u043D\u044B"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 10, marginTop: 2, marginBottom: 11 } }, "\u0417\u0430\u043A\u0430\u0437\u044B, \u043F\u0440\u0438\u0433\u043E\u0442\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0430 \u043A\u0443\u0445\u043D\u0435"), /* @__PURE__ */ React.createElement("div", { className: "col-flex", style: { marginTop: 7, gap: 6 } }, topDishes.map((it) => /* @__PURE__ */ React.createElement("div", { key: it.name, className: "row", style: { gap: 7, fontSize: 10.5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow trunc" }, it.name), /* @__PURE__ */ React.createElement("div", { style: { width: 52, height: 4, background: "var(--surface-3)", borderRadius: 99, overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${it.count / maxDish * 100}%`, height: "100%", background: "var(--accent)", opacity: 0.8 } })), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 9, width: 16, textAlign: "right" } }, it.count))), !topDishes.length && /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11, padding: "14px 0" } }, "\u0412 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0441\u043C\u0435\u043D\u0435 \u0431\u043B\u044E\u0434\u0430 \u0435\u0449\u0451 \u043D\u0435 \u0437\u0430\u043A\u0430\u0437\u044B\u0432\u0430\u043B\u0438\u0441\u044C")))), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 } }, [
+      { l: "delivery", v: summary.deliveryCount, c: "var(--info)", f: `${summary.totalOrders > 0 ? Math.round(summary.deliveryCount / summary.totalOrders * 100) : 0}% \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0441\u043C\u0435\u043D\u044B` },
+      { l: "pickup", v: summary.pickupCount, c: "var(--warn)", f: `${summary.totalOrders > 0 ? Math.round(summary.pickupCount / summary.totalOrders * 100) : 0}% \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0441\u043C\u0435\u043D\u044B` },
+      { l: "hall", v: summary.hallCount, c: "var(--violet)", f: `${summary.totalOrders > 0 ? Math.round(summary.hallCount / summary.totalOrders * 100) : 0}% \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0441\u043C\u0435\u043D\u044B` }
+    ].map((s) => /* @__PURE__ */ React.createElement("div", { key: s.l, className: "card", style: { padding: 13 } }, /* @__PURE__ */ React.createElement("div", { className: "row" }, /* @__PURE__ */ React.createElement("span", { className: "label" }, t(s.l)), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "stat-num", style: { fontSize: 18, color: s.c } }, s.v)), /* @__PURE__ */ React.createElement("div", { className: "dim trunc", style: { fontSize: 10, marginTop: 4 } }, s.f)))))
+  ));
 }
 function Settings({ t, theme, setTheme, dir, setDir, lang, setLang, sound, setSound, rail, setRail }) {
   const THEME_LABELS = { gold: "\u0422\u0451\u043C\u043D\u043E\u0435 \u0437\u043E\u043B\u043E\u0442\u043E", graphite: "\u0413\u0440\u0430\u0444\u0438\u0442", oxblood: "\u041E\u043A\u0441\u0431\u043B\u0430\u0434", cream: "\u041A\u0440\u0435\u043C" };
@@ -4912,6 +5256,8 @@ function App() {
     return { user_id: "admin", name: "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440 Fenix", role: "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440", initials: "\u0410\u0414" };
   });
   const [switchUserModalOpen, setSwitchUserModalOpen] = useState(false);
+  const [currentShift, setCurrentShift] = useState(null);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const t = useCallback((k) => FX_I18N[lang] && FX_I18N[lang][k] || (FX_I18N.ru[k] || k), [lang]);
   const handleLogout = useCallback(async () => {
     try {
@@ -4993,6 +5339,10 @@ function App() {
         }
         setOrders(mapped);
       }
+      fetch("/api/admin/shift/current").then((r) => r.json()).then((d) => {
+        if (d && d.ok && d.shift) setCurrentShift(d.shift);
+      }).catch(() => {
+      });
     } catch (e) {
       console.error("Error syncing orders:", e);
     }
@@ -5236,7 +5586,9 @@ function App() {
       onNew: () => setCreateOpen(true),
       toast: pushToast,
       onLogout: handleLogout,
-      onToggleMenu: () => setMobileMenuOpen((v) => !v)
+      onToggleMenu: () => setMobileMenuOpen((v) => !v),
+      currentShift,
+      onOpenShiftModal: () => setShiftModalOpen(true)
     }
   ), /* @__PURE__ */ React.createElement("main", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } }, screens[page]), /* @__PURE__ */ React.createElement(
     MobileBottomNav,
@@ -5290,6 +5642,18 @@ function App() {
           localStorage.setItem("fenix_current_user", JSON.stringify(u));
         } catch (_) {
         }
+      },
+      toast: pushToast
+    }
+  ), /* @__PURE__ */ React.createElement(
+    ShiftCloseModal,
+    {
+      isOpen: shiftModalOpen,
+      onClose: () => setShiftModalOpen(false),
+      currentUser,
+      onShiftClosed: (data) => {
+        syncOrders(false);
+        pushToast(`\u0421\u043C\u0435\u043D\u0430 #${data.closedShift?.shiftNum || ""} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430.`, "ok", "check");
       },
       toast: pushToast
     }

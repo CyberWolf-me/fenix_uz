@@ -7,7 +7,7 @@ const COLUMNS = [
   { id: 'done', idx: '04', label: 'done', tone: 'var(--ok)' },
 ];
 
-function Kpis({ t, orders = [], bookingsCount = 0 }) {
+function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCollapse }) {
   const [expandedMobile, setExpandedMobile] = useState(false);
   const active = orders.filter((o) => o.col !== 'done').length;
   const inKitchen = orders.filter((o) => o.col === 'kitchen').length;
@@ -91,8 +91,94 @@ function Kpis({ t, orders = [], bookingsCount = 0 }) {
         </button>
       </div>
 
-      {/* Full Metric Cards Grid (Standard on Desktop, Accordion on Mobile) */}
-      <div className={`kpis ${expandedMobile ? 'mobile-expanded' : ''}`}>
+      {/* Desktop Compact Bar when KPIs are collapsed to give full viewport to the 4 columns */}
+      {collapsed && (
+        <div className="kpis-desktop-compact hide-mobile">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
+              <span className="kpis-dot active" />
+              <b className="mono" style={{ color: 'var(--text)' }}>{active}</b> в работе
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
+              <span className="kpis-dot rev" />
+              <b className="mono" style={{ color: 'var(--accent)' }}>{summ(rev)}</b> сум
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
+              <span className="kpis-dot info" />
+              <b className="mono" style={{ color: 'var(--text)' }}>{bookingsCount}</b> броней
+            </span>
+            {attentionCount > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--warn)' }}>
+                <span className="kpis-dot warn" />
+                <b className="mono">{attentionCount}</b> требуют ответа
+              </span>
+            )}
+          </div>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={onToggleCollapse}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--accent)' }}
+              title="Развернуть полные карточки метрик"
+            >
+              <span>Показать показатели</span>
+              <Icon name="chevronD" size={12} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Full Metric Cards Grid (Standard on Desktop, Collapsible with smooth slide) */}
+      <div className={`kpis-desktop-wrap hide-mobile ${collapsed ? 'is-collapsed' : ''}`}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={onToggleCollapse}
+              style={{ fontSize: 10.5, color: 'var(--text-3)', padding: '2px 8px', gap: 4 }}
+              title="Свернуть блок метрик, чтобы развернуть 4 колонки заказов на весь экран"
+            >
+              <span>Свернуть показатели</span>
+              <Icon name="chevronU" size={10} />
+            </button>
+          )}
+        </div>
+        <div className="kpis">
+          {cards.map((c) => (
+            <div className="card kpi" key={c.label}>
+              <div className="kpi-top">
+                <span className="label">{t(c.label)}</span>
+                <span className="kpi-ico" style={c.alert ? { color: 'var(--warn)', background: 'var(--warn-soft)' } : undefined}>
+                  <Icon name={c.icon} size={14} />
+                </span>
+              </div>
+              <div className="kpi-body">
+                <div className="stat-num">
+                  {c.num}{c.suffix && <small>{c.suffix}</small>}
+                </div>
+                {c.delta && (
+                  <span className="delta" data-up={c.up ? '1' : '0'}>
+                    <Icon name="arrowUp" size={10} stroke={2.2} />{c.delta}
+                  </span>
+                )}
+              </div>
+              <div className="kpi-foot">
+                <span className="trunc">{c.foot}</span>
+                {c.pills.map((p) => (
+                  <Pill key={p.text} tone={p.tone} dot={p.tone === 'ok'}>
+                    <span>{p.text}</span>
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Mobile Accordion */}
+      <div className={`kpis hide-desktop ${expandedMobile ? 'mobile-expanded' : ''}`}>
         {cards.map((c) => (
           <div className="card kpi" key={c.label}>
             <div className="kpi-top">
@@ -126,7 +212,7 @@ function Kpis({ t, orders = [], bookingsCount = 0 }) {
   );
 }
 
-function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) {
+function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete, onCancel }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const s = slaState(o);
   const nextLabel = { new: 'accept', kitchen: 'ready', way: 'mark_done', done: null }[o.col];
@@ -245,6 +331,14 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) 
                   <Icon name="bookStack" size={13} />
                   <span>Карточка заказа</span>
                 </button>
+                <button
+                  type="button"
+                  className="context-menu-item danger"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onCancel && onCancel(o); }}
+                >
+                  <Icon name="x" size={13} />
+                  <span>Отменить заказ...</span>
+                </button>
                 <div className="context-menu-divider" />
                 <button
                   type="button"
@@ -263,7 +357,7 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete }) 
   );
 }
 
-function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast }) {
+function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast, onCancel }) {
   const s = slaState(o);
   const steps = [
     { id: 'new', label: t('accepted') || 'Принят' }, { id: 'kitchen', label: t('kitchen') },
@@ -378,6 +472,7 @@ function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast }) {
         <div className="row" style={{ gap: 6 }}>
           <Btn icon="phone" onClick={() => onToast('Звонок: ' + o.phone)} style={{ flex: 1 }}>{t('call_client')}</Btn>
           <Btn icon="printer" onClick={() => onPrint(o)} style={{ flex: 1 }}>{t('print')}</Btn>
+          <Btn icon="x" onClick={() => { onClose(); onCancel && onCancel(o); }} style={{ flex: 1, color: 'var(--danger)' }}>Отменить</Btn>
         </div>
       </div>
       <div className="modal-foot">
@@ -611,6 +706,114 @@ function DeleteConfirmModal({ o, onClose, onDeleted, toast }) {
   );
 }
 
+function CancelOrderModal({ o, onClose, onConfirm, toast }) {
+  const [reason, setReason] = useState('Клиент отменил');
+  const [loading, setLoading] = useState(false);
+
+  const REASONS = [
+    {
+      id: 'Клиент отменил',
+      title: 'Клиент отменил',
+      desc: 'Гость сам отказался от заказа или изменились планы'
+    },
+    {
+      id: 'Стоп-лист / Нет блюда',
+      title: 'Стоп-лист / Нет блюда',
+      desc: 'Закончились ингредиенты или блюдо поставлено на паузу'
+    },
+    {
+      id: 'Тест / Дубликат',
+      title: 'Тест / Дубликат',
+      desc: 'Тестовый заказ персонала или дубликат (исключается из выручки и отчетов)'
+    }
+  ];
+
+  const handleCancel = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/orders/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: o.dbId || o.id,
+          orderNum: o.orderNum,
+          status: 'отменён',
+          cancelReason: reason
+        })
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast(`Заказ #${o.id} отменён (${reason})`, 'info', 'x');
+        onConfirm && onConfirm(o.id, reason);
+        onClose();
+      } else {
+        toast && toast('Ошибка при отмене заказа', 'danger');
+      }
+    } catch (_) {
+      toast && toast('Сетевая ошибка при отмене', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal onClose={onClose} width={440} label="Отмена заказа">
+      <div className="modal-head">
+        <Icon name="x" size={16} style={{ color: 'var(--danger)' }} />
+        <div className="modal-title grow">Отмена заказа #{o.id}</div>
+        <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><Icon name="x" size={14} /></button>
+      </div>
+      <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+          Укажите причину отмены заказа:
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {REASONS.map(r => (
+            <div
+              key={r.id}
+              className="cancel-reason-card"
+              data-active={reason === r.id ? '1' : '0'}
+              onClick={() => setReason(r.id)}
+            >
+              <div style={{
+                width: 16, height: 16, borderRadius: '50%',
+                border: '2px solid ' + (reason === r.id ? 'var(--accent)' : 'var(--line-strong)'),
+                display: 'grid', placeItems: 'center', flex: 'none'
+              }}>
+                {reason === r.id && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)' }} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: reason === r.id ? 'var(--accent)' : 'var(--text)' }}>
+                  {r.title}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>
+                  {r.desc}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="modal-foot">
+        <Btn
+          type="button"
+          variant="danger"
+          icon="x"
+          className="grow"
+          disabled={loading}
+          onClick={handleCancel}
+        >
+          {loading ? 'Отмена...' : 'Подтвердить отмену'}
+        </Btn>
+        <Btn type="button" variant="ghost" onClick={onClose} disabled={loading}>
+          Назад
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
 function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPrint, toast, lang, bookingsCount = 0, onUpdateOrder, onDeleteOrder }) {
   const [q, setQ] = useState('');
   const [typeF, setTypeF] = useState('all');
@@ -618,6 +821,44 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
   const [mobileStage, setMobileStage] = useState('new');
   const [editingOrder, setEditingOrder] = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [stopListCount, setStopListCount] = useState(0);
+  const [stopListDismissed, setStopListDismissed] = useState(false);
+  const [kpisCollapsed, setKpisCollapsed] = useState(() => {
+    try { return localStorage.getItem('fx.admin.kpis_collapsed') === '1'; } catch (_) { return false; }
+  });
+  const toggleKpis = () => {
+    setKpisCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('fx.admin.kpis_collapsed', next ? '1' : '0'); } catch (_) {}
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    fetch('/api/admin/overview')
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.ok && d.overview) {
+          if (d.overview.stopListCount > 0) setStopListCount(d.overview.stopListCount);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const enableAllDishes = async () => {
+    try {
+      const res = await fetch('/api/admin/menu/stoplist/enable-all', { method: 'POST' });
+      const data = await res.json();
+      if (data && data.ok) {
+        toast && toast('Все блюда возвращены в меню!', 'ok', 'check');
+        setStopListCount(0);
+        setStopListDismissed(true);
+      }
+    } catch (_) {
+      toast && toast('Ошибка при включении блюд', 'danger');
+    }
+  };
 
   const filtered = useMemo(() => {
     let list = orders.filter((o) => {
@@ -638,7 +879,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
 
   return (
     <div className="page page-flush dispatch-page">
-      <Kpis t={t} orders={orders} bookingsCount={bookingsCount} />
+      <Kpis t={t} orders={orders} bookingsCount={bookingsCount} collapsed={kpisCollapsed} onToggleCollapse={toggleKpis} />
 
       {/* Spacious Unified Toolbar (Single Elegant Row on Desktop, Adaptive on Mobile) */}
       <div className="dispatch-toolbar">
@@ -678,6 +919,17 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
 
         {/* Right: Sort Controls + View Toggle + Quick Action */}
         <div className="dispatch-toolbar-right">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm hide-mobile"
+            onClick={toggleKpis}
+            title={kpisCollapsed ? "Развернуть блок метрик" : "Свернуть блок метрик (развернуть 4 таблицы заказов)"}
+            style={{ fontSize: 11, padding: '4px 9px', gap: 5, color: kpisCollapsed ? 'var(--accent)' : 'var(--text-3)' }}
+          >
+            <Icon name={kpisCollapsed ? "chevronD" : "chevronU"} size={12} />
+            <span>{kpisCollapsed ? "Метрики" : "Свернуть"}</span>
+          </button>
+
           <div className="seg hide-mobile">
             <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по срочности SLA">SLA</button>
             <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
@@ -699,6 +951,32 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
           )}
         </div>
       </div>
+
+      {/* Morning Stop-List Reminder Banner */}
+      {stopListCount > 0 && !stopListDismissed && (
+        <div className="stoplist-banner" style={{ margin: '0 14px 10px' }}>
+          <Icon name="alert" size={15} />
+          <span>
+            Внимание: в стоп-листе находится <b>{stopListCount}</b> блюд(а) с прошлой смены.
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={enableAllDishes}
+            style={{ color: 'var(--accent)', fontWeight: 600, border: '1px solid var(--accent)' }}
+          >
+            Включить все
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => setStopListDismissed(true)}
+            title="Скрыть напоминание"
+          >
+            <Icon name="x" size={13} />
+          </button>
+        </div>
+      )}
 
       {/* Mobile Stage Selector Tabs (Purpose-built for handheld touch ergonomics) */}
       {view === 'board' && (
@@ -727,7 +1005,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
         </div>
       )}
 
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingBottom: 14 }}>
+      <div className="dispatch-board-wrap" style={{ flex: 1, minHeight: 'calc(100vh - 130px)', display: 'flex', flexDirection: 'column', paddingBottom: 14 }}>
         {view === 'board' ? (
           <div className="board dispatch-board" data-mobile-stage={mobileStage}>
             {COLUMNS.map((c) => {
@@ -755,6 +1033,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
                         onPrint={onPrint}
                         onEdit={(ord) => setEditingOrder(ord)}
                         onDelete={(ord) => setDeletingOrder(ord)}
+                        onCancel={(ord) => setCancellingOrder(ord)}
                       />
                     ))}
                     {!list.length && (
@@ -821,10 +1100,24 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
           toast={toast}
         />
       )}
+      {cancellingOrder && (
+        <CancelOrderModal
+          o={cancellingOrder}
+          onClose={() => setCancellingOrder(null)}
+          onConfirm={(id, reason) => {
+            if (reason === 'Тест / Дубликат') {
+              onDeleteOrder && onDeleteOrder(id);
+            } else {
+              onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: 'done', status: 'отменён', cancelReason: reason });
+            }
+          }}
+          toast={toast}
+        />
+      )}
     </div>
   );
 }
 
 const COL_TONE = { new: 'accent', kitchen: 'info', way: 'violet', done: 'ok' };
 
-Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, EditOrderModal, DeleteConfirmModal, Kpis, COLUMNS, COL_TONE, OrderCard });
+Object.assign(window, { Dispatch, OrderDrawer, ReceiptModal, EditOrderModal, DeleteConfirmModal, CancelOrderModal, Kpis, COLUMNS, COL_TONE, OrderCard });

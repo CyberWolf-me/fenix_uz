@@ -281,6 +281,8 @@ function App() {
     return { user_id: 'admin', name: 'Администратор Fenix', role: 'Администратор', initials: 'АД' };
   });
   const [switchUserModalOpen, setSwitchUserModalOpen] = useState(false);
+  const [currentShift, setCurrentShift] = useState(null);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
 
   const t = useCallback((k) => (FX_I18N[lang] && FX_I18N[lang][k]) || (FX_I18N.ru[k] || k), [lang]);
 
@@ -371,6 +373,12 @@ function App() {
         // ONLY real orders from SQLite
         setOrders(mapped);
       }
+      fetch('/api/admin/shift/current')
+        .then(r => r.json())
+        .then(d => {
+          if (d && d.ok && d.shift) setCurrentShift(d.shift);
+        })
+        .catch(() => {});
     } catch (e) {
       console.error('Error syncing orders:', e);
     }
@@ -580,6 +588,8 @@ function App() {
           toast={pushToast}
           onLogout={handleLogout}
           onToggleMenu={() => setMobileMenuOpen((v) => !v)}
+          currentShift={currentShift}
+          onOpenShiftModal={() => setShiftModalOpen(true)}
         />
         <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {screens[page]}
@@ -622,6 +632,17 @@ function App() {
         onSelectUser={(u) => {
           setCurrentUser(u);
           try { localStorage.setItem('fenix_current_user', JSON.stringify(u)); } catch (_) {}
+        }}
+        toast={pushToast}
+      />
+
+      <ShiftCloseModal
+        isOpen={shiftModalOpen}
+        onClose={() => setShiftModalOpen(false)}
+        currentUser={currentUser}
+        onShiftClosed={(data) => {
+          syncOrders(false);
+          pushToast(`Смена #${data.closedShift?.shiftNum || ''} успешно сохранена.`, 'ok', 'check');
         }}
         toast={pushToast}
       />

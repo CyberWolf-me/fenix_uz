@@ -245,6 +245,29 @@ try {
   try { db.exec("ALTER TABLE customers ADD COLUMN bonus_points INTEGER DEFAULT 0;"); } catch (_) {}
   try { db.exec("ALTER TABLE customers ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"); } catch (_) {}
 
+  // Shifts Table & Shift Columns
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shifts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shift_num INTEGER UNIQUE NOT NULL,
+      opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      closed_at TIMESTAMP,
+      opened_by TEXT DEFAULT 'admin',
+      closed_by TEXT,
+      auto_closed INTEGER DEFAULT 0,
+      total_orders INTEGER DEFAULT 0,
+      total_revenue INTEGER DEFAULT 0,
+      cash_total INTEGER DEFAULT 0,
+      card_total INTEGER DEFAULT 0,
+      delivery_orders INTEGER DEFAULT 0,
+      pickup_orders INTEGER DEFAULT 0,
+      hall_orders INTEGER DEFAULT 0,
+      status TEXT DEFAULT 'open'
+    );
+  `);
+  try { db.exec("ALTER TABLE orders ADD COLUMN shift_id INTEGER;"); } catch (_) {}
+  try { db.exec("ALTER TABLE orders ADD COLUMN cancel_reason TEXT;"); } catch (_) {}
+
   // Auto-seed menu_items from menu-data.js if table is empty
   try {
     const menuCount = db.prepare("SELECT COUNT(*) AS c FROM menu_items").get()?.c || 0;
@@ -341,6 +364,145 @@ function normalizeUzPhone(phone) {
 function formatPrice(num) {
   return Number(num || 0).toLocaleString("ru-RU") + " сум";
 }
+
+// ── Tashkent Timezone & Shift Helpers ──
+function getTashkentTime(d = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tashkent',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const getPart = (type) => parts.find(p => p.type === type)?.value;
+    const dateStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
+    const hour = parseInt(getPart('hour') || '0', 10);
+    const minute = parseInt(getPart('minute') || '0', 10);
+    return { dateStr, hour, minute, raw: `${dateStr} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}` };
+  } catch (_) {
+    const fallback = new Date(d.getTime() + 5 * 3600 * 1000);
+    const dateStr = fallback.toISOString().split('T')[0];
+    const hour = fallback.getUTCHours();
+    const minute = fallback.getUTCMinutes();
+    return { dateStr, hour, minute, raw: fallback.toISOString().replace('T', ' ').slice(0, 19) };
+  }
+}
+
+function getOrCreateCurrentShift(dbInstance) {
+  if (!dbInstance) return null;
+  try {
+    let shift = dbInstance.prepare("SELECT * FROM shifts WHERE status = 'open' ORDER BY id DESC LIMIT 1").get();
+    if (!shift) {
+      const maxRow = dbInstance.prepare("SELECT COALESCE(MAX(shift_num), 0) AS max_num FROM shifts").get();
+      const nextNum = (maxRow?.max_num || 0) + 1;
+      const res = dbInstance.prepare(`
+        INSERT INTO shifts (shift_num, opened_at, opened_by, status)
+        VALUES (?, CURRENT_TIMESTAMP, 'admin', 'open')
+      `).run(nextNum);
+      shift = dbInstance.prepare("SELECT * FROM shifts WHERE id = ?").get(res.lastInsertRowid);
+      console.log(`[Shift] Opened new shift #${nextNum} (id: ${shift.id})`);
+    }
+    return shift;
+  } catch (err) {
+    console.error("[Shift Get/Create Error]:", err.message);
+    return null;
+  }
+}
+
+function closeShiftInternal(dbInstance, shiftId, closedBy = "admin", autoClosed = false) {
+  if (!dbInstance) return null;
+  const stats = dbInstance.prepare(`
+    SELECT 
+      COUNT(*) AS total_orders,
+      COALESCE(SUM(total_price), 0) AS total_revenue,
+      COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%налич%' THEN total_price ELSE 0 END), 0) AS cash_total,
+      COALESCE(SUM(CASE WHEN LOWER(payment_method) NOT LIKE '%налич%' THEN total_price ELSE 0 END), 0) AS card_total,
+      COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%достав%' THEN 1 ELSE 0 END), 0) AS delivery_orders,
+      COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%самовыв%' THEN 1 ELSE 0 END), 0) AS pickup_orders,
+      COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%зал%' THEN 1 ELSE 0 END), 0) AS hall_orders
+    FROM orders
+    WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+  `).get(shiftId) || {};
+
+  dbInstance.prepare(`
+    UPDATE shifts SET
+      closed_at = CURRENT_TIMESTAMP,
+      closed_by = ?,
+      auto_closed = ?,
+      total_orders = ?,
+      total_revenue = ?,
+      cash_total = ?,
+      card_total = ?,
+      delivery_orders = ?,
+      pickup_orders = ?,
+      hall_orders = ?,
+      status = 'closed'
+    WHERE id = ?
+  `).run(
+    closedBy,
+    autoClosed ? 1 : 0,
+    stats.total_orders || 0,
+    stats.total_revenue || 0,
+    stats.cash_total || 0,
+    stats.card_total || 0,
+    stats.delivery_orders || 0,
+    stats.pickup_orders || 0,
+    stats.hall_orders || 0,
+    shiftId
+  );
+
+  const maxRow = dbInstance.prepare("SELECT COALESCE(MAX(shift_num), 0) AS max_num FROM shifts").get();
+  const nextNum = (maxRow?.max_num || 0) + 1;
+  const insRes = dbInstance.prepare(`
+    INSERT INTO shifts (shift_num, opened_at, opened_by, status)
+    VALUES (?, CURRENT_TIMESTAMP, ?, 'open')
+  `).run(nextNum, closedBy);
+  const newShiftId = insRes.lastInsertRowid;
+
+  // Roll over any unfinished active orders into the new shift
+  dbInstance.prepare(`
+    UPDATE orders SET shift_id = ?
+    WHERE shift_id = ?
+      AND LOWER(status) NOT LIKE '%выполнен%'
+      AND LOWER(status) NOT LIKE '%отмен%'
+      AND LOWER(status) NOT LIKE '%заверш%'
+      AND LOWER(status) NOT LIKE '%тест%'
+  `).run(newShiftId, shiftId);
+
+  console.log(`[Shift] Closed shift #${shiftId} by ${closedBy}. Opened new shift #${nextNum} (id: ${newShiftId}).`);
+  return { newShiftId, nextNum, stats };
+}
+
+function checkAutoCloseShift(dbInstance) {
+  if (!dbInstance) return;
+  try {
+    const shift = dbInstance.prepare("SELECT * FROM shifts WHERE status = 'open' ORDER BY id DESC LIMIT 1").get();
+    if (!shift || !shift.opened_at) return;
+
+    const uzTime = getTashkentTime();
+    let shiftDateStr = shift.opened_at.split('T')[0].split(' ')[0];
+    try {
+      const shiftDate = new Date(shift.opened_at.includes('T') ? shift.opened_at : shift.opened_at.replace(' ', 'T') + 'Z');
+      shiftDateStr = getTashkentTime(shiftDate).dateStr;
+    } catch (_) {}
+
+    const isPast4Am = uzTime.hour >= 4;
+    const isDifferentDay = uzTime.dateStr > shiftDateStr;
+
+    if (isDifferentDay && isPast4Am) {
+      console.log(`[Shift Auto-Close] 04:00 AM Safety trigger closing shift #${shift.shift_num} (opened on ${shiftDateStr}, current: ${uzTime.dateStr} ${uzTime.hour}h)`);
+      closeShiftInternal(dbInstance, shift.id, "Система (04:00)", true);
+    }
+  } catch (err) {
+    console.error("[Shift Auto-Close Check Error]:", err.message);
+  }
+}
+
+// Check auto-close periodically every 60 seconds
+setInterval(() => {
+  if (db) checkAutoCloseShift(db);
+}, 60_000);
 
 function extractCoords(addr) {
   const str = String(addr || '');
@@ -514,8 +676,8 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetC
   const address = order.address || 'г. Ташкент';
   const total = formatPrice(order.total_price);
   const rawPay = String(order.payment_method || '').toLowerCase().trim();
-  const isCash = !rawPay || rawPay.includes('налич') || rawPay.includes('cash') || rawPay.includes('naqd');
-  const pay = isCash ? '💵 Наличными курьеру' : '💳 Оплачено онлайн / картой';
+  const isOnlinePaid = (rawPay.includes('payme') || rawPay.includes('click')) && String(order.payment_status || '').toLowerCase() === 'paid';
+  const pay = isOnlinePaid ? '💳 Оплачено онлайн' : '💵 Наличными курьеру';
   const courierDisplayName = targetCourierName || order.courier_name || 'Курьер FENIX';
 
   let itemsList = [];
@@ -1368,30 +1530,48 @@ function normalizeOrderItems(rawItems, priceMap = null) {
       reservationsToday: 0,
       reservationsUpcoming: 0,
       eventsPending: 0,
+      stopListCount: 0,
+      currentShift: null,
       serverTime: new Date().toISOString()
     };
     if (db) {
       try {
         const todayStr = new Date().toISOString().split("T")[0];
-        
-        // Active orders (not finished / cancelled)
+        const currentShift = getOrCreateCurrentShift(db);
+        overview.currentShift = currentShift ? {
+          id: currentShift.id,
+          shiftNum: currentShift.shift_num,
+          openedAt: currentShift.opened_at,
+          openedBy: currentShift.opened_by
+        } : null;
+
+        const shiftId = currentShift?.id;
+
+        // Active orders (not finished, not cancelled, not test)
         const activeOrders = db.prepare(`
           SELECT COUNT(*) AS c FROM orders 
           WHERE LOWER(status) NOT LIKE '%выполнен%' 
             AND LOWER(status) NOT LIKE '%отмен%' 
             AND LOWER(status) NOT LIKE '%заверш%'
-        `).get()?.c || 0;
+            AND LOWER(status) NOT LIKE '%тест%'
+            ${shiftId ? 'AND (shift_id = ? OR shift_id IS NULL)' : ''}
+        `).get(...(shiftId ? [shiftId] : []))?.c || 0;
         overview.activeOrdersCount = activeOrders;
 
-        // Today's orders
-        const todayOrders = db.prepare(`
-          SELECT COUNT(*) AS c, COALESCE(SUM(total_price), 0) AS rev FROM orders 
-          WHERE DATE(created_at) = DATE('now') OR created_at LIKE ?
-        `).get(`${todayStr}%`);
-        overview.ordersToday = todayOrders?.c || 0;
-        overview.ordersRevenueToday = todayOrders?.rev || 0;
+        // Current shift orders & revenue (exclude test orders)
+        if (shiftId) {
+          const shiftOrders = db.prepare(`
+            SELECT COUNT(*) AS c, COALESCE(SUM(total_price), 0) AS rev FROM orders 
+            WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+          `).get(shiftId);
+          overview.ordersToday = shiftOrders?.c || 0;
+          overview.ordersRevenueToday = shiftOrders?.rev || 0;
+        } else {
+          overview.ordersToday = 0;
+          overview.ordersRevenueToday = 0;
+        }
 
-        // Today's reservations
+        // Today's reservations (strictly calendar date)
         const todayRes = db.prepare(`
           SELECT COUNT(*) AS c FROM reservations 
           WHERE res_date = ? OR DATE(created_at) = DATE('now')
@@ -1411,6 +1591,10 @@ function normalizeOrderItems(rawItems, priceMap = null) {
           WHERE LOWER(status) NOT LIKE '%отмен%' AND LOWER(status) NOT LIKE '%заверш%'
         `).get()?.c || 0;
         overview.eventsPending = evPending;
+
+        // Stop-list count
+        const stopCount = db.prepare("SELECT COUNT(*) AS c FROM menu_items WHERE is_active = 0").get()?.c || 0;
+        overview.stopListCount = stopCount;
       } catch (err) {
         console.error("[Admin Overview Error]:", err.message);
       }
@@ -1420,18 +1604,332 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     return;
   }
 
-  // 2. Admin Orders List
+  // 1a. Current Shift Details
+  if (req.method === "GET" && url.pathname === "/api/admin/shift/current") {
+    if (!db) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Database not connected" }));
+      return;
+    }
+    const currentShift = getOrCreateCurrentShift(db);
+    const openOrders = db.prepare(`
+      SELECT id, order_num, customer_name, customer_phone, order_type, address, total_price, status, created_at
+      FROM orders
+      WHERE (shift_id = ? OR shift_id IS NULL)
+        AND LOWER(status) NOT LIKE '%выполнен%'
+        AND LOWER(status) NOT LIKE '%отмен%'
+        AND LOWER(status) NOT LIKE '%заверш%'
+        AND LOWER(status) NOT LIKE '%тест%'
+      ORDER BY id DESC
+    `).all(currentShift.id);
+
+    const stats = db.prepare(`
+      SELECT 
+        COUNT(*) AS total_orders,
+        COALESCE(SUM(total_price), 0) AS total_revenue,
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) LIKE '%налич%' THEN total_price ELSE 0 END), 0) AS cash_total,
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) NOT LIKE '%налич%' THEN total_price ELSE 0 END), 0) AS card_total,
+        COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%достав%' THEN 1 ELSE 0 END), 0) AS delivery_orders,
+        COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%самовыв%' THEN 1 ELSE 0 END), 0) AS pickup_orders,
+        COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%зал%' THEN 1 ELSE 0 END), 0) AS hall_orders
+      FROM orders
+      WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+    `).get(currentShift.id) || {};
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      shift: {
+        id: currentShift.id,
+        shiftNum: currentShift.shift_num,
+        openedAt: currentShift.opened_at,
+        openedBy: currentShift.opened_by,
+        status: currentShift.status,
+        openOrdersCount: openOrders.length,
+        openOrders,
+        totalOrders: stats.total_orders || 0,
+        totalRevenue: stats.total_revenue || 0,
+        cashTotal: stats.cash_total || 0,
+        cardTotal: stats.card_total || 0,
+        deliveryOrders: stats.delivery_orders || 0,
+        pickupOrders: stats.pickup_orders || 0,
+        hallOrders: stats.hall_orders || 0,
+      }
+    }));
+    return;
+  }
+
+  // 1b. Close Shift
+  if (req.method === "POST" && url.pathname === "/api/admin/shift/close") {
+    let rawBody = "";
+    for await (const chunk of req) rawBody += chunk;
+    let payload = {};
+    try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
+
+    if (!db) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Database not connected" }));
+      return;
+    }
+
+    const currentShift = getOrCreateCurrentShift(db);
+    const force = Boolean(payload.force);
+    const closedBy = payload.closedBy || "Администратор Fenix";
+
+    const openOrders = db.prepare(`
+      SELECT id, order_num, customer_name, customer_phone, order_type, total_price, status
+      FROM orders
+      WHERE (shift_id = ? OR shift_id IS NULL)
+        AND LOWER(status) NOT LIKE '%выполнен%'
+        AND LOWER(status) NOT LIKE '%отмен%'
+        AND LOWER(status) NOT LIKE '%заверш%'
+        AND LOWER(status) NOT LIKE '%тест%'
+    `).all(currentShift.id);
+
+    if (openOrders.length > 0 && !force) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        ok: false,
+        warning: "open_orders",
+        openOrdersCount: openOrders.length,
+        openOrders,
+        message: `В смене обнаружено ${openOrders.length} незавершённых заказов.`
+      }));
+      return;
+    }
+
+    const result = closeShiftInternal(db, currentShift.id, closedBy, false);
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      message: `Смена #${currentShift.shift_num} успешно закрыта. Начата смена #${result.nextNum}.`,
+      closedShift: {
+        id: currentShift.id,
+        shiftNum: currentShift.shift_num,
+        stats: result.stats
+      },
+      newShift: {
+        id: result.newShiftId,
+        shiftNum: result.nextNum
+      }
+    }));
+    return;
+  }
+
+  // 1c. Shift History (Archive)
+  if (req.method === "GET" && url.pathname === "/api/admin/shifts/history") {
+    if (!db) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Database not connected" }));
+      return;
+    }
+    const history = db.prepare(`
+      SELECT id, shift_num, opened_at, closed_at, opened_by, closed_by, auto_closed,
+             total_orders, total_revenue, cash_total, card_total,
+             delivery_orders, pickup_orders, hall_orders, status
+      FROM shifts
+      WHERE status = 'closed'
+      ORDER BY id DESC LIMIT 50
+    `).all();
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, shifts: history }));
+    return;
+  }
+
+  // 1d. Analytics Summary (4 Views: shift | 7d | 30d | year)
+  if (req.method === "GET" && url.pathname === "/api/admin/analytics/summary") {
+    if (!db) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Database not connected" }));
+      return;
+    }
+    const period = url.searchParams.get("period") || "shift";
+    const currentShift = getOrCreateCurrentShift(db);
+
+    try {
+      let ordersRows = [];
+      if (period === "shift" && currentShift) {
+        ordersRows = db.prepare(`
+          SELECT id, order_num, order_type, payment_method, total_price, status, items_json, created_at
+          FROM orders
+          WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+          ORDER BY id DESC
+        `).all(currentShift.id);
+      } else if (period === "7d") {
+        ordersRows = db.prepare(`
+          SELECT id, order_num, order_type, payment_method, total_price, status, items_json, created_at
+          FROM orders
+          WHERE DATE(created_at) >= DATE('now', '-7 days') AND LOWER(status) NOT LIKE '%тест%'
+          ORDER BY id DESC
+        `).all();
+      } else if (period === "year") {
+        ordersRows = db.prepare(`
+          SELECT id, order_num, order_type, payment_method, total_price, status, items_json, created_at
+          FROM orders
+          WHERE DATE(created_at) >= DATE('now', '-365 days') AND LOWER(status) NOT LIKE '%тест%'
+          ORDER BY id DESC
+        `).all();
+      } else {
+        // Default 30d
+        ordersRows = db.prepare(`
+          SELECT id, order_num, order_type, payment_method, total_price, status, items_json, created_at
+          FROM orders
+          WHERE DATE(created_at) >= DATE('now', '-30 days') AND LOWER(status) NOT LIKE '%тест%'
+          ORDER BY id DESC
+        `).all();
+      }
+
+      // Aggregate metrics
+      const totalOrders = ordersRows.length;
+      const totalRevenue = ordersRows.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
+      const avgCheck = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+      const completedOrders = ordersRows.filter(o => String(o.status || '').toLowerCase().includes('выполнен') || String(o.status || '').toLowerCase().includes('заверш'));
+      const cancelledOrders = ordersRows.filter(o => String(o.status || '').toLowerCase().includes('отмен'));
+      const completionRate = totalOrders > 0 ? Math.round((completedOrders.length / totalOrders) * 100) : 100;
+
+      const cashTotal = ordersRows.filter(o => String(o.payment_method || '').toLowerCase().includes('налич')).reduce((s, o) => s + (Number(o.total_price) || 0), 0);
+      const cardTotal = totalRevenue - cashTotal;
+
+      const delCount = ordersRows.filter(o => String(o.order_type || '').toLowerCase().includes('достав')).length;
+      const pickCount = ordersRows.filter(o => String(o.order_type || '').toLowerCase().includes('самовыв')).length;
+      const hallCount = totalOrders - delCount - pickCount;
+
+      // Hourly distribution (11:00 to 23:00)
+      const hours = ['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+      const hourlyData = hours.map(h => {
+        const hr = parseInt(h.split(':')[0], 10);
+        const inHour = ordersRows.filter(o => {
+          if (!o.created_at) return false;
+          try {
+            const d = new Date(o.created_at.includes('T') ? o.created_at : o.created_at.replace(' ', 'T') + 'Z');
+            return getTashkentTime(d).hour === hr;
+          } catch (_) { return false; }
+        });
+        const rev = inHour.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
+        return { hour: h, orders: inHour.length, revenue: rev };
+      });
+
+      // Top dishes calculation from items_json
+      const itemMap = new Map();
+      for (const ord of ordersRows) {
+        try {
+          const items = JSON.parse(ord.items_json || "{}");
+          for (const [key, it] of Object.entries(items)) {
+            const name = it.name || it.n || key;
+            const qty = Number(it.quantity || it.q || 1);
+            const price = Number(it.price || it.p || 0);
+            const prev = itemMap.get(name) || { count: 0, revenue: 0 };
+            itemMap.set(name, { count: prev.count + qty, revenue: prev.revenue + (qty * price) });
+          }
+        } catch (_) {}
+      }
+      const topDishes = Array.from(itemMap.entries())
+        .map(([name, data]) => ({ name, count: data.count, revenue: data.revenue }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+
+      // Last 7 days breakdown (for 7d view)
+      let dailyBreakdown = [];
+      if (period === "7d") {
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 86400000);
+          const dateStr = getTashkentTime(d).dateStr;
+          const dayOrders = ordersRows.filter(o => String(o.created_at || '').startsWith(dateStr));
+          const dayRev = dayOrders.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
+          dailyBreakdown.push({
+            date: dateStr,
+            ordersCount: dayOrders.length,
+            revenue: dayRev,
+            avgCheck: dayOrders.length > 0 ? Math.round(dayRev / dayOrders.length) : 0
+          });
+        }
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        ok: true,
+        period,
+        summary: {
+          totalOrders,
+          totalRevenue,
+          avgCheck,
+          completedCount: completedOrders.length,
+          cancelledCount: cancelledOrders.length,
+          completionRate,
+          cashTotal,
+          cardTotal,
+          deliveryCount: delCount,
+          pickupCount: pickCount,
+          hallCount: hallCount < 0 ? 0 : hallCount
+        },
+        hourly: hourlyData,
+        topDishes,
+        daily: dailyBreakdown,
+        currentShift: currentShift ? {
+          id: currentShift.id,
+          shiftNum: currentShift.shift_num,
+          openedAt: currentShift.opened_at,
+          openedBy: currentShift.opened_by
+        } : null
+      }));
+      return;
+    } catch (err) {
+      console.error("[Analytics Summary Error]:", err.message);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+      return;
+    }
+  }
+
+  // 1e. Re-enable all dishes in stop-list
+  if (req.method === "POST" && url.pathname === "/api/admin/menu/stoplist/enable-all") {
+    if (db) {
+      try {
+        const resStmt = db.prepare("UPDATE menu_items SET is_active = 1 WHERE is_active = 0").run();
+        console.log(`[Admin] Re-enabled ${resStmt.changes} dishes in menu stop-list.`);
+        syncMenuFiles(db);
+      } catch (err) {
+        console.error("[StopList Enable All Error]:", err.message);
+      }
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, message: "Все блюда возвращены в меню" }));
+    return;
+  }
+
+  // 2. Admin Orders List (Scoped to active shift by default)
   if (req.method === "GET" && url.pathname === "/api/admin/orders") {
     let orders = [];
     if (db) {
       try {
-        const rows = db.prepare(`
-          SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
-                 order_type, address, payment_method, items_json, total_price, 
-                 created_at, status, courier_name, courier_id 
-          FROM orders 
-          ORDER BY id DESC LIMIT 200
-        `).all();
+        const showAll = url.searchParams.get("all") === "1";
+        const currentShift = getOrCreateCurrentShift(db);
+        let rows = [];
+        if (showAll || !currentShift) {
+          rows = db.prepare(`
+            SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
+                   order_type, address, payment_method, items_json, total_price, 
+                   created_at, status, courier_name, courier_id, shift_id, cancel_reason
+            FROM orders 
+            ORDER BY id DESC LIMIT 200
+          `).all();
+        } else {
+          rows = db.prepare(`
+            SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
+                   order_type, address, payment_method, items_json, total_price, 
+                   created_at, status, courier_name, courier_id, shift_id, cancel_reason
+            FROM orders 
+            WHERE (shift_id = ? 
+                   OR (shift_id IS NULL AND DATE(created_at) >= DATE('now', '-1 day'))
+                   OR (LOWER(status) NOT LIKE '%выполнен%' 
+                       AND LOWER(status) NOT LIKE '%отмен%' 
+                       AND LOWER(status) NOT LIKE '%заверш%' 
+                       AND LOWER(status) NOT LIKE '%тест%'))
+            ORDER BY id DESC LIMIT 200
+          `).all(currentShift.id);
+        }
 
         orders = rows.map(r => {
           let items = {};
@@ -1452,6 +1950,8 @@ function normalizeOrderItems(rawItems, priceMap = null) {
             courier: r.courier_name || null,
             courierName: r.courier_name || null,
             courierId: r.courier_id || null,
+            shiftId: r.shift_id || null,
+            cancelReason: r.cancel_reason || null,
           };
         });
       } catch (err) {
@@ -1470,7 +1970,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
 
-    const { id, orderNum, status } = payload;
+    const { id, orderNum, status, cancelReason } = payload;
     if (!status || (!id && !orderNum)) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Missing required fields (id/orderNum, status)" }));
@@ -1480,23 +1980,29 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     if (db) {
       try {
         const num = orderNum || (typeof id === 'string' ? parseInt(id.replace(/\D/g, '')) : (typeof id === 'number' && id > 100 ? id : null));
-        if (num) {
-          db.prepare("UPDATE orders SET status = ? WHERE order_num = ? OR id = ?").run(status, num, num);
-        } else if (id) {
-          db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, id);
-        }
-        console.log(`[Admin] Updated order ${id || orderNum} status to "${status}"`);
-
-        // Option A: If order is set to "в пути", automatically send delivery card to Telegram courier bot
         const statusLower = String(status).toLowerCase();
-        const row = num
-          ? db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num)
-          : db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
-        if (row) {
-          if (statusLower.includes('пути') || statusLower.includes('курьер')) {
-            notifyCourierDeliveryOrder(row, payload.courierId);
+        const finalStatus = (cancelReason === 'Тест / Дубликат' || statusLower.includes('тест'))
+          ? 'отменён (тест)'
+          : status;
+
+        if (num) {
+          db.prepare("UPDATE orders SET status = ?, cancel_reason = COALESCE(?, cancel_reason) WHERE order_num = ? OR id = ?").run(finalStatus, cancelReason || null, num, num);
+        } else if (id) {
+          db.prepare("UPDATE orders SET status = ?, cancel_reason = COALESCE(?, cancel_reason) WHERE id = ?").run(finalStatus, cancelReason || null, id);
+        }
+        console.log(`[Admin] Updated order ${id || orderNum} status to "${finalStatus}"${cancelReason ? ` (reason: ${cancelReason})` : ''}`);
+
+        // Notify courier or customer only for real production orders (not test)
+        if (!finalStatus.includes('тест')) {
+          const row = num
+            ? db.prepare("SELECT * FROM orders WHERE order_num = ? OR id = ?").get(num, num)
+            : db.prepare("SELECT * FROM orders WHERE id = ?").get(id);
+          if (row) {
+            if (statusLower.includes('пути') || statusLower.includes('курьер')) {
+              notifyCourierDeliveryOrder(row, payload.courierId);
+            }
+            notifyCustomerOrderStatus(row, finalStatus, payload.courierName);
           }
-          notifyCustomerOrderStatus(row, status, payload.courierName);
         }
       } catch (err) {
         console.error("[Admin Order Status Error]:", err.message);
@@ -2417,9 +2923,10 @@ function normalizeOrderItems(rawItems, priceMap = null) {
       // Save to SQLite orders table
       if (db) {
         try {
+          const currentShift = getOrCreateCurrentShift(db);
           db.prepare(`
-            INSERT INTO orders (order_num, user_id, user_name, customer_name, customer_phone, order_type, address, payment_method, items_json, total_price, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (order_num, user_id, user_name, customer_name, customer_phone, order_type, address, payment_method, items_json, total_price, status, shift_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             orderNum,
             data.telegramUserId || 0,
@@ -2431,7 +2938,8 @@ function normalizeOrderItems(rawItems, priceMap = null) {
             paymentMethod,
             JSON.stringify(itemsObj),
             finalTotal,
-            "новый (с сайта)"
+            "новый (с сайта)",
+            currentShift ? currentShift.id : null
           );
           console.log(`[DB] Saved order #${orderNum} to fenix_restaurant.db`);
 
