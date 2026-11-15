@@ -97,20 +97,20 @@ function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCo
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
               <span className="kpis-dot active" />
-              <b className="mono" style={{ color: 'var(--text)' }}>{active}</b> в работе
+              <b className="mono" style={{ color: 'var(--text)' }}>{active}</b> {t('in_progress')}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
               <span className="kpis-dot rev" />
-              <b className="mono" style={{ color: 'var(--accent)' }}>{summ(rev)}</b> сум
+              <b className="mono" style={{ color: 'var(--accent)' }}>{summ(rev)}</b> {t('sum_curr')}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-2)' }}>
               <span className="kpis-dot info" />
-              <b className="mono" style={{ color: 'var(--text)' }}>{bookingsCount}</b> броней
+              <b className="mono" style={{ color: 'var(--text)' }}>{bookingsCount}</b> {t('bookings_word')}
             </span>
             {attentionCount > 0 && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--warn)' }}>
                 <span className="kpis-dot warn" />
-                <b className="mono">{attentionCount}</b> требуют ответа
+                <b className="mono">{attentionCount}</b> {t('need_action')}
               </span>
             )}
           </div>
@@ -120,9 +120,9 @@ function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCo
               className="btn btn-ghost btn-sm"
               onClick={onToggleCollapse}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--accent)' }}
-              title="Развернуть полные карточки метрик"
+              title={t('show_metrics')}
             >
-              <span>Показать показатели</span>
+              <span>{t('show_metrics')}</span>
               <Icon name="chevronD" size={12} />
             </button>
           )}
@@ -138,9 +138,9 @@ function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCo
               className="btn btn-ghost btn-xs"
               onClick={onToggleCollapse}
               style={{ fontSize: 10.5, color: 'var(--text-3)', padding: '2px 8px', gap: 4 }}
-              title="Свернуть блок метрик, чтобы развернуть 4 колонки заказов на весь экран"
+              title={t('hide_metrics')}
             >
-              <span>Свернуть показатели</span>
+              <span>{t('hide_metrics')}</span>
               <Icon name="chevronU" size={10} />
             </button>
           )}
@@ -706,25 +706,25 @@ function DeleteConfirmModal({ o, onClose, onDeleted, toast }) {
   );
 }
 
-function CancelOrderModal({ o, onClose, onConfirm, toast }) {
+function CancelOrderModal({ o, onClose, onConfirm, toast, t = (k) => k }) {
   const [reason, setReason] = useState('Клиент отменил');
   const [loading, setLoading] = useState(false);
 
   const REASONS = [
     {
       id: 'Клиент отменил',
-      title: 'Клиент отменил',
-      desc: 'Гость сам отказался от заказа или изменились планы'
+      title: t('cancel_reason_client') || 'Клиент отменил',
+      desc: 'Гость сам отказался от заказа / Customer cancelled'
     },
     {
       id: 'Стоп-лист / Нет блюда',
-      title: 'Стоп-лист / Нет блюда',
-      desc: 'Закончились ингредиенты или блюдо поставлено на паузу'
+      title: t('cancel_reason_stoplist') || 'Стоп-лист / Нет блюда',
+      desc: 'Закончились ингредиенты / Unavailable dish'
     },
     {
       id: 'Тест / Дубликат',
-      title: 'Тест / Дубликат',
-      desc: 'Тестовый заказ персонала или дубликат (исключается из выручки и отчетов)'
+      title: t('cancel_reason_test') || 'Тест / Дубликат',
+      desc: 'Тестовый заказ персонала или дубликат'
     }
   ];
 
@@ -804,10 +804,10 @@ function CancelOrderModal({ o, onClose, onConfirm, toast }) {
           disabled={loading}
           onClick={handleCancel}
         >
-          {loading ? 'Отмена...' : 'Подтвердить отмену'}
+          {loading ? '...' : (t('confirm_cancel') || 'Подтвердить отмену')}
         </Btn>
         <Btn type="button" variant="ghost" onClick={onClose} disabled={loading}>
-          Назад
+          {t('cancel') || 'Назад'}
         </Btn>
       </div>
     </Modal>
@@ -919,10 +919,10 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Поиск по номеру, имени или адресу..."
+              placeholder={t('search_dispatch_ph')}
             />
             {q ? (
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')} title="Очистить">
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')} title={t('cancel')}>
                 <Icon name="x" size={11} />
               </button>
             ) : (
@@ -937,16 +937,16 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
             type="button"
             className="btn btn-ghost btn-sm hide-mobile"
             onClick={toggleKpis}
-            title={kpisCollapsed ? "Развернуть блок метрик" : "Свернуть блок метрик (развернуть 4 таблицы заказов)"}
+            title={kpisCollapsed ? t('expand_kpis') : t('collapse_kpis')}
             style={{ fontSize: 11, padding: '4px 9px', gap: 5, color: kpisCollapsed ? 'var(--accent)' : 'var(--text-3)' }}
           >
             <Icon name={kpisCollapsed ? "chevronD" : "chevronU"} size={12} />
-            <span>{kpisCollapsed ? "Метрики" : "Свернуть"}</span>
+            <span>{kpisCollapsed ? t('expand_kpis') : t('collapse_kpis')}</span>
           </button>
 
           <div className="seg hide-mobile">
-            <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title="Сортировка по срочности SLA">SLA</button>
-            <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title="По сумме чека">Σ</button>
+            <button data-on={sort === 'sla' ? '1' : '0'} onClick={() => setSort('sla')} title={t('sort_sla')}>SLA</button>
+            <button data-on={sort === 'total' ? '1' : '0'} onClick={() => setSort('total')} title={t('sort_total')}>Σ</button>
           </div>
 
           <div className="seg">
@@ -971,7 +971,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
         <div className="stoplist-banner" style={{ margin: '0 14px 10px' }}>
           <Icon name="alert" size={15} />
           <span>
-            Внимание: в стоп-листе находится <b>{stopListCount}</b> блюд(а) с прошлой смены.
+            {t('stoplist_warning').replace('{count}', stopListCount)}
           </span>
           <button
             type="button"
@@ -979,13 +979,13 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
             onClick={enableAllDishes}
             style={{ color: 'var(--accent)', fontWeight: 600, border: '1px solid var(--accent)' }}
           >
-            Включить все
+            {t('enable_all')}
           </button>
           <button
             type="button"
             className="btn btn-ghost btn-icon btn-sm"
             onClick={() => setStopListDismissed(true)}
-            title="Скрыть напоминание"
+            title={t('dismiss')}
           >
             <Icon name="x" size={13} />
           </button>
@@ -1126,6 +1126,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
             }
           }}
           toast={toast}
+          t={t}
         />
       )}
     </div>

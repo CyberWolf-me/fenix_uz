@@ -197,21 +197,21 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
           ))}
         </div>
 
-        <button className="btn btn-ghost btn-sm hide-mobile" onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'uzc' : 'ru')}
+        <button className="btn btn-ghost btn-sm hide-mobile" onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'en' : 'ru')}
                 title={t('language')}
                 style={{ fontFamily: 'var(--f-mono)', fontSize: 10, letterSpacing: '.04em', padding: '0 6px' }}>
-          {lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : 'ЎЗ'}
+          {lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : lang === 'en' ? 'EN' : 'ЎЗ'}
         </button>
 
         <button
           type="button"
           className="btn btn-ghost btn-sm hide-mobile"
           onClick={onOpenShiftModal}
-          title="Завершить смену / Z-отчёт"
+          title={t('close_shift_zreport')}
           style={{ gap: 5, color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' }}
         >
           <Icon name="check" size={13} />
-          <span>Итог дня</span>
+          <span>{t('day_summary')}</span>
         </button>
 
         <Btn size="sm" variant="accent" icon="plus" onClick={onNew}>{t('create')}</Btn>

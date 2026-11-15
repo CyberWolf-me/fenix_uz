@@ -6546,6 +6546,10 @@ html[data-theme="light"] .recent-item-type {
     if (wPickupReadyLbl) wPickupReadyLbl.textContent = t('cartReadyInLabel');
     if (wPickupReadyVal) wPickupReadyVal.textContent = t('cartReadyInTime');
 
+    if (selectedLat && selectedLon) {
+      triggerReverseGeocode(selectedLat, selectedLon);
+    }
+
     updateAddressBanner();
     renderSubcategories();
     renderMenuDishes();

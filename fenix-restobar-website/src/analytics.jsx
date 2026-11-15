@@ -60,10 +60,10 @@ function Analytics({ t, orders = [] }) {
       {/* 4 Views Sub-Navigation Bar */}
       <div className="analytics-subnav">
         {[
-          { id: 'shift', label: 'Текущая смена' },
-          { id: '7d', label: 'По дням (7 дней)' },
-          { id: '30d', label: 'Месяц и год (30 дней)' },
-          { id: 'archive', label: 'Архив закрытых смен' },
+          { id: 'shift', label: t('analytics_current_shift') },
+          { id: '7d', label: t('analytics_7_days') },
+          { id: '30d', label: t('analytics_30_days') },
+          { id: 'archive', label: t('analytics_archive') },
         ].map(item => (
           <button
             key={item.id}
@@ -440,9 +440,9 @@ function Settings({ t, theme, setTheme, dir, setDir, lang, setLang, sound, setSo
 
       <div className="sect-title">{t('ops_prefs')}</div>
       <div className="card" style={{ overflow: 'hidden' }}>
-        <SettingRow label={t('language_lbl')} hint="Русский · O‘zbekcha · Ўзбекча">
+        <SettingRow label={t('language_lbl')} hint="Русский · O‘zbekcha · English · Ўзбекча">
           <div className="seg">
-            {[['ru', 'RU'], ['uz', 'UZ'], ['uzc', 'ЎЗ']].map(([k, l]) => (
+            {[['ru', 'RU'], ['uz', 'UZ'], ['en', 'EN'], ['uzc', 'ЎЗ']].map(([k, l]) => (
               <button key={k} data-on={lang === k ? '1' : '0'} onClick={() => setLang(k)} style={{ fontFamily: 'var(--f-mono)', fontSize: 10 }}>{l}</button>
             ))}
           </div>
