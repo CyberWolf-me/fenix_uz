@@ -2409,6 +2409,11 @@ html[data-theme="light"] .order-drawer-meta {
   transition: all 0.2s ease;
 }
 
+.micro-input::placeholder {
+  color: var(--text-faint);
+  opacity: 0.45;
+}
+
 .micro-input:focus {
   border-color: var(--gold);
   outline: none;
@@ -6584,6 +6589,13 @@ html[data-theme="light"] .recent-item-type {
       streetInput.value = userAddress.replace(/^Ташкент,\s*[^,]+,\s*/, '');
     }
 
+    // Clean up one-time automated test verification artifacts if present
+    if (localStorage.getItem('fx.entrance') === '2' && localStorage.getItem('fx.floor') === '5' && localStorage.getItem('fx.apt') === '42') {
+      localStorage.removeItem('fx.entrance');
+      localStorage.removeItem('fx.floor');
+      localStorage.removeItem('fx.apt');
+    }
+
     const entranceInput = document.getElementById('w-loc-entrance');
     const floorInput = document.getElementById('w-loc-floor');
     const aptInput = document.getElementById('w-loc-apt');
@@ -7036,9 +7048,16 @@ html[data-theme="light"] .recent-item-type {
           localStorage.setItem('fx.addr', userAddress);
           localStorage.setItem('fx.coords', JSON.stringify({ lat: selectedLat, lon: selectedLon }));
           if (entrance) localStorage.setItem('fx.entrance', entrance);
+          else localStorage.removeItem('fx.entrance');
+
           if (floor) localStorage.setItem('fx.floor', floor);
+          else localStorage.removeItem('fx.floor');
+
           if (apt) localStorage.setItem('fx.apt', apt);
+          else localStorage.removeItem('fx.apt');
+
           if (comment) localStorage.setItem('fx.comment', comment);
+          else localStorage.removeItem('fx.comment');
         } else {
           userAddress = t('pickupAddress');
           localStorage.setItem('fx.addr', userAddress);
