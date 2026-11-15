@@ -2355,7 +2355,11 @@ const server = http.createServer(async (req, res) => {
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
+    if (reqPath.includes("menu-data.js") || reqPath.includes("app.html")) {
+      headers["Cache-Control"] = "no-cache, must-revalidate";
+    }
+    res.writeHead(200, headers);
     fs.createReadStream(filePath).pipe(res);
   } else {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
