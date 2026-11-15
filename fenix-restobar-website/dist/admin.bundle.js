@@ -4445,7 +4445,19 @@ function LoginScreen({ onLoginSuccess }) {
     alignItems: "center",
     justifyContent: "center",
     boxShadow: "0 8px 24px rgba(211, 170, 99, 0.2)"
-  } }, /* @__PURE__ */ React.createElement(Icon, { name: "flame", size: 30, stroke: 1.8, style: { color: "var(--accent, #d3aa63)" } })), /* @__PURE__ */ React.createElement("h1", { style: {
+  } }, /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: "img/fenix-mark.svg",
+      alt: "Fenix",
+      style: {
+        width: "38px",
+        height: "38px",
+        objectFit: "contain",
+        filter: "drop-shadow(0 2px 8px rgba(211, 170, 99, 0.4))"
+      }
+    }
+  )), /* @__PURE__ */ React.createElement("h1", { style: {
     margin: "0 0 6px",
     fontFamily: 'var(--f-body, "Manrope", system-ui, sans-serif)',
     fontSize: "28px",

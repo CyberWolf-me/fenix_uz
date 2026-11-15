@@ -110,7 +110,16 @@ function LoginScreen({ onLoginSuccess }) {
             justifyContent: 'center',
             boxShadow: '0 8px 24px rgba(211, 170, 99, 0.2)'
           }}>
-            <Icon name="flame" size={30} stroke={1.8} style={{ color: 'var(--accent, #d3aa63)' }} />
+            <img
+              src="img/fenix-mark.svg"
+              alt="Fenix"
+              style={{
+                width: '38px',
+                height: '38px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(211, 170, 99, 0.4))'
+              }}
+            />
           </div>
 
           <h1 style={{
