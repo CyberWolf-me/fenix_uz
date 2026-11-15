@@ -2631,7 +2631,7 @@ html[data-theme="light"] .recent-item-type {
               </div>
             </div>
             <div class="phone-hint-text">
-              <span>9 цифр номера (например 90 123 45 67)</span>
+              <span id="txt-res-phone-hint">9 цифр номера (например 90 123 45 67)</span>
               <span id="res-phone-counter">0 / 9</span>
             </div>
           </div>
@@ -2807,10 +2807,10 @@ html[data-theme="light"] .recent-item-type {
 
     <!-- Support & Direct Contact Links -->
     <div class="profile-section-card" style="text-align:center;padding:16px;">
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Служба заботы о гостях FENIX Lounge:</p>
+      <p id="txt-prof-support-label" style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Служба заботы о гостях FENIX Lounge:</p>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
         <a href="https://t.me/FenixRestaurantBot" target="_blank" class="btn-outline" style="font-size:12px;padding:8px 16px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
-          <span>Бот @FenixRestaurantBot</span>
+          <span id="txt-prof-support-bot">Бот @FenixRestaurantBot</span>
         </a>
         <a href="tel:+998971850010" class="btn-outline" style="font-size:12px;padding:8px 16px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           <span>97 185 00 10</span>
@@ -2952,7 +2952,7 @@ html[data-theme="light"] .recent-item-type {
             </div>
           </div>
           <div class="phone-hint-text">
-            <span>Введите 9 цифр (например 90 123 45 67)</span>
+            <span id="txt-w-phone-hint">Введите 9 цифр (например 90 123 45 67)</span>
             <span id="w-phone-digit-counter">0 / 9</span>
           </div>
         </div>
@@ -3029,9 +3029,9 @@ html[data-theme="light"] .recent-item-type {
       <div id="w-pickup-box" style="display:none;">
         <div style="background:var(--bg-surface);border:1px solid var(--line-subtle);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;line-height:1.5;">
           <h4 style="font-size:14px;color:var(--gold-hi);margin-bottom:6px;">FENIX Restaurant & Bar</h4>
-          <p style="font-size:12px;color:var(--text-main);margin-bottom:6px;"><span style="color:var(--gold);font-weight:600;">Адрес:</span> г. Ташкент, Яшнабадский район, ул. Хуснабад, 5-й проезд, дом 1а</p>
-          <p style="font-size:11px;color:var(--text-muted);"><span style="color:var(--gold-hi);">Время работы:</span> Ежедневно с 11:00 до 23:00</p>
-          <p style="font-size:11px;color:var(--text-muted);margin-top:3px;"><span style="color:var(--gold-hi);">Готовность к выдаче:</span> ~25-35 минут</p>
+          <p style="font-size:12px;color:var(--text-main);margin-bottom:6px;"><span id="w-pickup-addr-lbl" style="color:var(--gold);font-weight:600;">Адрес:</span> <span id="w-pickup-addr-val">г. Ташкент, Яшнабадский район, ул. Хуснабад, 5-й проезд, дом 1а</span></p>
+          <p style="font-size:11px;color:var(--text-muted);"><span id="w-pickup-hours-lbl" style="color:var(--gold-hi);">Время работы:</span> <span id="w-pickup-hours-val">Ежедневно с 11:00 до 23:00</span></p>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:3px;"><span id="w-pickup-ready-lbl" style="color:var(--gold-hi);">Готовность к выдаче:</span> <span id="w-pickup-ready-val">~25-35 минут</span></p>
         </div>
       </div>
 
@@ -3257,7 +3257,7 @@ html[data-theme="light"] .recent-item-type {
   }
 
   function money(val) {
-    return Number(val || 0).toLocaleString('ru-RU') + ' сум';
+    return Number(val || 0).toLocaleString('ru-RU') + ' ' + t('currency');
   }
 
   // Menu items processed
@@ -3287,10 +3287,85 @@ html[data-theme="light"] .recent-item-type {
     return currentLang === 'uz' ? (d.nameUz || d.nameRu) : currentLang === 'en' ? (d.nameEn || d.nameRu) : d.nameRu;
   }
 
+  const DISH_NOTES_I18N = {
+    'europe-015': {
+      ru: 'Свекла с микс зеленью',
+      uz: 'Ko‘katlar miksi bilan lavlagi',
+      en: 'Beetroot with mixed greens'
+    },
+    'europe-016': {
+      ru: 'Запеченые томаты и кабачки с зеленью',
+      uz: 'Ko‘katlar bilan pishirilgan pomidor va qovoqcha',
+      en: 'Baked tomatoes and zucchini with greens'
+    },
+    'europe-017': {
+      ru: 'Микс зелень с соусом песто и креветками',
+      uz: 'Pesto sousi va krevetkalar bilan ko‘katlar miksi',
+      en: 'Mixed greens with pesto sauce and shrimps'
+    },
+    'europe-022': {
+      ru: 'Говядина, маринованные огурцы, грибы и зелёный горошек',
+      uz: 'Mol go‘shti, tuzlangan bodring, qo‘ziqorin va ko‘k no‘xat',
+      en: 'Beef, pickled cucumbers, mushrooms and green peas'
+    },
+    'europe-023': {
+      ru: 'Микс зелени, огурец, авокадо, тыквенные семечки и кедровый орех',
+      uz: 'Ko‘katlar miksi, bodring, avokado, oshqovoq urug‘i va kedr yong‘og‘i',
+      en: 'Mixed greens, cucumber, avocado, pumpkin seeds and pine nuts'
+    },
+    'europe-029': {
+      ru: 'Говяжий язык с казы, куриное филе и яичный блин',
+      uz: 'Qazi bilan mol tili, tovuq filesi va tuxumli quymoq',
+      en: 'Beef tongue with qazi, chicken fillet and egg pancake'
+    },
+    'korea-101': {
+      ru: 'по-домашнему',
+      uz: 'uy uslubida',
+      en: 'homemade style'
+    },
+    'bar-179': {
+      ru: 'Ром, трипл сек, сироп гренадин',
+      uz: 'Rom, tripl sek, grenadin siropi',
+      en: 'Rum, triple sec, grenadine syrup'
+    },
+    'bar-180': {
+      ru: 'Водка, сок персика, сок апельсина, сироп, ягодный',
+      uz: 'Aroq, shaftoli sharbati, apelsin sharbati, meva siropi',
+      en: 'Vodka, peach juice, orange juice, berry syrup'
+    },
+    'bar-181': {
+      ru: 'Водка, джин, ром, трипл сек, текила, кола',
+      uz: 'Aroq, djin, rom, tripl sek, tekila, kola',
+      en: 'Vodka, gin, rum, triple sec, tequila, cola'
+    },
+    'bar-182': {
+      ru: 'Ром, лайм, мята',
+      uz: 'Rom, laym, yalpiz',
+      en: 'Rum, lime, mint'
+    },
+    'bar-183': {
+      ru: 'Ром, клубничный сироп, лайм, мята',
+      uz: 'Rom, qulupnay siropi, laym, yalpiz',
+      en: 'Rum, strawberry syrup, lime, mint'
+    },
+    'bar-184': {
+      ru: 'Апельсиновый сок, текила, сироп гренадин',
+      uz: 'Apelsin sharbati, tekila, grenadin siropi',
+      en: 'Orange juice, tequila, grenadine syrup'
+    }
+  };
+
   function getDishDesc(d) {
     if (!d) return '';
-    const note = currentLang === 'uz' ? (d.noteUz || d.noteRu) : currentLang === 'en' ? (d.noteEn || d.noteRu) : d.noteRu;
-    return note || (d.size ? `Порция: ${d.size}` : '');
+    const noteMap = DISH_NOTES_I18N[d.id];
+    let note = '';
+    if (noteMap) {
+      note = currentLang === 'uz' ? noteMap.uz : currentLang === 'en' ? noteMap.en : noteMap.ru;
+    } else {
+      note = currentLang === 'uz' ? (d.noteUz || d.noteRu) : currentLang === 'en' ? (d.noteEn || d.noteRu) : d.noteRu;
+    }
+    const portionWord = t('portionPrefix');
+    return note || (d.size ? `${portionWord}: ${d.size}` : '');
   }
 
   // Dictionary for UI strings
@@ -3462,7 +3537,51 @@ html[data-theme="light"] .recent-item-type {
       profThemeTitle: 'Тема оформления',
       themeDark: 'Тёмная',
       themeLight: 'Светлая',
-      themeAuto: 'Авто (TG)'
+      themeAuto: 'Авто (TG)',
+      currency: 'сум',
+      portionPrefix: 'Порция',
+      dishDefaultDesc: 'Изысканное авторское блюдо из отборных ингредиентов',
+      docTitle: 'FENIX — Меню, Заказ & Бронирование',
+      nothingFoundTitle: 'Ничего не найдено',
+      nothingFoundDesc: 'Попробуйте изменить поисковый запрос или фильтр',
+      stopListBadge: 'Стоп-лист',
+      preorderBadge: 'Предзаказ',
+      inStopListTitle: 'В стоп-листе',
+      stopListAlert: 'Это блюдо временно находится в стоп-листе кухни',
+      namePlaceholder: 'Имя',
+      profSettingsTitle: 'Личные данные и настройки',
+      profNameLabel: 'Ваше имя:',
+      profNamePlaceholder: 'Введите имя',
+      profPhoneLabel: 'Номер телефона (+998):',
+      profAddrLabel: 'Адрес доставки по умолчанию:',
+      profUseWizardBtn: 'Выбрать район',
+      profAddrPlaceholder: 'г. Ташкент, район, улица, дом',
+      profSaveBtn: 'Сохранить изменения',
+      profSaveSuccess: 'Данные успешно сохранены!',
+      profPrefTitle: 'Язык интерфейса',
+      profOrdersTitle: 'История заказов',
+      profOrdersEmpty: 'У вас пока нет оформленных заказов.',
+      profResTitle: 'Бронирование столов',
+      profResEmpty: 'Нет активных броней столов.',
+      profSupportLabel: 'Служба заботы о гостях FENIX Lounge:',
+      profSupportBot: 'Бот @FenixRestaurantBot',
+      profGuestName: 'Гость FENIX',
+      profPhoneEmpty: 'Телефон не указан',
+      profRepeatOrderBtn: 'Повторить заказ',
+      tableLabel: 'Стол',
+      guestsWord: 'чел.',
+      dishWord: 'Блюдо',
+      orderFromMenu: 'Заказ по меню',
+      dishesCountWord: (c) => `${c} ${c === 1 ? 'блюдо' : c < 5 ? 'блюда' : 'блюд'}`,
+      workingHoursLabel: 'Время работы:',
+      workingHoursVal: 'Ежедневно с 11:00 до 23:00',
+      alertContactSent: 'Запрос контакта отправлен в Telegram. Если номер не подставился автоматически, введите 9 цифр в поле.',
+      alertFillPhoneName: 'Пожалуйста, введите номер телефона и имя.',
+      alertGpsNotSupported: 'Геолокация не поддерживается вашим устройством',
+      alertGpsDetermining: 'Определяем координаты...',
+      alertGpsSuccess: 'Геолокация получена',
+      alertGpsCoords: 'Координаты:',
+      alertGpsFailed: 'Не удалось определить GPS. Пожалуйста, выберите район и укажите улицу.'
     },
     uz: {
       delivery: 'Yetkazib berish',
@@ -3631,7 +3750,51 @@ html[data-theme="light"] .recent-item-type {
       profThemeTitle: 'Mavzu (Dizayn)',
       themeDark: 'Qorong‘i',
       themeLight: 'Yorug‘',
-      themeAuto: 'Avto (TG)'
+      themeAuto: 'Avto (TG)',
+      currency: 'so‘m',
+      portionPrefix: 'Porsiya',
+      dishDefaultDesc: 'Tanlangan masalliqlardan tayyorlangan nafis mualliflik taomi',
+      docTitle: 'FENIX — Menyu, Buyurtma & Stol band qilish',
+      nothingFoundTitle: 'Hech narsa topilmadi',
+      nothingFoundDesc: 'Qidiruv so‘rovi yoki filtrni o‘zgartirib ko‘ring',
+      stopListBadge: 'Stop-list',
+      preorderBadge: 'Oldindan buyurtma',
+      inStopListTitle: 'Stop-listda',
+      stopListAlert: 'Bu taom vaqtincha to‘xtatilgan',
+      namePlaceholder: 'Ismingiz',
+      profSettingsTitle: 'Shaxsiy ma‘lumotlar va sozlamalar',
+      profNameLabel: 'Ismingiz:',
+      profNamePlaceholder: 'Ismingizni kiriting',
+      profPhoneLabel: 'Telefon raqami (+998):',
+      profAddrLabel: 'Birlamchi yetkazib berish manzili:',
+      profUseWizardBtn: 'Tumanni tanlash',
+      profAddrPlaceholder: 'Toshkent sh., tuman, ko‘cha, uy',
+      profSaveBtn: 'O‘zgarishlarni saqlash',
+      profSaveSuccess: 'Ma‘lumotlar muvaffaqiyatli saqlandi!',
+      profPrefTitle: 'Interfeys tili',
+      profOrdersTitle: 'Buyurtmalar tarixi',
+      profOrdersEmpty: 'Sizda hozircha rasmiylashtirilgan buyurtmalar yo‘q.',
+      profResTitle: 'Stol band qilish tarixi',
+      profResEmpty: 'Faol stol bandliklari yo‘q.',
+      profSupportLabel: 'FENIX Lounge mehmonlariga g‘amxo‘rlik xizmati:',
+      profSupportBot: 'Bot @FenixRestaurantBot',
+      profGuestName: 'FENIX Mehmoni',
+      profPhoneEmpty: 'Telefon kiritilmagan',
+      profRepeatOrderBtn: 'Buyurtmani takrorlash',
+      tableLabel: 'Stol',
+      guestsWord: 'kishi',
+      dishWord: 'Taom',
+      orderFromMenu: 'Menyu bo‘yicha buyurtma',
+      dishesCountWord: (c) => `${c} ta taom`,
+      workingHoursLabel: 'Ish vaqti:',
+      workingHoursVal: 'Har kuni 11:00 dan 23:00 gacha',
+      alertContactSent: 'Kontakt so‘rovi Telegram orqali yuborildi. Agar raqam avtomatik qo‘yilmasa, maydonga 9 ta raqam kiriting.',
+      alertFillPhoneName: 'Iltimos, telefon raqami va ismingizni kiriting.',
+      alertGpsNotSupported: 'Qurilmangizda geolokatsiya qo‘llab-quvvatlanmaydi',
+      alertGpsDetermining: 'Koordinatalar aniqlanmoqda...',
+      alertGpsSuccess: 'Geolokatsiya olindi',
+      alertGpsCoords: 'Koordinatalar:',
+      alertGpsFailed: 'GPS orqali aniqlab bo‘lmadi. Iltimos, tumanni tanlang va ko‘chani yozing.'
     },
     en: {
       delivery: 'Delivery',
@@ -3800,7 +3963,51 @@ html[data-theme="light"] .recent-item-type {
       profThemeTitle: 'Appearance Theme',
       themeDark: 'Dark',
       themeLight: 'Light',
-      themeAuto: 'Auto (TG)'
+      themeAuto: 'Auto (TG)',
+      currency: 'UZS',
+      portionPrefix: 'Portion',
+      dishDefaultDesc: 'Exquisite signature dish prepared with selected ingredients',
+      docTitle: 'FENIX — Menu, Order & Reservation',
+      nothingFoundTitle: 'Nothing found',
+      nothingFoundDesc: 'Try changing search query or filter',
+      stopListBadge: 'Out of stock',
+      preorderBadge: 'Pre-order',
+      inStopListTitle: 'Currently unavailable',
+      stopListAlert: 'This dish is currently out of stock',
+      namePlaceholder: 'Your name',
+      profSettingsTitle: 'Personal Details & Settings',
+      profNameLabel: 'Your name:',
+      profNamePlaceholder: 'Enter your name',
+      profPhoneLabel: 'Phone number (+998):',
+      profAddrLabel: 'Default delivery address:',
+      profUseWizardBtn: 'Select district',
+      profAddrPlaceholder: 'Tashkent, district, street, house',
+      profSaveBtn: 'Save changes',
+      profSaveSuccess: 'Changes saved successfully!',
+      profPrefTitle: 'Interface Language',
+      profOrdersTitle: 'Order History',
+      profOrdersEmpty: 'You do not have any orders yet.',
+      profResTitle: 'Table Reservations',
+      profResEmpty: 'No active table reservations.',
+      profSupportLabel: 'FENIX Lounge Guest Support:',
+      profSupportBot: 'Bot @FenixRestaurantBot',
+      profGuestName: 'FENIX Guest',
+      profPhoneEmpty: 'Phone not set',
+      profRepeatOrderBtn: 'Repeat order',
+      tableLabel: 'Table',
+      guestsWord: 'guests',
+      dishWord: 'Dish',
+      orderFromMenu: 'Order from menu',
+      dishesCountWord: (c) => `${c} ${c === 1 ? 'dish' : 'dishes'}`,
+      workingHoursLabel: 'Working hours:',
+      workingHoursVal: 'Daily from 11:00 to 23:00',
+      alertContactSent: 'Contact request sent via Telegram. If phone is not filled automatically, enter 9 digits manually.',
+      alertFillPhoneName: 'Please enter your phone number and name.',
+      alertGpsNotSupported: 'Geolocation is not supported by your device',
+      alertGpsDetermining: 'Detecting coordinates...',
+      alertGpsSuccess: 'Geolocation acquired',
+      alertGpsCoords: 'Coordinates:',
+      alertGpsFailed: 'Could not detect GPS. Please select your district and enter street.'
     }
   };
 
@@ -3988,8 +4195,8 @@ html[data-theme="light"] .recent-item-type {
       container.innerHTML = `
         <div style="text-align:center;padding:48px 16px;color:var(--text-muted);">
           <svg style="width:40px;height:40px;stroke:var(--text-faint);margin-bottom:12px;" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <p style="font-size:15px;margin-bottom:4px;">Ничего не найдено</p>
-          <p style="font-size:12px;color:var(--text-faint);">Попробуйте изменить поисковый запрос или фильтр</p>
+          <p style="font-size:15px;margin-bottom:4px;">${t('nothingFoundTitle')}</p>
+          <p style="font-size:12px;color:var(--text-faint);">${t('nothingFoundDesc')}</p>
         </div>
       `;
       return;
@@ -4005,7 +4212,7 @@ html[data-theme="light"] .recent-item-type {
     let html = `
       <div class="menu-section-head">
         <h3 class="menu-section-title">${selectedCuisine === 'all' ? t('allDishes') : t(selectedCuisine)}</h3>
-        <span class="menu-section-count">${sorted.length} позиций</span>
+        <span class="menu-section-count">${typeof t('itemsCountWord') === 'function' ? t('itemsCountWord')(sorted.length) : `${sorted.length} pos.`}</span>
       </div>
       <div class="dishes-grid">
     `;
@@ -4028,7 +4235,7 @@ html[data-theme="light"] .recent-item-type {
               `<img class="dish-card-img ${isPng ? 'png-dish' : ''}" src="${d.img}" alt="${title}" loading="lazy">` : 
               `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-faint);"><svg style="width:28px;height:28px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
             }
-            ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">Стоп-лист</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">Предзаказ</span>` : '')}
+            ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">${t('stopListBadge')}</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">${t('preorderBadge')}</span>` : '')}
           </div>
           <div class="dish-card-body">
             <h4 class="dish-card-title" onclick="window.FX_APP.openDishModal('${d.id}')">${title}</h4>
@@ -4036,7 +4243,7 @@ html[data-theme="light"] .recent-item-type {
             <div class="dish-card-footer">
               <span class="dish-card-price">${money(d.price)}</span>
               ${isStopped ? `
-                <button type="button" class="dish-add-btn" disabled style="opacity:0.4;cursor:not-allowed;" title="В стоп-листе">✕</button>
+                <button type="button" class="dish-add-btn" disabled style="opacity:0.4;cursor:not-allowed;" title="${t('inStopListTitle')}">✕</button>
               ` : count === 0 ? `
                 <button type="button" class="dish-add-btn" onclick="window.FX_APP.updateCart('${d.id}', 1)" aria-label="Add to cart">
                   <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"/></svg>
@@ -4077,7 +4284,7 @@ html[data-theme="light"] .recent-item-type {
       window.STOPPED_SET.has(String(d.nameRu || '').toLowerCase().trim()) ||
       window.STOPPED_SET.has(String(d.nameUz || '').toLowerCase().trim())
     )) {
-      alert(currentLang === 'uz' ? 'Bu taom vaqtincha toʻxtatilgan' : 'Это блюдо временно находится в стоп-листе кухни');
+      alert(t('stopListAlert'));
       return;
     }
     haptic('light');
@@ -4119,7 +4326,7 @@ html[data-theme="light"] .recent-item-type {
 
     if (!bar) return;
     if (count > 0 && currentTab === 'tab-menu') {
-      countSpan.textContent = `${count} ${count === 1 ? 'блюдо' : count < 5 ? 'блюда' : 'блюд'}`;
+      countSpan.textContent = typeof t('dishesCountWord') === 'function' ? t('dishesCountWord')(count) : `${count}`;
       sumSpan.textContent = money(total);
       bar.classList.remove('hidden');
     } else {
@@ -4873,7 +5080,7 @@ html[data-theme="light"] .recent-item-type {
     }
 
     if (titleEl) titleEl.textContent = getDishName(d);
-    if (descEl) descEl.textContent = getDishDesc(d) || 'Изысканное авторское блюдо из отборных ингредиентов';
+    if (descEl) descEl.textContent = getDishDesc(d) || t('dishDefaultDesc');
     if (priceEl) priceEl.textContent = money(d.price);
     if (qtyVal) qtyVal.textContent = modalQty;
 
@@ -4942,9 +5149,11 @@ html[data-theme="light"] .recent-item-type {
     const saveStatus = document.getElementById('profile-save-status');
     const useWizardBtn = document.getElementById('btn-prof-use-wizard');
 
-    const displayName = userName || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : 'Гость FENIX');
+    const defaultGuestName = t('profGuestName');
+    const defaultPhoneText = t('profPhoneEmpty');
+    const displayName = userName || (tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : defaultGuestName);
     if (nameEl) nameEl.textContent = displayName;
-    if (phoneEl) phoneEl.textContent = userPhone || 'Телефон не указан';
+    if (phoneEl) phoneEl.textContent = userPhone || defaultPhoneText;
     if (initialEl) initialEl.textContent = (displayName[0] || 'F').toUpperCase();
 
     if (editNameInp && !editNameInp.value) editNameInp.value = userName || '';
@@ -4997,8 +5206,8 @@ html[data-theme="light"] .recent-item-type {
         localStorage.setItem('fx.registered', '1');
         isRegistered = true;
 
-        if (nameEl) nameEl.textContent = newName || 'Гость FENIX';
-        if (phoneEl) phoneEl.textContent = newPhone || 'Телефон не указан';
+        if (nameEl) nameEl.textContent = newName || defaultGuestName;
+        if (phoneEl) phoneEl.textContent = newPhone || defaultPhoneText;
         if (initialEl) initialEl.textContent = (newName[0] || 'F').toUpperCase();
 
         const uid = tgUser ? tgUser.id : (localStorage.getItem('fx.uid') || 0);
@@ -5020,7 +5229,7 @@ html[data-theme="light"] .recent-item-type {
         } catch (_) {}
 
         if (saveStatus) {
-          saveStatus.innerHTML = '<span style="color:var(--gold-hi);font-weight:600;">Данные успешно сохранены!</span>';
+          saveStatus.innerHTML = `<span style="color:var(--gold-hi);font-weight:600;">${t('profSaveSuccess')}</span>`;
           setTimeout(() => { if (saveStatus) saveStatus.innerHTML = ''; }, 3000);
         }
         haptic('success');
@@ -5060,11 +5269,11 @@ html[data-theme="light"] .recent-item-type {
             if (data.orders && data.orders.length > 0) {
               ordersListEl.innerHTML = data.orders.map(o => {
                 const num = o.order_num;
-                const status = o.status || 'новый';
+                const status = translateStatus(o.status || 'новый', 'order');
                 const total = money(o.total_price);
                 const itemsStr = Array.isArray(o.items) 
-                  ? o.items.map(it => `${it.name || it.n || 'Блюдо'} × ${it.count || it.qty || 1}`).join(', ')
-                  : 'Заказ по меню';
+                  ? o.items.map(it => `${it.name || it.n || t('dishWord')} × ${it.count || it.qty || 1}`).join(', ')
+                  : t('orderFromMenu');
                 return `
                   <div class="recent-item-card" style="margin-bottom:10px;">
                     <div class="recent-item-top">
@@ -5075,7 +5284,7 @@ html[data-theme="light"] .recent-item-type {
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
                       <span style="font-weight:700;color:var(--gold);font-size:13px;">${total}</span>
                       <button type="button" class="repeat-order-btn" onclick="window.FX_APP.repeatOrderFromProfile('${num}')">
-                        Повторить заказ
+                        ${t('profRepeatOrderBtn')}
                       </button>
                     </div>
                   </div>
@@ -5087,13 +5296,13 @@ html[data-theme="light"] .recent-item-type {
                 <div class="recent-item-card" style="margin-bottom:10px;" onclick="window.FX_APP.lookupCode('${o.code}')">
                   <div class="recent-item-top">
                     <span class="recent-item-code">${o.code}</span>
-                    <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;">${o.status || 'Оформлен'}</span>
+                    <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;">${translateStatus(o.status || 'новый', 'order')}</span>
                   </div>
                   <div class="recent-item-summary" style="margin:4px 0;">${money(o.total)} • ${o.date || ''}</div>
                 </div>
               `).join('');
             } else {
-              ordersListEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">У вас пока нет оформленных заказов.</p>';
+              ordersListEl.innerHTML = `<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">${t('profOrdersEmpty')}</p>`;
             }
           }
 
@@ -5102,32 +5311,37 @@ html[data-theme="light"] .recent-item-type {
             if (data.reservations && data.reservations.length > 0) {
               resListEl.innerHTML = data.reservations.map(r => {
                 const code = r.code;
-                const status = r.status || 'ожидает подтверждения';
-                const tableStr = r.table_assigned ? ` • Стол: ${r.table_assigned}` : '';
+                const status = translateStatus(r.status || 'ожидает подтверждения', 'res');
+                const tableStr = r.table_assigned ? ` • ${t('tableLabel')}: ${r.table_assigned}` : '';
+                const guestsStr = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(r.guests || 2) : (`${r.guests || 2} ` + t('guestsWord'));
+                const zoneStr = translateHall(r.zone);
                 return `
                   <div class="recent-item-card" style="margin-bottom:10px;" onclick="window.FX_APP.lookupCode('WEB-${code}')">
                     <div class="recent-item-top">
                       <span class="recent-item-code">#WEB-${code}</span>
                       <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;border:1px solid rgba(192,138,62,0.25);">${status}</span>
                     </div>
-                    <div class="recent-item-summary" style="margin:4px 0;">${r.res_date || ''} в ${r.res_time || ''} • ${r.guests || 2} чел.${tableStr}</div>
-                    <div style="font-size:11px;color:var(--text-muted);">${r.zone || 'Основной зал'}</div>
+                    <div class="recent-item-summary" style="margin:4px 0;">${r.res_date || ''} ${t('atTime') || 'в'} ${r.res_time || ''} • ${guestsStr}${tableStr}</div>
+                    <div style="font-size:11px;color:var(--text-muted);">${zoneStr}</div>
                   </div>
                 `;
               }).join('');
             } else if (recentHistory && recentHistory.some(it => it.type === 'reservation')) {
               const resItems = recentHistory.filter(it => it.type === 'reservation');
-              resListEl.innerHTML = resItems.map(r => `
-                <div class="recent-item-card" style="margin-bottom:10px;" onclick="window.FX_APP.lookupCode('${r.code}')">
-                  <div class="recent-item-top">
-                    <span class="recent-item-code">${r.code}</span>
-                    <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;">${r.status || 'Забронировано'}</span>
+              resListEl.innerHTML = resItems.map(r => {
+                const guestsStr = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(r.guests || 2) : (`${r.guests || 2} ` + t('guestsWord'));
+                return `
+                  <div class="recent-item-card" style="margin-bottom:10px;" onclick="window.FX_APP.lookupCode('${r.code}')">
+                    <div class="recent-item-top">
+                      <span class="recent-item-code">${r.code}</span>
+                      <span style="font-size:10px;font-weight:600;color:var(--gold-hi);background:rgba(192,138,62,0.12);padding:2px 8px;border-radius:6px;">${translateStatus(r.status || 'ожидает подтверждения', 'res')}</span>
+                    </div>
+                    <div class="recent-item-summary" style="margin:4px 0;">${r.date || ''} • ${guestsStr}</div>
                   </div>
-                  <div class="recent-item-summary" style="margin:4px 0;">${r.date || ''} • ${r.guests || 2} чел.</div>
-                </div>
-              `).join('');
+                `;
+              }).join('');
             } else {
-              resListEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">Нет активных броней столов.</p>';
+              resListEl.innerHTML = `<p style="font-size:12px;color:var(--text-muted);padding:8px 0;">${t('profResEmpty')}</p>`;
             }
           }
         }
@@ -5200,8 +5414,13 @@ html[data-theme="light"] .recent-item-type {
     currentLang = lang;
     localStorage.setItem('fx.lang', lang);
 
+    document.title = t('docTitle');
+
     document.querySelectorAll('.lang-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.lang === lang);
+    });
+    document.querySelectorAll('.prof-lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
     // Update static header labels
@@ -5261,7 +5480,9 @@ html[data-theme="light"] .recent-item-type {
     const hallVipT = document.getElementById('txt-hall-vip-title');
     const hallVipD = document.getElementById('txt-hall-vip-desc');
     const lblResName = document.getElementById('lbl-res-name');
+    const inpResName = document.getElementById('res-name-input');
     const lblResPhone = document.getElementById('lbl-res-phone');
+    const txtResPhoneHint = document.getElementById('txt-res-phone-hint');
     const lblResComm = document.getElementById('lbl-res-comment');
     const inpResComm = document.getElementById('res-comment-input');
     const txtBtnRes = document.getElementById('txt-btn-submit-res');
@@ -5273,7 +5494,7 @@ html[data-theme="light"] .recent-item-type {
     if (chipDaft) chipDaft.textContent = t('dateAfterTomorrow');
     if (lblResTime) lblResTime.textContent = t('resTime');
     if (lblResGuests) lblResGuests.textContent = t('resGuests');
-    if (valGuests) valGuests.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' чел.');
+    if (valGuests) valGuests.textContent = typeof t('resGuestsCount') === 'function' ? t('resGuestsCount')(reservationGuestCount) : (reservationGuestCount + ' ' + t('guestsWord'));
     if (lblResHall) lblResHall.textContent = t('resHall');
     if (hallMainT) hallMainT.textContent = t('hallMainTitle');
     if (hallMainD) hallMainD.textContent = t('hallMainDesc');
@@ -5282,7 +5503,9 @@ html[data-theme="light"] .recent-item-type {
     if (hallVipT) hallVipT.textContent = t('hallVipTitle');
     if (hallVipD) hallVipD.textContent = t('hallVipDesc');
     if (lblResName) lblResName.textContent = t('resName');
+    if (inpResName) inpResName.placeholder = t('namePlaceholder');
     if (lblResPhone) lblResPhone.textContent = t('resPhone');
+    if (txtResPhoneHint) txtResPhoneHint.textContent = t('resPhoneHint');
     if (lblResComm) lblResComm.textContent = t('resComment');
     if (inpResComm) inpResComm.placeholder = t('resCommentPlaceholder');
     if (txtBtnRes) txtBtnRes.textContent = t('resSubmit');
@@ -5300,6 +5523,43 @@ html[data-theme="light"] .recent-item-type {
     if (btnLookup) btnLookup.textContent = t('statusBtnSearch');
     if (txtRecent) txtRecent.textContent = t('recentHistoryTitle');
 
+    // Profile Tab static labels
+    const txtProfSettingsTitle = document.getElementById('txt-prof-settings-title');
+    const lblProfName = document.getElementById('lbl-prof-name');
+    const inpProfName = document.getElementById('profile-edit-name');
+    const lblProfPhone = document.getElementById('lbl-prof-phone');
+    const lblProfAddr = document.getElementById('lbl-prof-addr');
+    const btnProfUseWizard = document.getElementById('btn-prof-use-wizard');
+    const inpProfAddr = document.getElementById('profile-edit-addr');
+    const txtBtnSaveProfile = document.getElementById('txt-btn-save-profile');
+    const txtProfPrefTitle = document.getElementById('txt-prof-pref-title');
+    const txtProfTheme = document.getElementById('txt-prof-theme-title');
+    const txtThemeDark = document.getElementById('txt-theme-dark');
+    const txtThemeLight = document.getElementById('txt-theme-light');
+    const txtThemeAuto = document.getElementById('txt-theme-auto');
+    const txtProfOrdersTitle = document.getElementById('txt-prof-orders-title');
+    const txtProfResTitle = document.getElementById('txt-prof-res-title');
+    const txtProfSupportLabel = document.getElementById('txt-prof-support-label');
+    const txtProfSupportBot = document.getElementById('txt-prof-support-bot');
+
+    if (txtProfSettingsTitle) txtProfSettingsTitle.textContent = t('profSettingsTitle');
+    if (lblProfName) lblProfName.textContent = t('profNameLabel');
+    if (inpProfName) inpProfName.placeholder = t('profNamePlaceholder');
+    if (lblProfPhone) lblProfPhone.textContent = t('profPhoneLabel');
+    if (lblProfAddr) lblProfAddr.textContent = t('profAddrLabel');
+    if (btnProfUseWizard) btnProfUseWizard.textContent = t('profUseWizardBtn');
+    if (inpProfAddr) inpProfAddr.placeholder = t('profAddrPlaceholder');
+    if (txtBtnSaveProfile) txtBtnSaveProfile.textContent = t('profSaveBtn');
+    if (txtProfPrefTitle) txtProfPrefTitle.textContent = t('profPrefTitle');
+    if (txtProfTheme) txtProfTheme.textContent = t('profThemeTitle');
+    if (txtThemeDark) txtThemeDark.textContent = t('themeDark');
+    if (txtThemeLight) txtThemeLight.textContent = t('themeLight');
+    if (txtThemeAuto) txtThemeAuto.textContent = t('themeAuto');
+    if (txtProfOrdersTitle) txtProfOrdersTitle.textContent = t('profOrdersTitle');
+    if (txtProfResTitle) txtProfResTitle.textContent = t('profResTitle');
+    if (txtProfSupportLabel) txtProfSupportLabel.textContent = t('profSupportLabel');
+    if (txtProfSupportBot) txtProfSupportBot.textContent = t('profSupportBot');
+
     // Wizard labels
     const wLangT = document.getElementById('w-lang-title');
     const wLangD = document.getElementById('w-lang-desc');
@@ -5307,6 +5567,7 @@ html[data-theme="light"] .recent-item-type {
     const wRegD = document.getElementById('w-reg-desc');
     const wTg = document.getElementById('txt-tg-autofill');
     const wPhoneL = document.getElementById('lbl-w-phone');
+    const wPhoneH = document.getElementById('txt-w-phone-hint');
     const wNameL = document.getElementById('lbl-w-name');
     const wLocT = document.getElementById('w-loc-title');
     const wLocD = document.getElementById('w-loc-desc');
@@ -5322,6 +5583,13 @@ html[data-theme="light"] .recent-item-type {
     const wBack2 = document.getElementById('btn-wiz-2-back');
     const wBack3 = document.getElementById('btn-wiz-3-back');
 
+    const wPickupAddrLbl = document.getElementById('w-pickup-addr-lbl');
+    const wPickupAddrVal = document.getElementById('w-pickup-addr-val');
+    const wPickupHoursLbl = document.getElementById('w-pickup-hours-lbl');
+    const wPickupHoursVal = document.getElementById('w-pickup-hours-val');
+    const wPickupReadyLbl = document.getElementById('w-pickup-ready-lbl');
+    const wPickupReadyVal = document.getElementById('w-pickup-ready-val');
+
     if (wLangT) wLangT.textContent = t('wLangTitle');
     if (wLangD) wLangD.textContent = t('wLangDesc');
     if (wNext1) wNext1.textContent = t('wNext');
@@ -5329,6 +5597,7 @@ html[data-theme="light"] .recent-item-type {
     if (wRegD) wRegD.textContent = t('wRegDesc');
     if (wTg) wTg.textContent = t('wTgAutofill');
     if (wPhoneL) wPhoneL.textContent = t('wPhoneLabel');
+    if (wPhoneH) wPhoneH.textContent = t('resPhoneHint');
     if (wNameL) wNameL.textContent = t('wNameLabel');
     if (wBack2) wBack2.textContent = t('wBack');
     if (wNext2) wNext2.textContent = t('wNext');
@@ -5343,22 +5612,24 @@ html[data-theme="light"] .recent-item-type {
     if (wBack3) wBack3.textContent = t('wBack');
     if (wFinish) wFinish.textContent = t('wFinish');
 
-    const txtProfTheme = document.getElementById('txt-prof-theme-title');
-    const txtThemeDark = document.getElementById('txt-theme-dark');
-    const txtThemeLight = document.getElementById('txt-theme-light');
-    const txtThemeAuto = document.getElementById('txt-theme-auto');
-    if (txtProfTheme) txtProfTheme.textContent = t('profThemeTitle');
-    if (txtThemeDark) txtThemeDark.textContent = t('themeDark');
-    if (txtThemeLight) txtThemeLight.textContent = t('themeLight');
-    if (txtThemeAuto) txtThemeAuto.textContent = t('themeAuto');
+    if (wPickupAddrLbl) wPickupAddrLbl.textContent = t('cartRestaurantAddressLabel');
+    if (wPickupAddrVal) wPickupAddrVal.textContent = t('cartRestaurantAddressVal');
+    if (wPickupHoursLbl) wPickupHoursLbl.textContent = t('workingHoursLabel');
+    if (wPickupHoursVal) wPickupHoursVal.textContent = t('workingHoursVal');
+    if (wPickupReadyLbl) wPickupReadyLbl.textContent = t('cartReadyInLabel');
+    if (wPickupReadyVal) wPickupReadyVal.textContent = t('cartReadyInTime');
 
     updateAddressBanner();
     renderSubcategories();
     renderMenuDishes();
     renderRecentHistory();
+    updateFloatingCartBar();
     if (lastTrackedRecord) renderTrackingCard(lastTrackedRecord);
     if (currentTab === 'tab-cart') renderCartView();
+    if (currentTab === 'tab-profile') renderProfileView();
   }
+
+
 
   // ── STEP-BY-STEP ONBOARDING WIZARD LOGIC (Oqtepa Lavash & Jumanji Style) ──
   let wizardCurrentStep = 1;
@@ -5500,7 +5771,7 @@ html[data-theme="light"] .recent-item-type {
                     if (nameInput) nameInput.value = [c.first_name, c.last_name].filter(Boolean).join(' ');
                   }
                 } else {
-                  alert('Запрос контакта отправлен в Telegram. Если номер не подставился автоматически, введите 9 цифр в поле.');
+                  alert(t('alertContactSent'));
                   if (wPhoneDigits) wPhoneDigits.focus();
                 }
               } else {
@@ -5517,9 +5788,9 @@ html[data-theme="light"] .recent-item-type {
           const fullName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ');
           const nameInput = document.getElementById('w-name-input');
           if (nameInput) nameInput.value = fullName;
-          alert(`Имя из Telegram (${fullName}) подставлено. Пожалуйста, введите 9 цифр номера телефона.`);
+          alert(currentLang === 'uz' ? `Telegram'dagi ism (${fullName}) qo‘yildi. Iltimos, telefon raqamingizning 9 ta raqamini kiriting.` : currentLang === 'en' ? `Telegram name (${fullName}) inserted. Please enter 9 digits of your phone number.` : `Имя из Telegram (${fullName}) подставлено. Пожалуйста, введите 9 цифр номера телефона.`);
         } else {
-          alert('Пожалуйста, введите номер телефона и имя.');
+          alert(t('alertFillPhoneName'));
         }
         if (wPhoneDigits) wPhoneDigits.focus();
       };
@@ -5576,29 +5847,30 @@ html[data-theme="light"] .recent-item-type {
       btnGps.onclick = () => {
         haptic('light');
         if (!navigator.geolocation) {
-          alert('Геолокация не поддерживается вашим устройством');
+          alert(t('alertGpsNotSupported'));
           return;
         }
 
-        btnGps.innerHTML = `<span>Определяем координаты...</span>`;
+        btnGps.innerHTML = `<span>${t('alertGpsDetermining')}</span>`;
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             haptic('success');
             const { latitude, longitude } = pos.coords;
             const streetInput = document.getElementById('w-street-input');
             if (streetInput && !streetInput.value) {
-              streetInput.value = `Геоточка (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+              const geoLabel = currentLang === 'uz' ? 'Geo-nuqta' : currentLang === 'en' ? 'Geo point' : 'Геоточка';
+              streetInput.value = `${geoLabel} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
             }
-            btnGps.innerHTML = `<span>Геолокация получена</span>`;
+            btnGps.innerHTML = `<span>${t('alertGpsSuccess')}</span>`;
             if (gpsFeedback) {
               gpsFeedback.style.display = 'block';
-              gpsFeedback.textContent = `Координаты: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+              gpsFeedback.textContent = `${t('alertGpsCoords')} ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
             }
           },
           (err) => {
             console.warn('Geolocation error:', err);
             btnGps.innerHTML = `<span>${t('wGpsBtn')}</span>`;
-            alert('Не удалось определить GPS. Пожалуйста, выберите район и укажите улицу.');
+            alert(t('alertGpsFailed'));
           },
           { enableHighAccuracy: true, timeout: 8000 }
         );
