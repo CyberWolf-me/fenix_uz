@@ -10,6 +10,28 @@
 <link rel="preload" href="fonts/Jost-300-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/tokens.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function() {
+  try {
+    var stored = localStorage.getItem('fenix_theme');
+    var isLight = false;
+    if (stored === 'light') {
+      isLight = true;
+    } else if (stored === 'dark') {
+      isLight = false;
+    } else {
+      var tgScheme = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.colorScheme : null;
+      if (tgScheme) isLight = (tgScheme === 'light');
+      else isLight = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+    }
+    if (isLight) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', '#F6F3EB');
+    }
+  } catch (_) {}
+})();
+</script>
 <script src="data/menu-data.js"></script>
 <style>
 /* ── FENIX MINI APP DEDICATED STYLES ── */
@@ -18,6 +40,8 @@
   --bg-card: #13110D;
   --bg-card-hover: #191612;
   --bg-surface: #1B1813;
+  --header-bg: #0A0907;
+  --dock-bg: #0B0906;
   --gold: #C08A3E;
   --gold-hi: #DFB16C;
   --gold-dim: rgba(192, 138, 62, 0.2);
@@ -26,11 +50,47 @@
   --text-muted: #9E9688;
   --text-faint: #6A6458;
   --line-subtle: rgba(192, 138, 62, 0.14);
+  --pill-bg: rgba(19, 17, 13, 0.85);
+  --img-bg: #0E0D0A;
+  --tag-bg: rgba(10, 9, 7, 0.85);
+  --chip-bg: rgba(255, 255, 255, 0.05);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-dock: 0 -4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-header: 0 4px 18px rgba(0, 0, 0, 0.55);
+  --bg-soft-subtle: rgba(255, 255, 255, 0.05);
+  --border-soft: rgba(255, 255, 255, 0.04);
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── LIGHT THEME (CREAM & GOLD LUXURY) ── */
+html[data-theme="light"] {
+  --bg-dark: #F6F3EB;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FAF7F0;
+  --bg-surface: #EDE7D8;
+  --header-bg: #F6F3EB;
+  --dock-bg: #FFFFFF;
+  --gold: #A8762B;
+  --gold-hi: #8A5E1C;
+  --gold-dim: rgba(168, 118, 43, 0.14);
+  --gold-glow: rgba(168, 118, 43, 0.12);
+  --text-main: #1D1812;
+  --text-muted: #6B6254;
+  --text-faint: #988E80;
+  --line-subtle: rgba(90, 68, 32, 0.12);
+  --pill-bg: #FFFFFF;
+  --img-bg: #EDE7D8;
+  --tag-bg: rgba(255, 255, 255, 0.92);
+  --chip-bg: rgba(60, 44, 20, 0.06);
+  --shadow-card: 0 1px 3px rgba(60, 44, 20, 0.05), 0 4px 12px rgba(60, 44, 20, 0.04);
+  --shadow-dock: 0 -4px 16px rgba(60, 44, 20, 0.08);
+  --shadow-header: 0 2px 10px rgba(60, 44, 20, 0.06);
+  --bg-soft-subtle: rgba(60, 44, 20, 0.05);
+  --border-soft: rgba(60, 44, 20, 0.08);
 }
 
 * {
@@ -66,9 +126,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: #0A0907; /* Solid crisp obsidian, no blur smudge */
-  border-bottom: 1px solid rgba(192, 138, 62, 0.18);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--line-subtle);
+  box-shadow: var(--shadow-header);
   padding: calc(10px + var(--safe-top)) 14px 10px;
 }
 
@@ -118,6 +178,39 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-soft-subtle);
+  border: 1px solid var(--line-subtle);
+  color: var(--gold);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.92);
+}
+
+html:not([data-theme="light"]) .theme-toggle-btn .icon-moon {
+  display: none;
+}
+html:not([data-theme="light"]) .theme-toggle-btn .icon-sun {
+  display: block;
+}
+
+html[data-theme="light"] .theme-toggle-btn .icon-sun {
+  display: none;
+}
+html[data-theme="light"] .theme-toggle-btn .icon-moon {
+  display: block;
 }
 
 .lang-switch {
@@ -196,7 +289,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(19, 17, 13, 0.85);
+  background: var(--pill-bg);
   border: 1px solid var(--line-subtle);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
@@ -305,8 +398,8 @@ body {
   position: sticky;
   top: 134px;
   z-index: 40;
-  background: #0A0907;
-  border-bottom: 1px solid rgba(192, 138, 62, 0.12);
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--line-subtle);
   padding: 8px 14px 10px;
 }
 
@@ -422,6 +515,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-card);
   transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
   position: relative;
 }
@@ -433,7 +527,7 @@ body {
 .dish-card-img-wrap {
   width: 100%;
   aspect-ratio: 4 / 3;
-  background: #0E0D0A;
+  background: var(--img-bg);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -458,7 +552,7 @@ body {
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(10, 9, 7, 0.85);
+  background: var(--tag-bg);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(192, 138, 62, 0.3);
   color: var(--gold);
@@ -507,7 +601,7 @@ body {
   gap: 6px;
   margin-top: auto;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid var(--border-soft);
 }
 
 .dish-card-price {
@@ -931,7 +1025,7 @@ body {
   height: 48px;
   border-radius: var(--radius-sm);
   object-fit: cover;
-  background: #0E0D0A;
+  background: var(--img-bg);
   flex-shrink: 0;
 }
 
@@ -1243,13 +1337,13 @@ body {
 }
 
 .step-item.done .step-dot svg {
-  stroke: #0A0907;
+  stroke: var(--bg-card);
 }
 
 .step-item.active .step-dot {
-  background: #0A0907;
+  background: var(--bg-card);
   border-color: var(--gold-hi);
-  box-shadow: 0 0 0 3px rgba(192, 138, 62, 0.25);
+  box-shadow: 0 0 0 3px var(--gold-dim);
 }
 
 .step-title {
@@ -1346,7 +1440,7 @@ body {
 .sheet-img-wrap {
   width: 100%;
   aspect-ratio: 16 / 10;
-  background: #0E0D0A;
+  background: var(--img-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
@@ -1406,9 +1500,9 @@ body {
   left: 0;
   right: 0;
   z-index: 60;
-  background: #0B0906; /* Solid crisp luxury obsidian, no blur smudge */
-  border-top: 1px solid rgba(192, 138, 62, 0.24);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.6);
+  background: var(--dock-bg);
+  border-top: 1px solid var(--line-subtle);
+  box-shadow: var(--shadow-dock);
   padding: 8px 6px max(24px, calc(10px + var(--safe-bottom)));
   display: flex;
   justify-content: space-around;
@@ -1612,6 +1706,31 @@ body {
   background: rgba(192, 138, 62, 0.2);
   border-color: var(--gold);
   color: var(--gold-hi);
+}
+.profile-theme-selector {
+  display: flex;
+  gap: 8px;
+}
+.prof-theme-btn {
+  flex: 1;
+  background: var(--bg-soft-subtle);
+  border: 1px solid var(--line-subtle);
+  color: var(--text-muted);
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.prof-theme-btn.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 .repeat-order-btn {
   background: rgba(192, 138, 62, 0.16);
@@ -1911,7 +2030,7 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #0A0907;
+  background: var(--bg-card);
   display: none;
 }
 
@@ -2095,6 +2214,195 @@ body {
   align-items: center;
   padding: 0 2px;
 }
+
+/* ── LIGHT THEME SPECIFIC COMPONENT REFINEMENTS ── */
+html[data-theme="light"] body {
+  background: var(--bg-dark);
+  color: var(--text-main);
+}
+
+html[data-theme="light"] .profile-header-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F5EFE4 100%);
+  border: 1px solid rgba(168, 118, 43, 0.25);
+  box-shadow: 0 4px 16px rgba(60, 44, 20, 0.06);
+}
+
+html[data-theme="light"] .profile-cashback-card {
+  background: linear-gradient(135deg, #FDFBF7 0%, #F3ECDC 100%);
+  border: 1px solid rgba(168, 118, 43, 0.3);
+  box-shadow: 0 2px 10px rgba(60, 44, 20, 0.05);
+}
+
+html[data-theme="light"] .profile-addr-text {
+  background: rgba(60, 44, 20, 0.04);
+  border: 1px solid rgba(60, 44, 20, 0.08);
+  color: var(--text-main);
+}
+
+html[data-theme="light"] .prof-lang-btn {
+  background: rgba(60, 44, 20, 0.04);
+  border: 1px solid var(--line-subtle);
+  color: var(--text-muted);
+}
+
+html[data-theme="light"] .prof-lang-btn.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+html[data-theme="light"] .profile-club-badge {
+  background: rgba(168, 118, 43, 0.12);
+  border: 1px solid rgba(168, 118, 43, 0.28);
+  color: var(--gold);
+}
+
+html[data-theme="light"] .modal-overlay {
+  background: rgba(29, 24, 18, 0.5);
+}
+
+html[data-theme="light"] .modal-sheet {
+  background: #FFFFFF;
+  border-top: 1px solid rgba(90, 68, 32, 0.14);
+}
+
+html[data-theme="light"] .modal-sheet.open {
+  box-shadow: 0 -8px 30px rgba(60, 44, 20, 0.16);
+}
+
+html[data-theme="light"] .sheet-grabber {
+  background: rgba(60, 44, 20, 0.18);
+}
+
+html[data-theme="light"] .lang-switch {
+  background: rgba(60, 44, 20, 0.06);
+  border: 1px solid rgba(90, 68, 32, 0.12);
+}
+
+html[data-theme="light"] .mode-toggle {
+  background: rgba(60, 44, 20, 0.06);
+  border: 1px solid rgba(90, 68, 32, 0.12);
+}
+
+html[data-theme="light"] .pill-btn {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.15);
+  color: var(--text-muted);
+}
+
+html[data-theme="light"] .pill-btn.active {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #FFFFFF;
+}
+
+html[data-theme="light"] .dish-card-tag {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(168, 118, 43, 0.35);
+  color: var(--gold);
+}
+
+html[data-theme="light"] .floating-cart-bar {
+  background: #FFFFFF;
+  border-color: rgba(168, 118, 43, 0.35);
+  box-shadow: 0 4px 20px rgba(60, 44, 20, 0.14);
+}
+
+html[data-theme="light"] .cart-item {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.12);
+  box-shadow: 0 1px 4px rgba(60, 44, 20, 0.04);
+}
+
+html[data-theme="light"] .cart-qty-btn {
+  background: rgba(60, 44, 20, 0.06);
+  border-color: rgba(90, 68, 32, 0.14);
+  color: var(--text-main);
+}
+
+html[data-theme="light"] .cart-qty-btn:active {
+  background: var(--gold);
+  color: #FFFFFF;
+}
+
+html[data-theme="light"] .btn-primary {
+  background: var(--gold);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(168, 118, 43, 0.28);
+}
+
+html[data-theme="light"] .btn-primary:active {
+  background: var(--gold-hi);
+}
+
+html[data-theme="light"] .hall-card {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.12);
+}
+
+html[data-theme="light"] .hall-card.active {
+  background: #FFFDF9;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+html[data-theme="light"] .date-chip,
+html[data-theme="light"] .time-chip,
+html[data-theme="light"] .guest-chip {
+  background: rgba(60, 44, 20, 0.05);
+  border-color: rgba(90, 68, 32, 0.12);
+  color: var(--text-muted);
+}
+
+html[data-theme="light"] .date-chip.active,
+html[data-theme="light"] .time-chip.active,
+html[data-theme="light"] .guest-chip.active {
+  background: var(--gold-dim);
+  border-color: var(--gold);
+  color: var(--gold-hi);
+}
+
+html[data-theme="light"] .radio-card {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.12);
+}
+
+html[data-theme="light"] .radio-card.active {
+  background: #FFFDF9;
+  border-color: var(--gold);
+}
+
+html[data-theme="light"] .dock-btn {
+  color: var(--text-muted);
+}
+
+html[data-theme="light"] .dock-btn.active {
+  color: var(--gold);
+}
+
+html[data-theme="light"] .phone-prefix {
+  background: rgba(60, 44, 20, 0.06);
+  border-right-color: rgba(90, 68, 32, 0.15);
+  color: var(--text-main);
+}
+
+html[data-theme="light"] .phone-input-wrap {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.18);
+}
+
+html[data-theme="light"] .form-input,
+html[data-theme="light"] .form-select,
+html[data-theme="light"] .form-textarea {
+  background: #FFFFFF;
+  border-color: rgba(90, 68, 32, 0.16);
+  color: var(--text-main);
+}
+
+html[data-theme="light"] .recent-item-type {
+  background: rgba(60, 44, 20, 0.06);
+  color: var(--text-muted);
+}
 </style>
 </head>
 <body>
@@ -2110,6 +2418,22 @@ body {
         </div>
       </a>
       <div class="header-right">
+        <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle theme" title="Тема оформления">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
         <div class="lang-switch" role="group" aria-label="Language">
           <button type="button" class="lang-btn active" data-lang="ru">RU</button>
           <button type="button" class="lang-btn" data-lang="uz">UZ</button>
@@ -2394,6 +2718,38 @@ body {
         <button type="button" class="prof-lang-btn" data-lang="ru">Русский</button>
         <button type="button" class="prof-lang-btn" data-lang="uz">O'zbekcha</button>
         <button type="button" class="prof-lang-btn" data-lang="en">English</button>
+      </div>
+    </div>
+
+    <!-- Appearance / Theme Selector -->
+    <div class="profile-section-card">
+      <div class="card-box-title" style="margin-bottom:12px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span id="txt-prof-theme-title">Тема оформления</span>
+      </div>
+      <div class="profile-theme-selector">
+        <button type="button" class="prof-theme-btn" data-theme-val="dark">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span id="txt-theme-dark">Тёмная</span>
+        </button>
+        <button type="button" class="prof-theme-btn" data-theme-val="light">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"/></svg>
+          <span id="txt-theme-light">Светлая</span>
+        </button>
+        <button type="button" class="prof-theme-btn" data-theme-val="auto">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span id="txt-theme-auto">Авто (TG)</span>
+        </button>
       </div>
     </div>
 
@@ -2693,9 +3049,6 @@ body {
     try {
       tg.ready();
       tg.expand();
-      if (tg.setHeaderColor) tg.setHeaderColor('#0B0906');
-      if (tg.setBackgroundColor) tg.setBackgroundColor('#0B0906');
-      if (tg.setBottomBarColor) tg.setBottomBarColor('#0B0906');
     } catch (_) {}
   }
 
@@ -2710,6 +3063,72 @@ body {
       } catch (_) {}
     }
   }
+
+  // ── Theme Controller (Dark, Light, Auto) ──
+  let currentThemeSetting = localStorage.getItem('fenix_theme') || 'auto';
+
+  function getSystemTheme() {
+    if (tg && tg.colorScheme) {
+      return tg.colorScheme === 'light' ? 'light' : 'dark';
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
+    }
+    return 'dark';
+  }
+
+  function resolveEffectiveTheme(setting) {
+    if (setting === 'light') return 'light';
+    if (setting === 'dark') return 'dark';
+    return getSystemTheme();
+  }
+
+  function applyTheme(setting, triggerHaptic = false) {
+    if (triggerHaptic) haptic('light');
+    currentThemeSetting = setting;
+    try { localStorage.setItem('fenix_theme', setting); } catch (_) {}
+
+    const effective = resolveEffectiveTheme(setting);
+
+    if (effective === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', '#F6F3EB');
+
+      if (tg) {
+        try {
+          if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#F6F3EB');
+          if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#F6F3EB');
+          if (typeof tg.setBottomBarColor === 'function') tg.setBottomBarColor('#FFFFFF');
+        } catch (_) {}
+      }
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', '#0A0907');
+
+      if (tg) {
+        try {
+          if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#0A0907');
+          if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#0A0907');
+          if (typeof tg.setBottomBarColor === 'function') tg.setBottomBarColor('#0B0906');
+        } catch (_) {}
+      }
+    }
+
+    document.querySelectorAll('.prof-theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.themeVal === setting);
+    });
+  }
+
+  function toggleTheme() {
+    const currentEffective = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    const nextSetting = currentEffective === 'light' ? 'dark' : 'light';
+    applyTheme(nextSetting, true);
+  }
+
+  // Initialize theme state immediately on script run
+  applyTheme(currentThemeSetting);
 
   // Pre-fill user data if available from Telegram
   let tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
@@ -3032,7 +3451,11 @@ body {
       wDistrictLabel: 'Район Ташкента',
       wStreetLabel: 'Улица и номер дома',
       wAptLabel: 'Квартира, этаж, ориентир (необязательно)',
-      wFinish: 'Подтвердить и открыть меню'
+      wFinish: 'Подтвердить и открыть меню',
+      profThemeTitle: 'Тема оформления',
+      themeDark: 'Тёмная',
+      themeLight: 'Светлая',
+      themeAuto: 'Авто (TG)'
     },
     uz: {
       delivery: 'Yetkazib berish',
@@ -3197,7 +3620,11 @@ body {
       wDistrictLabel: 'Toshkent tumani',
       wStreetLabel: 'Ko‘cha va uy raqami',
       wAptLabel: 'Kvartira, qavat, mo‘ljal (ixtiyoriy)',
-      wFinish: 'Tasdiqlash va menyuni ochish'
+      wFinish: 'Tasdiqlash va menyuni ochish',
+      profThemeTitle: 'Mavzu (Dizayn)',
+      themeDark: 'Qorong‘i',
+      themeLight: 'Yorug‘',
+      themeAuto: 'Avto (TG)'
     },
     en: {
       delivery: 'Delivery',
@@ -3362,7 +3789,11 @@ body {
       wDistrictLabel: 'Tashkent District',
       wStreetLabel: 'Street & House number',
       wAptLabel: 'Apt, floor, landmark (optional)',
-      wFinish: 'Confirm & Open Menu'
+      wFinish: 'Confirm & Open Menu',
+      profThemeTitle: 'Appearance Theme',
+      themeDark: 'Dark',
+      themeLight: 'Light',
+      themeAuto: 'Auto (TG)'
     }
   };
 
@@ -4518,6 +4949,11 @@ body {
       btn.classList.toggle('active', btn.dataset.lang === currentLang);
     });
 
+    // Highlight active theme button
+    document.querySelectorAll('.prof-theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.themeVal === currentThemeSetting);
+    });
+
     if (useWizardBtn) {
       useWizardBtn.onclick = () => openWizard(3);
     }
@@ -4900,6 +5336,15 @@ body {
     if (wBack3) wBack3.textContent = t('wBack');
     if (wFinish) wFinish.textContent = t('wFinish');
 
+    const txtProfTheme = document.getElementById('txt-prof-theme-title');
+    const txtThemeDark = document.getElementById('txt-theme-dark');
+    const txtThemeLight = document.getElementById('txt-theme-light');
+    const txtThemeAuto = document.getElementById('txt-theme-auto');
+    if (txtProfTheme) txtProfTheme.textContent = t('profThemeTitle');
+    if (txtThemeDark) txtThemeDark.textContent = t('themeDark');
+    if (txtThemeLight) txtThemeLight.textContent = t('themeLight');
+    if (txtThemeAuto) txtThemeAuto.textContent = t('themeAuto');
+
     updateAddressBanner();
     renderSubcategories();
     renderMenuDishes();
@@ -5228,6 +5673,8 @@ body {
     switchTab,
     setOrderMode,
     setLanguage,
+    applyTheme,
+    toggleTheme,
     updateCart,
     openDishModal,
     closeDishModal,
@@ -5250,6 +5697,38 @@ body {
 
   // ── Boot & Event Listeners ──
   document.addEventListener('DOMContentLoaded', () => {
+    // Theme toggle button in header
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => toggleTheme());
+    }
+
+    // Profile theme selector buttons
+    document.querySelectorAll('.prof-theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyTheme(btn.dataset.themeVal, true);
+      });
+    });
+
+    // Theme changes from Telegram or OS
+    if (tg && typeof tg.onEvent === 'function') {
+      try {
+        tg.onEvent('themeChanged', () => {
+          if (currentThemeSetting === 'auto') applyTheme('auto');
+        });
+      } catch (_) {}
+    }
+    if (window.matchMedia) {
+      try {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+          if (currentThemeSetting === 'auto') applyTheme('auto');
+        });
+      } catch (_) {}
+    }
+
+    // Apply active theme setting to mark buttons & update chrome
+    applyTheme(currentThemeSetting);
+
     // Dock click handlers
     document.querySelectorAll('.dock-btn').forEach(btn => {
       btn.addEventListener('click', () => switchTab(btn.dataset.tab));
