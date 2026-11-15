@@ -1039,6 +1039,10 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
   background: var(--img-bg);
   flex-shrink: 0;
 }
+.cart-item-img.png-dish {
+  object-fit: contain;
+  padding: 3px;
+}
 
 .cart-item-info {
   flex: 1;
@@ -3425,15 +3429,17 @@ html[data-theme="light"] .recent-item-type {
     "korea-129": "img/dish/28.png",  // Хемультанг - 185 000
     "korea-110": "img/dish/29.png",  // Хе из курицы - 69 000
     "korea-106": "img/dish/30.png",  // Косари - 119 000
-    // Generated dish photos (Batch 1 & 2 - Tashkent restobar style on dark background)
-    "europe-001": "img/dish/europe-001.webp", // Селёдка традиционная
-    "europe-002": "img/dish/europe-002.webp", // Холодец
-    "europe-020": "img/dish/europe-020.webp", // Греческий
-    "europe-024": "img/dish/europe-024.webp", // Цезарь с курицей
-    "europe-029": "img/dish/europe-029.webp", // Мужской каприз
-    "europe-030": "img/dish/europe-030.webp", // Селёдка под шубой
-    "europe-031": "img/dish/europe-031.webp", // Оливье
-    "europe-035": "img/dish/europe-035.webp"  // Солянка
+    // Generated dish photos (Clean transparent cutouts matching loose_dish_pngs reference assets)
+    "europe-001": "img/dish/europe-001.png", // Селёдка традиционная
+    "europe-004": "img/dish/europe-004.png", // Холодец
+    "europe-020": "img/dish/europe-020.png", // Греческий
+    "europe-024": "img/dish/europe-024.png", // Цезарь с курицей
+    "europe-029": "img/dish/europe-029.png", // Мужской каприз
+    "europe-030": "img/dish/europe-030.png", // Селёдка под шубой
+    "europe-031": "img/dish/europe-031.png", // Оливье
+    "europe-032": "img/dish/europe-032.png", // Борщ
+    "europe-033": "img/dish/europe-033.png", // Солянка
+    "europe-034": "img/dish/europe-034.png"  // Лагман
   };
 
   function getDishPhoto(id) {
@@ -4577,7 +4583,7 @@ html[data-theme="light"] .recent-item-type {
       const title = getDishName(d);
       itemsHtml += `
         <div class="cart-item-row">
-          <img class="cart-item-img" src="${d.img || 'img/fenix-mark.svg'}" alt="${title}">
+          <img class="cart-item-img ${d.img && d.img.endsWith('.png') ? 'png-dish' : ''}" src="${d.img || 'img/fenix-mark.svg'}" alt="${title}">
           <div class="cart-item-info">
             <h4 class="cart-item-title">${title}</h4>
             <div class="cart-item-price">${money(d.price)}</div>
