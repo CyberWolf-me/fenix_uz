@@ -93,7 +93,7 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
             <span className="avatar" data-tone="accent">{displayInitials}</span>
             <span className="nav-user-txt">
               <span className="nav-user-name">{displayName}</span>
-              <span className="nav-user-role">{displayRole} · На смене</span>
+              <span className="nav-user-role">{displayRole}</span>
             </span>
           </button>
           {onLogout && (

@@ -1078,7 +1078,7 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
       title: "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u0441\u043C\u0435\u043D\u044B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u0441\u043C\u0435\u043D\u044B"
     },
     /* @__PURE__ */ React.createElement("span", { className: "avatar", "data-tone": "accent" }, displayInitials),
-    /* @__PURE__ */ React.createElement("span", { className: "nav-user-txt" }, /* @__PURE__ */ React.createElement("span", { className: "nav-user-name" }, displayName), /* @__PURE__ */ React.createElement("span", { className: "nav-user-role" }, displayRole, " \xB7 \u041D\u0430 \u0441\u043C\u0435\u043D\u0435"))
+    /* @__PURE__ */ React.createElement("span", { className: "nav-user-txt" }, /* @__PURE__ */ React.createElement("span", { className: "nav-user-name" }, displayName), /* @__PURE__ */ React.createElement("span", { className: "nav-user-role" }, displayRole))
   ), onLogout && /* @__PURE__ */ React.createElement(
     "button",
     {

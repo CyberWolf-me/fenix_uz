@@ -842,24 +842,32 @@
   transition: all 0.2s ease;
 }
 
+.hide-desktop {
+  display: none !important;
+}
+
 .dispatch-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 0 1 auto;
-  min-width: 0;
+  gap: 8px;
+  flex: none;
 }
 .dispatch-toolbar-left .chips {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: nowrap;
+  flex: none;
+}
+.dispatch-toolbar-left .pill {
+  flex: none;
+  white-space: nowrap;
 }
 .dispatch-toolbar-left .chip {
   height: 32px;
   padding: 0 13px;
   font-size: 11.5px;
   font-weight: 600;
+  flex: none;
 }
 
 .dispatch-toolbar-center {
@@ -1116,6 +1124,9 @@
   }
   .hide-mobile {
     display: none !important;
+  }
+  .hide-desktop {
+    display: flex !important;
   }
 
   /* Main Area & Scroll Padding */
