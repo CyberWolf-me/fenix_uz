@@ -249,10 +249,12 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 
 .mode-toggle {
   display: flex;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--line-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: 9999px;
   padding: 3px;
+  position: relative;
+  user-select: none;
 }
 
 .mode-btn {
@@ -266,15 +268,17 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
-  padding: 7px 10px;
-  border-radius: 6px;
+  padding: 7px 12px;
+  border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .mode-btn.active {
   background: var(--bg-surface);
   color: var(--gold-hi);
+  font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(192, 138, 62, 0.25);
 }
@@ -2291,6 +2295,13 @@ html[data-theme="light"] .lang-switch {
 html[data-theme="light"] .mode-toggle {
   background: rgba(60, 44, 20, 0.06);
   border: 1px solid rgba(90, 68, 32, 0.12);
+}
+
+html[data-theme="light"] .mode-btn.active {
+  background: #FFFFFF;
+  color: var(--gold);
+  border: 1px solid rgba(168, 118, 43, 0.25);
+  box-shadow: 0 2px 8px rgba(60, 44, 20, 0.10);
 }
 
 html[data-theme="light"] .pill-btn {
