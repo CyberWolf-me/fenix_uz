@@ -32,7 +32,7 @@
   } catch (_) {}
 })();
 </script>
-<script src="data/menu-data.js?v=183"></script>
+<script src="data/menu-data.js?v=184"></script>
 <style>
 /* ── FENIX MINI APP DEDICATED STYLES ── */
 :root {
@@ -571,8 +571,9 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 }
 
 .dish-card-title {
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-main);
   line-height: 1.25;
   margin-bottom: 4px;
@@ -580,6 +581,7 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  letter-spacing: -0.01em;
 }
 
 .dish-card-desc {
@@ -605,10 +607,12 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 }
 
 .dish-card-price {
-  font-size: 15px;
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14.5px;
   color: var(--gold-hi);
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
+  letter-spacing: 0;
 }
 
 .dish-add-btn {
@@ -1459,10 +1463,13 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 }
 
 .sheet-title {
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 22px;
+  font-weight: 700;
   color: var(--text-main);
-  line-height: 1.2;
+  line-height: 1.25;
   margin-bottom: 6px;
+  letter-spacing: -0.01em;
 }
 
 .sheet-desc {
@@ -1482,9 +1489,11 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 }
 
 .sheet-price {
+  font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 20px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--gold-hi);
+  letter-spacing: 0;
 }
 
 .sheet-actions-row {
@@ -2812,10 +2821,10 @@ html[data-theme="light"] .recent-item-type {
     <div class="sheet-img-wrap" id="modal-img-wrap">
       <img class="sheet-img" id="modal-dish-img" src="" alt="">
     </div>
-    <h3 class="sheet-title serif" id="modal-dish-title"></h3>
+    <h3 class="sheet-title" id="modal-dish-title"></h3>
     <p class="sheet-desc" id="modal-dish-desc"></p>
     <div class="sheet-price-row">
-      <span class="sheet-price serif" id="modal-dish-price"></span>
+      <span class="sheet-price" id="modal-dish-price"></span>
       <div class="dish-qty-stepper" id="modal-stepper">
         <button type="button" class="dish-qty-btn" id="modal-qty-minus">−</button>
         <span class="dish-qty-val" id="modal-qty-val">1</span>
@@ -4005,10 +4014,10 @@ html[data-theme="light"] .recent-item-type {
             ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">Стоп-лист</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">Предзаказ</span>` : '')}
           </div>
           <div class="dish-card-body">
-            <h4 class="dish-card-title serif" onclick="window.FX_APP.openDishModal('${d.id}')">${title}</h4>
+            <h4 class="dish-card-title" onclick="window.FX_APP.openDishModal('${d.id}')">${title}</h4>
             <p class="dish-card-desc">${desc}</p>
             <div class="dish-card-footer">
-              <span class="dish-card-price serif">${money(d.price)}</span>
+              <span class="dish-card-price">${money(d.price)}</span>
               ${isStopped ? `
                 <button type="button" class="dish-add-btn" disabled style="opacity:0.4;cursor:not-allowed;" title="В стоп-листе">✕</button>
               ` : count === 0 ? `
