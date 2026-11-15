@@ -265,6 +265,8 @@ try {
           console.log(`[DB] Auto-seeded ${(parsed.items || []).length} dishes into menu_items table.`);
         }
       }
+    } else {
+      syncMenuFiles(db);
     }
   } catch (seedErr) {
     console.error("[DB Seed Error]:", seedErr.message);

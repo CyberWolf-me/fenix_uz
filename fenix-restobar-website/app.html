@@ -3192,57 +3192,38 @@ html[data-theme="light"] .recent-item-type {
     inputEl.addEventListener('blur', handler);
   }
 
-  // Dish Images Map
+  // Dish Images Map (Strict 1-to-1 match with authentic restaurant photo shoot)
   const DISH_PHOTO_MAP = {
-    "europe-001": "img/dish/1.png",
-    "europe-002": "img/dish/2.png",
-    "europe-003": "img/dish/3.png",
-    "europe-004": "img/dish/4.png",
-    "europe-005": "img/dish/europe-005.webp",
-    "europe-006": "img/dish/europe-006.webp",
-    "europe-010": "img/dish/europe-010.webp",
-    "europe-012": "img/dish/europe-012.webp",
-    "europe-013": "img/dish/europe-013.webp",
-    "europe-015": "img/dish/europe-015.webp",
-    "europe-017": "img/dish/europe-017.webp",
-    "europe-018": "img/dish/europe-018.webp",
-    "europe-020": "img/dish/6.png",
-    "europe-021": "img/dish/europe-021.webp",
-    "europe-022": "img/dish/8.png",
-    "europe-023": "img/dish/9.png",
-    "europe-024": "img/dish/10.png",
-    "europe-025": "img/dish/europe-025.webp",
-    "europe-040": "img/dish/europe-040.webp",
-    "europe-041": "img/dish/12.png",
-    "europe-042": "img/dish/13.png",
-    "europe-043": "img/dish/europe-043.webp",
-    "europe-045": "img/dish/europe-045.webp",
-    "europe-051": "img/dish/europe-051.webp",
-    "europe-052": "img/dish/europe-052.webp",
-    "europe-057": "img/dish/europe-057.webp",
-    "europe-059": "img/dish/europe-059.webp",
-    "europe-067": "img/dish/europe-067.webp",
-    "europe-068": "img/dish/16.png",
-    "europe-069": "img/dish/17.png",
-    "europe-070": "img/dish/18.png",
-    "korea-090": "img/dish/19.png",
-    "korea-091": "img/dish/20.png",
-    "korea-092": "img/dish/21.png",
-    "korea-093": "img/dish/22.png",
-    "korea-094": "img/dish/23.png",
-    "korea-095": "img/dish/korea-095.webp",
-    "korea-106": "img/dish/korea-106.webp",
-    "korea-107": "img/dish/25.png",
-    "korea-108": "img/dish/26.png",
-    "korea-109": "img/dish/27.png",
-    "korea-117": "img/dish/korea-117.webp",
-    "korea-119": "img/dish/korea-119.webp",
-    "korea-129": "img/dish/korea-129.webp",
-    "korea-139": "img/dish/korea-139.webp",
-    "korea-142": "img/dish/korea-142.webp",
-    "korea-143": "img/dish/29.png",
-    "korea-144": "img/dish/30.png",
-    "korea-146": "img/dish/korea-146.webp"
+    "europe-013": "img/dish/1.png",  // Сырное ассорти (Предзаказ) - 195 000
+    "europe-006": "img/dish/2.png",  // Лаваш с фетаксой - 65 000
+    "europe-015": "img/dish/3.png",  // Салат «Рубелла» - 85 000
+    "europe-012": "img/dish/4.png",  // Мясное ассорти (Предзаказ) - 355 000
+    "europe-005": "img/dish/5.png",  // Сельдерей с мясом - 185 000
+    "europe-025": "img/dish/6.png",  // Цезарь с креветками - 99 000
+    "europe-010": "img/dish/7.png",  // Язык в сливочном соусе - 175 000
+    "europe-023": "img/dish/8.png",  // Итальянский VERDE - 89 000
+    "europe-021": "img/dish/9.png",  // Хрустящие баклажаны - 89 000
+    "europe-017": "img/dish/10.png", // Салат «Капри» - 89 000
+    "europe-040": "img/dish/11.png", // Стейк медальон - 285 000
+    "europe-055": "img/dish/12.png", // Криспель с сыром - 120 000
+    "europe-043": "img/dish/13.png", // Стейк рибай - 375 000
+    "europe-059": "img/dish/14.png", // Шашлык из баранины (кавказский) - 245 000
+    "europe-045": "img/dish/15.png", // Мясо по-французски - 185 000
+    "europe-051": "img/dish/16.png", // Рёбра с овощами - 140 000
+    "europe-057": "img/dish/17.png", // Альфередо - 85 000
+    "europe-041": "img/dish/18.png", // Стейк классический - 299 000
+    "europe-014": "img/dish/19.png", // Рыбное ассорти (Предзаказ) - 385 000
+    "europe-054": "img/dish/20.png", // Куриный скорч - 105 000
+    "korea-099": "img/dish/21.png",  // Печень по-сеульски - 80 000
+    "korea-147": "img/dish/22.png",  // Хемуль покым - 220 000
+    "korea-094": "img/dish/23.png",  // Чапче - 75 000
+    "korea-146": "img/dish/24.png",  // Пулькоги - 265 000
+    "korea-095": "img/dish/25.png",  // Перец фаршированный - 69 000
+    "korea-117": "img/dish/26.png",  // Диргумча - 65 000
+    "korea-145": "img/dish/27.png",  // Сями - 115 000
+    "korea-129": "img/dish/28.png",  // Хемультанг - 185 000
+    "korea-110": "img/dish/29.png",  // Хе из курицы - 69 000
+    "korea-106": "img/dish/30.png"   // Косари - 119 000
   };
 
   function getDishPhoto(id) {

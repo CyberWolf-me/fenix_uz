@@ -89,7 +89,7 @@
     </div>`;
 
   /* ── home sections ── */
-  const SIGS = ['europe-043', 'korea-129', 'korea-142', 'europe-025', 'korea-146', 'europe-059'];
+  const SIGS = ['europe-043', 'korea-129', 'korea-145', 'europe-025', 'korea-146', 'europe-059'];
   const H = {};
   H.hero = () => {
     const v = S.tweaks.hero || 'single';
