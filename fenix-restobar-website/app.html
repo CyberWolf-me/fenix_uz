@@ -3433,10 +3433,14 @@ html[data-theme="light"] .recent-item-type {
     "europe-001": "img/dish/europe-001.png", // Селёдка традиционная
     "europe-004": "img/dish/europe-004.png", // Холодец
     "europe-016": "img/dish/europe-016.png", // Салат «Азиатский»
+    "europe-018": "img/dish/europe-018.png", // Салат «Руккола с овощами»
     "europe-019": "img/dish/europe-019.png", // Салат «Грузинский»
     "europe-020": "img/dish/europe-020.png", // Греческий
     "europe-022": "img/dish/europe-022.png", // Салат «Закусочный»
     "europe-024": "img/dish/europe-024.png", // Цезарь с курицей
+    "europe-026": "img/dish/europe-026.png", // Салат «Французский»
+    "europe-027": "img/dish/europe-027.png", // Салат «Крабовый»
+    "europe-028": "img/dish/europe-028.png", // Салат «Смак»
     "europe-029": "img/dish/europe-029.png", // Мужской каприз
     "europe-030": "img/dish/europe-030.png", // Селёдка под шубой
     "europe-031": "img/dish/europe-031.png", // Оливье
@@ -5187,11 +5191,20 @@ html[data-theme="light"] .recent-item-type {
     if (isOrder) {
       let itemsList = '';
       if (Array.isArray(record.items)) {
-        itemsList = record.items.map(it => `${it.name || it.n || t('dishWord')} × ${it.qty || it.count || 1}`).join(', ');
+        itemsList = record.items.map(it => {
+          if (typeof it === 'string') return it;
+          const dishName = it.name || it.n || it.title || t('dishWord');
+          const count = it.qty || it.count || it.quantity || 1;
+          return `${dishName} × ${count}`;
+        }).join(', ');
       } else if (record.items && typeof record.items === 'object') {
-        itemsList = Object.entries(record.items).map(([name, qty]) => {
-          const count = typeof qty === 'object' ? (qty.qty || qty.count || 1) : qty;
-          return `${name} × ${count}`;
+        itemsList = Object.entries(record.items).map(([key, val]) => {
+          if (val && typeof val === 'object') {
+            const dishName = val.name || val.n || val.title || (isNaN(Number(key)) ? key : t('dishWord'));
+            const count = val.qty || val.count || val.quantity || 1;
+            return `${dishName} × ${count}`;
+          }
+          return `${key} × ${val || 1}`;
         }).join(', ');
       }
       detailsHtml = `
@@ -5417,11 +5430,20 @@ html[data-theme="light"] .recent-item-type {
           price: Number(it.price || 0)
         }));
       } else if (rawItems && typeof rawItems === 'object') {
-        items = Object.entries(rawItems).map(([name, val]) => ({
-          name,
-          qty: typeof val === 'object' ? Number(val.qty || val.count || 1) : Number(val || 1),
-          price: typeof val === 'object' ? Number(val.price || 0) : 0
-        }));
+        items = Object.entries(rawItems).map(([key, val]) => {
+          if (val && typeof val === 'object') {
+            return {
+              name: val.name || val.n || val.id || (isNaN(Number(key)) ? key : t('dishWord')),
+              qty: Number(val.qty || val.count || val.quantity || 1),
+              price: Number(val.price || 0)
+            };
+          }
+          return {
+            name: key,
+            qty: Number(val || 1),
+            price: 0
+          };
+        });
       }
 
       // Summary string for collapsed preview

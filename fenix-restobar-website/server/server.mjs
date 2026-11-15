@@ -1021,9 +1021,11 @@ function normalizeOrderItems(rawItems, priceMap = null) {
       result.push({ name, qty, price });
     }
   } else if (parsed && typeof parsed === "object") {
-    for (const [name, val] of Object.entries(parsed)) {
-      const qty = typeof val === "object" ? Number(val.qty || val.count || 1) : Number(val || 1);
-      let price = typeof val === "object" ? Number(val.price || 0) : 0;
+    for (const [key, val] of Object.entries(parsed)) {
+      const isValObj = val && typeof val === "object";
+      const name = isValObj ? (val.name || val.n || val.id || (isNaN(Number(key)) ? key : "Позиция")) : key;
+      const qty = isValObj ? Number(val.qty || val.count || 1) : Number(val || 1);
+      let price = isValObj ? Number(val.price || 0) : 0;
       if (!price && priceMap && priceMap.has(String(name).toLowerCase().trim())) {
         price = priceMap.get(String(name).toLowerCase().trim());
       }
