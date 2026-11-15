@@ -1,3 +1,9 @@
+def is_cash_pay(val):
+    if not val:
+        return True
+    s = str(val).lower()
+    return "налич" in s or "cash" in s or "naqd" in s
+
 import asyncio
 import logging
 import sys
@@ -244,7 +250,7 @@ async def callback_courier_claim(callback: CallbackQuery, bot: Bot):
         try:
             if ord_data:
                 client_phone = ord_data.get("customer_phone", "")
-                pay = "Наличными" if ord_data.get("payment_method") == "cash" else "Картой"
+                pay = "Наличными" if is_cash_pay(ord_data.get("payment_method")) else "Картой"
                 private_msg = (
                     f"🛵 <b>ВЫ ВЗЯЛИ ЗАКАЗ #WEB-{order_num}</b>\n\n"
                     f"🏢 <b>Забрать:</b> FENIX Hub (Яшнабад, 5-й проезд, 1а)\n"
@@ -423,7 +429,7 @@ async def handle_group_reply(message: Message, bot: Bot):
                 if ord_data:
                     client_phone = ord_data.get("customer_phone", "")
                     address = ord_data.get("address", "Ташкент")
-                    pay = "Наличными" if ord_data.get("payment_method") == "cash" else "Картой"
+                    pay = "Наличными" if is_cash_pay(ord_data.get("payment_method")) else "Картой"
                     yandex_navi = f"yandexnavi://build_route_on_map?lat_to={lat}&lon_to={lon}"
 
                     priv_msg = (
@@ -504,7 +510,7 @@ async def cmd_my_orders(message: Message):
         phone = o.get("customer_phone", "")
         addr = o.get("address", "Ташкент")
         total = o.get("total_price", 0)
-        pay = "Наличными" if o.get("payment_method") == "cash" else "Картой"
+        pay = "Наличными" if is_cash_pay(o.get("payment_method")) else "Картой"
         lat, lon = extract_coords(addr)
         yandex_url = f"https://yandex.uz/maps/?rtext=41.2858,69.3402~{lat},{lon}&rtt=auto"
 

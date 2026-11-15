@@ -509,7 +509,9 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetC
   const phone = normalizeUzPhone(order.customer_phone || '');
   const address = order.address || 'г. Ташкент';
   const total = formatPrice(order.total_price);
-  const pay = order.payment_method === 'cash' ? '💵 Наличными курьеру' : '💳 Оплачено онлайн / картой';
+  const rawPay = String(order.payment_method || '').toLowerCase().trim();
+  const isCash = !rawPay || rawPay.includes('налич') || rawPay.includes('cash') || rawPay.includes('naqd');
+  const pay = isCash ? '💵 Наличными курьеру' : '💳 Оплачено онлайн / картой';
   const courierDisplayName = targetCourierName || order.courier_name || 'Курьер FENIX';
 
   let itemsList = [];
@@ -2191,8 +2193,16 @@ function normalizeOrderItems(rawItems, priceMap = null) {
           } else if (priceMap.has(rawName)) {
             price = priceMap.get(rawName);
           } else {
-            // Keep client item.price only as fallback if custom manual entry created by authenticated admin
-            price = isAdmin ? Number(item.price || 0) : 0;
+            const cleanRaw = rawName.replace(/[^a-zа-яё0-9]/gi, '');
+            for (const [k, v] of priceMap.entries()) {
+              if (k.replace(/[^a-zа-яё0-9]/gi, '') === cleanRaw) {
+                price = v;
+                break;
+              }
+            }
+          }
+          if (price === 0 && Number(item.price || 0) > 0) {
+            price = Number(item.price);
           }
 
           calculatedItemsTotal += price * qty;
@@ -2208,8 +2218,16 @@ function normalizeOrderItems(rawItems, priceMap = null) {
           if (priceMap.has(rawName)) {
             price = priceMap.get(rawName);
           } else {
-            const rawPrice = typeof val === "object" ? Number(val.price || 0) : 0;
-            price = isAdmin ? rawPrice : 0;
+            const cleanRaw = rawName.replace(/[^a-zа-яё0-9]/gi, '');
+            for (const [k, v] of priceMap.entries()) {
+              if (k.replace(/[^a-zа-яё0-9]/gi, '') === cleanRaw) {
+                price = v;
+                break;
+              }
+            }
+          }
+          if (price === 0 && typeof val === "object" && Number(val.price || 0) > 0) {
+            price = Number(val.price);
           }
 
           if (price > 0) calculatedItemsTotal += price * qty;

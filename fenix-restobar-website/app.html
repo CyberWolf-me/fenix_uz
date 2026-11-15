@@ -5167,7 +5167,15 @@ html[data-theme="light"] .recent-item-type {
 
     let detailsHtml = '';
     if (isOrder) {
-      const itemsList = Object.entries(record.items || {}).map(([name, qty]) => `${name} × ${qty}`).join(', ');
+      let itemsList = '';
+      if (Array.isArray(record.items)) {
+        itemsList = record.items.map(it => `${it.name || it.n || t('dishWord')} × ${it.qty || it.count || 1}`).join(', ');
+      } else if (record.items && typeof record.items === 'object') {
+        itemsList = Object.entries(record.items).map(([name, qty]) => {
+          const count = typeof qty === 'object' ? (qty.qty || qty.count || 1) : qty;
+          return `${name} × ${count}`;
+        }).join(', ');
+      }
       detailsHtml = `
         <div class="details-table">
           <div class="details-row"><span>${t('trackRecipient')}</span><strong>${record.name || '—'}</strong></div>
