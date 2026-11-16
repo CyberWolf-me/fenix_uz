@@ -219,7 +219,7 @@
           const ph = items.filter(i => S.DISH_PHOTOS.has(i.id));
           return ph.length ? `<div class="dstrip">${ph.map(it => `
             <button type="button" class="dcard" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}">
-              <span class="dimg"><img src="img/dish/${it.id}.webp" width="560" height="560" alt="" loading="lazy" decoding="async"></span>
+              <span class="dimg"><img src="img/dish/${it.id}.webp" onerror="this.onerror=null;this.src='img/dish/${it.id}.png'" width="560" height="560" alt="${e(S.iName(it))}" loading="lazy" decoding="async"></span>
               <span class="dn">${e(S.iName(it))}</span>
               <span class="price">${S.iPrice(it)}</span>
             </button>`).join('')}</div>` : '';
