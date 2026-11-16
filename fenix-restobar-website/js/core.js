@@ -128,7 +128,8 @@
     'europe-070','europe-071','europe-072','europe-073','europe-074','europe-075','europe-076','europe-077','europe-078','europe-079',
     'europe-080','europe-081','europe-082',
     'korea-090','korea-091','korea-094','korea-095','korea-099','korea-104','korea-106','korea-110','korea-116','korea-117','korea-119','korea-129',
-    'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148','korea-152'
+    'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148','korea-152',
+    'bar-179','bar-180','bar-181','bar-182','bar-183','bar-184'
   ]);
   S.sections = M.sections;
   S.secLabel = (menu, sec) => { const s = M.sections[menu].find(x => x.id === sec); return s ? (s[S.lang] || s.ru) : sec; };
@@ -138,6 +139,8 @@
   S.iPrice = it => it.priceAlt ? `${S.num(it.price)} / ${S.money(it.priceAlt)}` : S.money(it.price);
 
   /* ── cart (Phase 2 preview) ───────────────────────── */
+  S.isStopped = it => !!(S.stoplist && it && (S.stoplist.has(String(it.name?.ru || it.name || '').toLowerCase().trim()) || S.stoplist.has(String(it.id || '').toLowerCase().trim())));
+  S.canOrder = it => !!(S.tweaks.ordering && it && it.menu !== 'bar' && !S.isStopped(it));
   S.cartCount = () => Object.values(S.cart).reduce((a, b) => a + b, 0);
   S.cartTotal = () => Object.entries(S.cart).reduce((a, [id, q]) => a + (S.byId[id] ? S.byId[id].price * q : 0), 0);
   S.setQty = (id, q) => { if (q <= 0) delete S.cart[id]; else S.cart[id] = q; localStorage.setItem('fx.cart', JSON.stringify(S.cart)); document.dispatchEvent(new CustomEvent('fx:cart')); };
