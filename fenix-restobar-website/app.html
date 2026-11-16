@@ -34,7 +34,7 @@
   } catch (_) {}
 })();
 </script>
-<script src="data/menu-data.js?v=20261116_03"></script>
+<script src="data/menu-data.js?v=20261116_04"></script>
 <style>
 /* ── FENIX MINI APP DEDICATED STYLES ── */
 :root {
@@ -547,6 +547,7 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
 .dish-card-img {
   width: 100%;
   height: 100%;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   transition: opacity 0.2s ease;
 }
@@ -3820,88 +3821,88 @@ html[data-theme="light"] .recent-item-type {
 
   // Dish Images Map (Strict 1-to-1 match with authentic restaurant photo shoot)
   const DISH_PHOTO_MAP = {
-    "europe-013": "img/dish/1.png",  // Сырное ассорти (Предзаказ) - 195 000
-    "europe-006": "img/dish/2.png",  // Лаваш с фетаксой - 65 000
-    "europe-015": "img/dish/3.png",  // Салат «Рубелла» - 85 000
-    "europe-012": "img/dish/4.png",  // Мясное ассорти (Предзаказ) - 355 000
-    "europe-005": "img/dish/5.png",  // Сельдерей с мясом - 185 000
-    "europe-025": "img/dish/6.png",  // Цезарь с креветками - 99 000
-    "europe-010": "img/dish/7.png",  // Язык в сливочном соусе - 175 000
-    "europe-023": "img/dish/8.png",  // Итальянский VERDE - 89 000
-    "europe-021": "img/dish/9.png",  // Хрустящие баклажаны - 89 000
-    "europe-017": "img/dish/10.png", // Салат «Капри» - 89 000
-    "europe-040": "img/dish/11.png", // Стейк медальон - 285 000
-    "europe-055": "img/dish/12.png", // Криспель с сыром - 120 000
-    "europe-043": "img/dish/13.png", // Стейк рибай - 375 000
-    "europe-059": "img/dish/14.png", // Шашлык из баранины (кавказский) - 245 000
-    "europe-045": "img/dish/15.png", // Мясо по-французски - 185 000
-    "europe-051": "img/dish/16.png", // Рёбра с овощами - 140 000
-    "europe-057": "img/dish/17.png", // Альфередо - 85 000
-    "europe-041": "img/dish/18.png", // Стейк классический - 299 000
-    "europe-014": "img/dish/19.png", // Рыбное ассорти (Предзаказ) - 385 000
-    "europe-054": "img/dish/20.png", // Куриный скорч - 105 000
-    "korea-099": "img/dish/21.png",  // Печень по-сеульски - 80 000
-    "korea-147": "img/dish/22.png",  // Хемуль покым - 220 000
-    "korea-094": "img/dish/23.png",  // Чапче - 75 000
-    "korea-146": "img/dish/24.png",  // Пулькоги - 265 000
-    "korea-095": "img/dish/25.png",  // Перец фаршированный - 69 000
-    "korea-117": "img/dish/26.png",  // Диргумча - 65 000
-    "korea-145": "img/dish/27.png",  // Сями - 115 000
-    "korea-129": "img/dish/28.png",  // Хемультанг - 185 000
-    "korea-110": "img/dish/29.png",  // Хе из курицы - 69 000
-    "korea-106": "img/dish/30.png",  // Косари - 119 000
+    "europe-013": "img/dish/1.webp",  // Сырное ассорти (Предзаказ) - 195 000
+    "europe-006": "img/dish/2.webp",  // Лаваш с фетаксой - 65 000
+    "europe-015": "img/dish/3.webp",  // Салат «Рубелла» - 85 000
+    "europe-012": "img/dish/4.webp",  // Мясное ассорти (Предзаказ) - 355 000
+    "europe-005": "img/dish/5.webp",  // Сельдерей с мясом - 185 000
+    "europe-025": "img/dish/6.webp",  // Цезарь с креветками - 99 000
+    "europe-010": "img/dish/7.webp",  // Язык в сливочном соусе - 175 000
+    "europe-023": "img/dish/8.webp",  // Итальянский VERDE - 89 000
+    "europe-021": "img/dish/9.webp",  // Хрустящие баклажаны - 89 000
+    "europe-017": "img/dish/10.webp", // Салат «Капри» - 89 000
+    "europe-040": "img/dish/11.webp", // Стейк медальон - 285 000
+    "europe-055": "img/dish/12.webp", // Криспель с сыром - 120 000
+    "europe-043": "img/dish/13.webp", // Стейк рибай - 375 000
+    "europe-059": "img/dish/14.webp", // Шашлык из баранины (кавказский) - 245 000
+    "europe-045": "img/dish/15.webp", // Мясо по-французски - 185 000
+    "europe-051": "img/dish/16.webp", // Рёбра с овощами - 140 000
+    "europe-057": "img/dish/17.webp", // Альфередо - 85 000
+    "europe-041": "img/dish/18.webp", // Стейк классический - 299 000
+    "europe-014": "img/dish/19.webp", // Рыбное ассорти (Предзаказ) - 385 000
+    "europe-054": "img/dish/20.webp", // Куриный скорч - 105 000
+    "korea-099": "img/dish/21.webp",  // Печень по-сеульски - 80 000
+    "korea-147": "img/dish/22.webp",  // Хемуль покым - 220 000
+    "korea-094": "img/dish/23.webp",  // Чапче - 75 000
+    "korea-146": "img/dish/24.webp",  // Пулькоги - 265 000
+    "korea-095": "img/dish/25.webp",  // Перец фаршированный - 69 000
+    "korea-117": "img/dish/26.webp",  // Диргумча - 65 000
+    "korea-145": "img/dish/27.webp",  // Сями - 115 000
+    "korea-129": "img/dish/28.webp",  // Хемультанг - 185 000
+    "korea-110": "img/dish/29.webp",  // Хе из курицы - 69 000
+    "korea-106": "img/dish/30.webp",  // Косари - 119 000
     // Generated dish photos (Clean transparent cutouts matching loose_dish_pngs reference assets)
-    "europe-001": "img/dish/europe-001.png", // Селёдка традиционная
-    "europe-004": "img/dish/europe-004.png", // Холодец
-    "europe-016": "img/dish/europe-016.png", // Салат «Азиатский»
-    "europe-018": "img/dish/europe-018.png", // Салат «Руккола с овощами»
-    "europe-019": "img/dish/europe-019.png", // Салат «Грузинский»
-    "europe-020": "img/dish/europe-020.png", // Греческий
-    "europe-022": "img/dish/europe-022.png", // Салат «Закусочный»
-    "europe-024": "img/dish/europe-024.png", // Цезарь с курицей
-    "europe-026": "img/dish/europe-026.png", // Салат «Французский»
-    "europe-027": "img/dish/europe-027.png", // Салат «Крабовый»
-    "europe-028": "img/dish/europe-028.png", // Салат «Смак»
-    "europe-029": "img/dish/europe-029.png", // Мужской каприз
-    "europe-030": "img/dish/europe-030.png", // Селёдка под шубой
-    "europe-031": "img/dish/europe-031.png", // Оливье
-    "europe-032": "img/dish/europe-032.png", // Борщ
-    "europe-033": "img/dish/europe-033.png", // Солянка
-    "europe-034": "img/dish/europe-034.png", // Лагман
-    "europe-042": "img/dish/europe-042.png", // Стейк миньон
-    "europe-044": "img/dish/europe-044.png", // Телятина по-провански
-    "europe-046": "img/dish/europe-046.png", // Мясо по-китайски
-    "europe-047": "img/dish/europe-047.png", // Телятина с сыром
-    "europe-048": "img/dish/europe-048.png", // Мясо по-мексикански
-    "europe-049": "img/dish/europe-049.png", // Картофель по-домашнему
-    "europe-050": "img/dish/europe-050.png", // Мясо по-царски
-    "europe-052": "img/dish/europe-052.png", // Курица в сливочном соусе
-    "europe-053": "img/dish/europe-053.png", // Кремона
-    "europe-056": "img/dish/europe-056.png", // Курица по-Королевски
-    "europe-058": "img/dish/europe-058.png", // Карбанара
-    "europe-060": "img/dish/europe-060.png", // Шашлык из говядины (кавказский)
-    "europe-061": "img/dish/europe-061.png", // Шашлык карбонат (кавказский)
-    "europe-062": "img/dish/europe-062.png", // Шашлык из курицы
-    "europe-063": "img/dish/europe-063.png", // Люля-кебаб
-    "europe-064": "img/dish/europe-064.png", // Мини-шашлык из говядины
-    "europe-065": "img/dish/europe-065.png", // Мини-шашлык лангет
-    "europe-066": "img/dish/europe-066.png", // Мини-шашлык молотый
-    "europe-067": "img/dish/europe-067.png", // Форель на гриле
-    "europe-068": "img/dish/europe-068.png", // Скумбрия на гриле
-    "europe-069": "img/dish/europe-069.png", // Овощи на мангале
-    "europe-070": "img/dish/europe-070.png", // Грибы на мангале
-    "europe-071": "img/dish/europe-071.png", // Кукуруза на мангале
-    "europe-072": "img/dish/europe-072.png", // Картофель на мангале
-    "europe-073": "img/dish/europe-073.png", // Картофель фри
-    "europe-074": "img/dish/europe-074.png", // Картофель по-деревенски
-    "europe-075": "img/dish/europe-075.png", // Кукуруза
-    "europe-076": "img/dish/europe-076.png", // Зелёный горошек
-    "europe-077": "img/dish/europe-077.png", // Рис
-    "europe-078": "img/dish/europe-078.png", // Хлебное ассорти
-    "europe-079": "img/dish/europe-079.png", // Лепешка
-    "europe-080": "img/dish/europe-080.png", // Чёрный хлеб
-    "europe-081": "img/dish/europe-081.png", // Лист лаваша
-    "europe-082": "img/dish/europe-082.png"  // Чесночные гренки
+    "europe-001": "img/dish/europe-001.webp", // Селёдка традиционная
+    "europe-004": "img/dish/europe-004.webp", // Холодец
+    "europe-016": "img/dish/europe-016.webp", // Салат «Азиатский»
+    "europe-018": "img/dish/europe-018.webp", // Салат «Руккола с овощами»
+    "europe-019": "img/dish/europe-019.webp", // Салат «Грузинский»
+    "europe-020": "img/dish/europe-020.webp", // Греческий
+    "europe-022": "img/dish/europe-022.webp", // Салат «Закусочный»
+    "europe-024": "img/dish/europe-024.webp", // Цезарь с курицей
+    "europe-026": "img/dish/europe-026.webp", // Салат «Французский»
+    "europe-027": "img/dish/europe-027.webp", // Салат «Крабовый»
+    "europe-028": "img/dish/europe-028.webp", // Салат «Смак»
+    "europe-029": "img/dish/europe-029.webp", // Мужской каприз
+    "europe-030": "img/dish/europe-030.webp", // Селёдка под шубой
+    "europe-031": "img/dish/europe-031.webp", // Оливье
+    "europe-032": "img/dish/europe-032.webp", // Борщ
+    "europe-033": "img/dish/europe-033.webp", // Солянка
+    "europe-034": "img/dish/europe-034.webp", // Лагман
+    "europe-042": "img/dish/europe-042.webp", // Стейк миньон
+    "europe-044": "img/dish/europe-044.webp", // Телятина по-провански
+    "europe-046": "img/dish/europe-046.webp", // Мясо по-китайски
+    "europe-047": "img/dish/europe-047.webp", // Телятина с сыром
+    "europe-048": "img/dish/europe-048.webp", // Мясо по-мексикански
+    "europe-049": "img/dish/europe-049.webp", // Картофель по-домашнему
+    "europe-050": "img/dish/europe-050.webp", // Мясо по-царски
+    "europe-052": "img/dish/europe-052.webp", // Курица в сливочном соусе
+    "europe-053": "img/dish/europe-053.webp", // Кремона
+    "europe-056": "img/dish/europe-056.webp", // Курица по-Королевски
+    "europe-058": "img/dish/europe-058.webp", // Карбанара
+    "europe-060": "img/dish/europe-060.webp", // Шашлык из говядины (кавказский)
+    "europe-061": "img/dish/europe-061.webp", // Шашлык карбонат (кавказский)
+    "europe-062": "img/dish/europe-062.webp", // Шашлык из курицы
+    "europe-063": "img/dish/europe-063.webp", // Люля-кебаб
+    "europe-064": "img/dish/europe-064.webp", // Мини-шашлык из говядины
+    "europe-065": "img/dish/europe-065.webp", // Мини-шашлык лангет
+    "europe-066": "img/dish/europe-066.webp", // Мини-шашлык молотый
+    "europe-067": "img/dish/europe-067.webp", // Форель на гриле
+    "europe-068": "img/dish/europe-068.webp", // Скумбрия на гриле
+    "europe-069": "img/dish/europe-069.webp", // Овощи на мангале
+    "europe-070": "img/dish/europe-070.webp", // Грибы на мангале
+    "europe-071": "img/dish/europe-071.webp", // Кукуруза на мангале
+    "europe-072": "img/dish/europe-072.webp", // Картофель на мангале
+    "europe-073": "img/dish/europe-073.webp", // Картофель фри
+    "europe-074": "img/dish/europe-074.webp", // Картофель по-деревенски
+    "europe-075": "img/dish/europe-075.webp", // Кукуруза
+    "europe-076": "img/dish/europe-076.webp", // Зелёный горошек
+    "europe-077": "img/dish/europe-077.webp", // Рис
+    "europe-078": "img/dish/europe-078.webp", // Хлебное ассорти
+    "europe-079": "img/dish/europe-079.webp", // Лепешка
+    "europe-080": "img/dish/europe-080.webp", // Чёрный хлеб
+    "europe-081": "img/dish/europe-081.webp", // Лист лаваша
+    "europe-082": "img/dish/europe-082.webp"  // Чесночные гренки
   };
 
   function getDishPhoto(id) {
@@ -4933,22 +4934,24 @@ html[data-theme="light"] .recent-item-type {
       <div class="dishes-grid">
     `;
 
-    sorted.forEach(d => {
+    sorted.forEach((d, idx) => {
       const count = cart[d.id] || 0;
       const title = getDishName(d);
       const desc = getDishDesc(d);
       const hasPhoto = Boolean(d.img);
-      const isPng = d.img && d.img.endsWith('.png');
+      const isStudio = d.img && (d.img.endsWith('.png') || d.img.endsWith('.webp') || d.img.includes('img/dish/'));
       const isStopped = window.STOPPED_SET && (
         window.STOPPED_SET.has(String(d.nameRu || '').toLowerCase().trim()) ||
         window.STOPPED_SET.has(String(d.nameUz || '').toLowerCase().trim())
       );
+      const isAboveFold = idx < 6;
+      const loadingAttr = isAboveFold ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
 
       html += `
         <article class="dish-card" data-dish-id="${d.id}" style="${isStopped ? 'opacity:0.65;' : ''}">
           <div class="dish-card-img-wrap" onclick="window.FX_APP.openDishModal('${d.id}')">
             ${hasPhoto ? 
-              `<img class="dish-card-img ${isPng ? 'png-dish' : ''}" src="${d.img}" alt="${title}" loading="lazy">` : 
+              `<img class="dish-card-img ${isStudio ? 'png-dish' : ''}" src="${d.img}" alt="${title}" ${loadingAttr} decoding="async" onerror="this.onerror=null;this.src=this.src.replace(/\\.webp($|\\?)/, '.png$1');">` : 
               `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-faint);"><svg style="width:28px;height:28px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
             }
             ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">${t('stopListBadge')}</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">${t('preorderBadge')}</span>` : '')}
@@ -5079,7 +5082,7 @@ html[data-theme="light"] .recent-item-type {
       const title = getDishName(d);
       itemsHtml += `
         <div class="cart-item-row">
-          <img class="cart-item-img ${d.img && d.img.endsWith('.png') ? 'png-dish' : ''}" src="${d.img || 'img/fenix-mark.svg'}" alt="${title}">
+          <img class="cart-item-img ${d.img && (d.img.endsWith('.png') || d.img.endsWith('.webp') || d.img.includes('img/dish/')) ? 'png-dish' : ''}" src="${d.img || 'img/fenix-mark.svg'}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src=this.src.replace(/\.webp($|\?)/, '.png$1');">
           <div class="cart-item-info">
             <h4 class="cart-item-title">${title}</h4>
             <div class="cart-item-price">${money(d.price)}</div>
@@ -5808,7 +5811,13 @@ html[data-theme="light"] .recent-item-type {
       if (d.img) {
         imgEl.style.display = 'block';
         imgEl.src = d.img;
-        imgEl.className = 'sheet-img ' + (d.img.endsWith('.png') ? 'png-dish' : '');
+        imgEl.decoding = 'async';
+        imgEl.onerror = function() {
+          this.onerror = null;
+          this.src = this.src.replace(/\.webp($|\?)/, '.png$1');
+        };
+        const isStudio = d.img.endsWith('.png') || d.img.endsWith('.webp') || d.img.includes('img/dish/');
+        imgEl.className = 'sheet-img ' + (isStudio ? 'png-dish' : '');
       } else {
         imgEl.style.display = 'none';
       }

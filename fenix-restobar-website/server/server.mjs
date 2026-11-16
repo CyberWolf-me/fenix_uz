@@ -12,6 +12,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -905,16 +906,20 @@ const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
   ".jsx": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
+  ".woff": "font/woff",
   ".xml": "application/xml; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".png": "image/png"
+  ".png": "image/png",
+  ".ico": "image/x-icon",
+  ".pdf": "application/pdf"
 };
 
 const server = http.createServer(async (req, res) => {
@@ -3070,30 +3075,73 @@ function normalizeOrderItems(rawItems, priceMap = null) {
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, "");
   const filePath = path.join(PUBLIC_DIR, safePath);
 
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    const ext = path.extname(filePath).toLowerCase();
-    const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
-    if (
-      reqPath.endsWith(".html") ||
-      reqPath.includes("js/") ||
-      reqPath.includes("data/") ||
-      reqPath.includes("css/") ||
-      reqPath.includes("admin") ||
-      reqPath.includes("dist/") ||
-      reqPath.includes("src/") ||
-      reqPath.includes("menu-data.js") ||
-      reqPath.includes("app.html")
-    ) {
-      headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0";
-      headers["Pragma"] = "no-cache";
-      headers["Expires"] = "0";
+  try {
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      if (stat.isFile()) {
+        const ext = path.extname(filePath).toLowerCase();
+        const headers = {
+          "Content-Type": MIME[ext] || "application/octet-stream",
+          "Vary": "Accept-Encoding"
+        };
+
+        // Safeguard 1: Safe Cache-Control headers
+        const isHtml = ext === ".html" || reqPath.endsWith(".html");
+        const isMedia = [".webp", ".png", ".jpg", ".jpeg", ".svg", ".woff2", ".woff", ".ico"].includes(ext);
+        if (isHtml) {
+          headers["Cache-Control"] = "no-cache";
+        } else if (isMedia) {
+          headers["Cache-Control"] = "public, max-age=604800, stale-while-revalidate=86400";
+        } else {
+          headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=43200";
+        }
+
+        // Support ETag and Last-Modified (304 Not Modified)
+        const etag = `W/"${stat.size.toString(16)}-${stat.mtimeMs.toString(16)}"`;
+        const lastModified = stat.mtime.toUTCString();
+        headers["ETag"] = etag;
+        headers["Last-Modified"] = lastModified;
+
+        const ifNoneMatch = req.headers["if-none-match"];
+        const ifModifiedSince = req.headers["if-modified-since"];
+        if (
+          (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === "*")) ||
+          (ifModifiedSince && Math.floor(new Date(ifModifiedSince).getTime() / 1000) >= Math.floor(stat.mtimeMs / 1000))
+        ) {
+          res.writeHead(304, headers);
+          res.end();
+          return;
+        }
+
+        if (req.method === "HEAD") {
+          res.writeHead(200, headers);
+          res.end();
+          return;
+        }
+
+        // Safeguard 2: Text-Only Gzip compression (skip WebP, PNG, JPG, PDF, WOFF2)
+        const TEXT_EXTS = new Set([".html", ".js", ".mjs", ".jsx", ".css", ".json", ".svg", ".txt", ".xml"]);
+        const acceptEncoding = req.headers["accept-encoding"] || "";
+        const canGzip = TEXT_EXTS.has(ext) && /\bgzip\b/.test(acceptEncoding);
+
+        if (canGzip) {
+          headers["Content-Encoding"] = "gzip";
+          res.writeHead(200, headers);
+          fs.createReadStream(filePath).pipe(zlib.createGzip()).pipe(res);
+        } else {
+          headers["Content-Length"] = stat.size;
+          res.writeHead(200, headers);
+          fs.createReadStream(filePath).pipe(res);
+        }
+        return;
+      }
     }
-    res.writeHead(200, headers);
-    fs.createReadStream(filePath).pipe(res);
-  } else {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end("404 Not Found");
+  } catch (err) {
+    console.error("[Static Serve Error]:", err.message);
   }
+
+  res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("404 Not Found");
 });
 
 server.listen(PORT, () => {
