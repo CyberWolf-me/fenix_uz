@@ -133,6 +133,11 @@
         <div class="sig"><span class="ln"></span><span class="ital" style="font-size:22px">${e(t('about.sig'))}</span></div>
       </div>
       <div class="about-pair"><div class="shot about-main">${img('stage-2')}<div class="cap"><span>${e(IMG['stage-2'][L()])}</span><span>01</span></div></div><div class="shot about-inset">${img('hall-green')}</div></div>
+      <figure class="about-reel" aria-label="${e(IMG['sign-hall'][L()])}">
+        <div class="reel-arch">${['sign-hall', 'hall-green', 'bar-glow', 'table'].map((k, i) => `<div class="reel-slide" style="--i:${i}">${img(k)}</div>`).join('')}</div>
+        <figcaption class="reel-cap">${['sign-hall', 'hall-green', 'bar-glow', 'table'].map((k, i) => `<span class="reel-txt" style="--i:${i}"><b>0${i + 1}</b>${e(IMG[k][L()])}</span>`).join('')}</figcaption>
+        <div class="reel-bars" aria-hidden="true">${[0, 1, 2, 3].map(i => `<i style="--i:${i}"></i>`).join('')}</div>
+      </figure>
     </div></section>`;
   H.sign = () => `
     <section class="sect" data-screen-label="Home · signatures"><div class="wrap sign">
@@ -237,7 +242,7 @@
           const ctl = isStopped
             ? stopBadge
             : (!showAdd ? '' : (q2 ? `<span class="qty"><button type="button" data-qty="${it.id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q2}</span><button type="button" data-qty="${it.id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>` : `<button class="add" type="button" data-qty="${it.id}" data-d="1" aria-label="${e(t('menu.add'))}: ${e(S.iName(it))}">${I('plus')}</button>`));
-          return `<div class="mi${isStopped ? ' is-stopped' : ''}" style="${isStopped ? 'opacity:0.55;filter:grayscale(0.6);' : ''}"><div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
+          return `<div class="mi${isStopped ? ' is-stopped' : ''}" id="mi-${it.id}" style="${isStopped ? 'opacity:0.55;filter:grayscale(0.6);' : ''}"><div><p class="n">${e(S.iName(it))}${tags ? `<span class="tags">${tags}</span>` : ''}</p>${alt}</div><div class="right"><span class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</span>${ctl}</div>${it.note ? `<p class="d">${e(S.iNote(it))}</p>` : ''}</div>`;
         }).join('')}
         ${s.id === 'coffee' || s.id === 'snacks' || (menu === 'bar' && s.id === 'lemonades') ? `<p class="label" style="margin-top:10px">${e(t('menu.srcTg'))}</p>` : ''}
       </section>`;
@@ -272,13 +277,19 @@
   S.pages.gallery = (p) => {
     const cat = ['rooms', 'music', 'bar', 'food'].includes(p[0]) ? p[0] : 'all';
     const keys = Object.keys(IMG).filter(k => cat === 'all' || IMG[k].cat === cat);
-    S.galKeys = keys;
+    S.galKeys = keys.filter(k => !k.startsWith('dish/'));
     return `
     <div data-screen-label="Gallery">
       ${pageHead('nav.gallery', 'gallery.title', 'gallery.lede')}
       <section class="sect" style="padding-top:0"><div class="wrap">
         <div class="gal-filter" role="group">${['all', 'rooms', 'music', 'bar', 'food'].map(c => `<a class="chip" href="#/gallery${c === 'all' ? '' : '/' + c}" aria-current="${c === cat}">${e(t('gallery.' + c))}</a>`).join('')}</div>
-        <div class="gal">${keys.map((k, i) => `<button type="button" data-lb="${i}"${IMG[k].cat === 'food' ? ' data-food' : ''} aria-label="${e(IMG[k][L()])}">${img(k)}<span class="cap">${e(IMG[k][L()])}</span></button>`).join('')}</div>
+        <div class="gal">${keys.map(k => {
+          if (k.startsWith('dish/')) {
+            const it = S.byId[k.slice(5)];
+            return `<a class="gal-open" data-food href="#/menu/${it.menu}/${it.section}/${it.id}" aria-label="${e(IMG[k][L()])} — ${e(t('nav.menu'))}">${img(k)}<span class="cap"><span>${e(IMG[k][L()])}</span><span class="gal-price">${S.iPrice(it)}</span></span></a>`;
+          }
+          return `<button type="button" class="gal-open" data-lb="${S.galKeys.indexOf(k)}" aria-label="${e(IMG[k][L()])}">${img(k)}<span class="cap">${e(IMG[k][L()])}</span></button>`;
+        }).join('')}</div>
       </div></section>
     </div>`;
   };

@@ -20,6 +20,8 @@ window.FENIX_FACTS = {
     google: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Fenix Restaurant Husnobod 5-tor 1 Tashkent'),
     status: 'owner'  /* replace with organisation links */
   },
+  /* Restaurant pin for the pickup map. Same point the courier route starts from (server.mjs). Owner to confirm. */
+  geo: { lat: 41.2858, lon: 69.3402, status: 'owner' },
   halls: { first: 120, second: 170, status: 'verified-conflict' },
   /* Hours: DRAFT. close < open means after midnight. day 0 = Sunday */
   hours: {

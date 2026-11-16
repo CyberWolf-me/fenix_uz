@@ -59,7 +59,13 @@
     if (route === 'home') initSigAutoRotation();
     else if (sigInterval) { clearInterval(sigInterval); sigInterval = null; }
     onScroll();
-    if (route === 'menu' && params[1]) {
+    if (route === 'menu' && params[2]) {
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`mi-${params[2]}`) || document.getElementById(`m-${params[0]}-${params[1]}`); if (!el) return;
+        window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - Math.max(160, innerHeight * 0.35), behavior: 'auto' });
+        el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+      });
+    } else if (route === 'menu' && params[1]) {
       requestAnimationFrame(() => { const el = document.getElementById(`m-${params[0]}-${params[1]}`); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - 130, behavior: 'auto' }); });
     } else if (route === 'reserve') {
       window.scrollTo(0, 0);
@@ -124,7 +130,7 @@
       if (!before) S.toast(t('order.added') + ': ' + S.iName(S.byId[id]));
       return;
     }
-    if (a.hasAttribute('data-open-cart') || a.id === 'fab') return openSheet();
+    if (a.hasAttribute('data-open-cart') || a.id === 'fab') { closeLb(); return openSheet(); }
     if (a.dataset.track) S.track(a.dataset.track);
     if (a.dataset.lb != null) return openLb(+a.dataset.lb, a);
     if (a.dataset.dish) { S.galKeys = [...S.DISH_PHOTOS].map(id => 'dish/' + id); return openLb(S.galKeys.indexOf('dish/' + a.dataset.dish), a); }
@@ -146,7 +152,7 @@
       if (idx === -1) idx = 0;
       const nextIdx = (idx + 1) % rows.length;
       sig(rows[nextIdx]);
-    }, 3600);
+    }, 3000);
   }
 
   function sig(row) {
@@ -187,130 +193,295 @@
     const k = S.galKeys[lbI], lb = $('#lb');
     lb.innerHTML = `<div class="lb-top"><span aria-live="polite">${lbI + 1} ${e(t('gallery.of'))} ${S.galKeys.length} · ${e(S.IMG[k][S.lang])}</span><button type="button" data-lbx aria-label="${e(t('a11y.close'))}">${I('close').replace('<svg', '<svg width="20"')}</button></div>
       <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp?v=2" onerror="this.onerror=null;this.src='img/' + '${k}' + '.png?v=2'" alt="${e(S.IMG[k][S.lang])}"></div>
+      ${lbOrder(k)}
       <div class="lb-nav"><button type="button" data-lbp aria-label="${e(t('a11y.prev'))}">${I('left')}</button><button type="button" data-lbn aria-label="${e(t('a11y.next'))}">${I('right')}</button></div>`;
     lb.querySelector('[data-lbx]').onclick = closeLb;
     lb.querySelector('[data-lbp]').onclick = () => stepLb(-1);
     lb.querySelector('[data-lbn]').onclick = () => stepLb(1);
   }
+  function lbOrder(k) {
+    if (!k.startsWith('dish/')) return '';
+    const id = k.slice(5), it = S.byId[id]; if (!it || !S.tweaks.ordering || it.menu === 'bar') return '';
+    const q = S.cart[id] || 0, n = S.cartCount(), size = S.iSize(it);
+    const ctl = S.isStopped(it)
+      ? `<p class="small lb-stop">${e(t('order.stopped'))}</p>`
+      : q
+        ? `<div class="lb-row"><span class="qty"><button type="button" data-qty="${id}" data-d="-1" aria-label="−1 ${e(S.iName(it))}">−</button><span aria-live="polite">${q}</span><button type="button" data-qty="${id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span><span class="small">${e(t('order.inOrder'))}</span></div>`
+        : `<button class="btn btn-accent btn-block" type="button" data-qty="${id}" data-d="1">${e(t('order.addTo'))} · ${S.iPrice(it)}</button>`;
+    return `<div class="lb-order" id="lb-order">
+      <div class="lb-info"><h3 class="h3">${e(S.iName(it))}</h3><p class="price">${size ? `<span style="color:var(--text-faint)">${e(size)} · </span>` : ''}${S.iPrice(it)}</p>${it.note ? `<p class="small">${e(S.iNote(it))}</p>` : ''}</div>
+      <div class="lb-act">${ctl}${n ? `<button class="btn btn-line btn-block" type="button" data-open-cart>${e(t('order.goTo'))} (${n})${I('arrow')}</button>` : ''}</div>
+    </div>`;
+  }
   function stepLb(d) { lbI = (lbI + d + S.galKeys.length) % S.galKeys.length; const foc = document.activeElement && document.activeElement.hasAttribute('data-lbn') ? '[data-lbn]' : document.activeElement && document.activeElement.hasAttribute('data-lbp') ? '[data-lbp]' : '[data-lbx]'; drawLb(); $('#lb').querySelector(foc).focus(); }
   function closeLb() { const lb = $('#lb'); if (lb.hidden) return; lb.hidden = true; document.body.style.overflow = ''; lbTrigger && lbTrigger.focus(); }
 
-  /* ── order sheet (Phase 2 preview) ── */
-  let sheetMode = 'pickup', sheetStep = 'cart', lastOrderId = null;
-  function openSheet() { lastFocus = document.activeElement; sheetStep = 'cart'; drawSheet(); $('#sheet').classList.add('open'); $('#sheet').removeAttribute('inert'); $('#sheet-bg').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => $('#sheet').querySelector('button').focus(), 60); }
-  function closeSheet() { const s = $('#sheet'); if (!s.classList.contains('open')) return; s.classList.remove('open'); s.setAttribute('inert', ''); $('#sheet-bg').classList.remove('open'); document.body.style.overflow = ''; lastFocus && lastFocus.focus && lastFocus.focus(); }
+  /* ── checkout sheet: cart → delivery/pickup (map) → contact → status ── */
+  const CO_KEY = 'fx.co';
+  const coLoad = () => { try { return JSON.parse(localStorage.getItem(CO_KEY) || '{}') || {}; } catch (_) { return {}; } };
+  const co = Object.assign({ mode: 'delivery', comment: '', lat: null, lon: null, street: '', full: '', district: '', entrance: '', floor: '', apt: '', note: '', name: '', phone: '' }, coLoad());
+  if (!co.name) co.name = localStorage.getItem('fx_c_name') || '';
+  if (!co.phone) co.phone = (localStorage.getItem('fx_c_phone') || '').replace(/\D/g, '').replace(/^998/, '').slice(0, 9);
+  const coSave = () => { try { const { comment, ...keep } = co; localStorage.setItem(CO_KEY, JSON.stringify(keep)); } catch (_) {} };
+  const CO_DEFAULT = [41.2995, 69.2401]; // Tashkent centre
+  const FREE_FROM = 250000, DEL_FEE = 20000; // must match server/server.mjs
+  let sheetStep = 'cart', lastOrderId = null, coMap = null, coGeoT = null, coSearchT = null, coErr = {};
+  const ct = k => t('co.' + k);
+  const fee = sub => co.mode === 'delivery' ? (sub >= FREE_FROM ? 0 : DEL_FEE) : 0;
+  const fmtPhone = d => { d = String(d).replace(/\D/g, '').slice(0, 9); return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' '); };
+  const dishImg = id => S.DISH_PHOTOS.has(id) ? `<img src="img/dish/${id}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${id}.png?v=2'" alt="" loading="lazy" decoding="async">` : `<img src="img/fenix-mark.svg" alt="" class="ph">`;
+
+  function openSheet() { lastFocus = document.activeElement; if (sheetStep !== 'status') sheetStep = 'cart'; coErr = {}; drawSheet(); $('#sheet').classList.add('open'); $('#sheet').removeAttribute('inert'); $('#sheet-bg').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => { const b = $('#sheet').querySelector('button'); b && b.focus({ preventScroll: true }); }, 60); }
+  function closeSheet() { const s = $('#sheet'); if (!s.classList.contains('open')) return; s.classList.remove('open'); s.setAttribute('inert', ''); $('#sheet-bg').classList.remove('open'); document.body.style.overflow = ''; if (sheetStep === 'status') sheetStep = 'cart'; if (coMap) { coMap.remove(); coMap = null; } lastFocus && lastFocus.focus && lastFocus.focus(); }
   $('#sheet-bg').addEventListener('click', closeSheet);
+
+  function stepper() {
+    const st = ['cart', 'where', 'contact'], cur = st.indexOf(sheetStep);
+    return `<ol class="co-steps">${st.map((s, i) => `<li class="${i < cur ? 'done' : i === cur ? 'now' : ''}"><span>${i + 1}</span>${e(ct('s' + (i + 1)))}</li>`).join('')}</ol>`;
+  }
+  function totals(btn) {
+    const sub = S.cartTotal(), f = fee(sub);
+    let h = `<div class="sumrow"><span>${e(t('order.subtotal'))}</span><span>${S.money(sub)}</span></div>`;
+    if (co.mode === 'delivery') h += `<div class="sumrow"><span>${e(t('order.delivery'))}</span><span>${f === 0 ? e(ct('free')) : S.money(f)}</span></div>`;
+    return h + `<div class="sumrow tot"><span>${e(t('order.total'))}</span><span>${S.money(sub + f)}</span></div>` + (btn || '');
+  }
+  function freeBar(sub) {
+    if (co.mode !== 'delivery') return '';
+    const left = FREE_FROM - sub, pct = Math.min(100, Math.round(sub / FREE_FROM * 100));
+    return `<div class="co-free"><p class="small">${left > 0 ? `${e(ct('toFree'))} <b>${S.money(left)}</b>` : e(ct('freeOk'))}</p><span class="co-bar"><i style="width:${pct}%"></i></span></div>`;
+  }
+  function coAddress(withCoords) {
+    const d = [];
+    if (co.entrance) d.push((S.lang === 'uz' ? 'kirish ' : 'под. ') + co.entrance);
+    if (co.floor) d.push((S.lang === 'uz' ? 'qavat ' : 'эт. ') + co.floor);
+    if (co.apt) d.push((S.lang === 'uz' ? 'xonadon ' : 'кв. ') + co.apt);
+    let a = co.full || co.street || '';
+    if (d.length) a += ', ' + d.join(', ');
+    if (co.note) a += ' (' + co.note + ')';
+    if (withCoords && co.lat != null) a += ` [${co.lat.toFixed(6)}, ${co.lon.toFixed(6)}]`;
+    return a;
+  }
+
   function drawSheet() {
+    if (coMap) { coMap.remove(); coMap = null; }
     const items = Object.entries(S.cart).filter(([id]) => S.byId[id]);
-    const head = `<div class="sheet-h"><div><h2 class="h3">${e(t('order.title'))}</h2><span class="phase">${e(t('order.phase'))}</span></div><button class="icon-btn" type="button" data-sheet-close aria-label="${e(t('a11y.close'))}">${I('close')}</button></div>`;
+    const back = ['where', 'contact'].includes(sheetStep) ? `<button class="icon-btn" type="button" data-co-back aria-label="${e(ct('back'))}">${I('left')}</button>` : '';
+    const head = `<div class="sheet-h co-head"><div class="co-top">${back}<h2 class="h3">${e(t('order.title'))}</h2><button class="icon-btn" type="button" data-sheet-close aria-label="${e(t('a11y.close'))}">${I('close')}</button></div>${sheetStep !== 'status' && items.length ? stepper() : ''}</div>`;
     let body = '', foot = '';
+    const sub = S.cartTotal();
+
     if (sheetStep === 'status') {
-      body = `<div class="notice ok" style="margin-top:20px"><span class="ic">${I('check')}</span><h3>№ ${e(lastOrderId || 'WEB-OK')}</h3><p class="body">${e(t('order.note'))}</p></div>
+      const del = co.lastMode === 'delivery';
+      body = `<div class="notice ok" style="margin-top:20px"><span class="ic">${I('check')}</span><h3>№ ${e(lastOrderId || 'WEB-OK')}</h3><p class="body">${e(del ? t('order.note') : ct('pickupDone'))}</p></div>
         <p class="label" style="margin-top:28px">${e(t('order.statusT'))}</p>
-        <ol class="track"><li class="done"><span></span><span>${e(t('order.s1'))}</span></li><li class="now"><span></span><span>${e(t('order.s2'))}</span></li><li><span></span><span>${e(t('order.s3'))}</span></li><li><span></span><span>${e(t('order.s4'))}</span></li></ol>`;
+        <ol class="track"><li class="done"><span></span><span>${e(t('order.s1'))}</span></li><li class="now"><span></span><span>${e(t('order.s2'))}</span></li>${del ? `<li><span></span><span>${e(t('order.s3'))}</span></li><li><span></span><span>${e(t('order.s4'))}</span></li>` : `<li><span></span><span>${e(ct('ready'))}</span></li>`}</ol>
+        <p class="form-note">${e(ct('questions'))} <a class="link" href="${F.phones[0].href}">${F.phones[0].display}</a></p>`;
       foot = `<button class="btn btn-line btn-block" type="button" data-sheet-close>${e(t('order.back'))}${I('arrow')}</button>`;
     } else if (!items.length) {
-      body = `<p class="body" style="padding:32px 0">${e(t('order.empty'))}</p>`;
+      body = `<div class="co-empty">${I('bag')}<p class="body">${e(t('order.empty'))}</p></div>`;
       foot = `<a class="btn btn-solid btn-block" href="#/menu" data-sheet-close>${e(t('order.toMenu'))}${I('arrow')}</a>`;
-    } else {
-      const savedName = localStorage.getItem('fx_c_name') || '';
-      const savedPhone = localStorage.getItem('fx_c_phone') || '+998 ';
-      body = `<ul>${items.map(([id, q]) => { const it = S.byId[id]; return `<li class="ci"><div><p class="n">${e(S.iName(it))}</p><p class="price">${S.money(it.price)}</p></div><span class="qty"><button type="button" data-sq="${id}" data-d="-1" aria-label="−1">−</button><span>${q}</span><button type="button" data-sq="${id}" data-d="1" aria-label="+1">+</button></span></li>`; }).join('')}</ul>
-        <div style="margin-top:24px;display:grid;gap:12px">
-          <div class="field"><label for="o-name">${S.lang === 'uz' ? 'Ismingiz' : S.lang === 'en' ? 'Your Name' : 'Ваше имя'} *</label><input id="o-name" required placeholder="${S.lang === 'uz' ? 'Ismingizni kiriting' : 'Например, Азиз'}" value="${e(savedName)}"></div>
-          <div class="field"><label for="o-phone">${S.lang === 'uz' ? 'Telefon raqam' : S.lang === 'en' ? 'Phone Number' : 'Номер телефона'} *</label><input id="o-phone" type="tel" required placeholder="+998 90 123 45 67" value="${e(savedPhone)}"></div>
-          <p class="label">${e(t('order.mode'))}</p>
-          <div class="seg" role="group"><button type="button" data-mode="pickup" aria-pressed="${sheetMode === 'pickup'}">${e(t('order.pickup'))}</button><button type="button" data-mode="delivery" aria-pressed="${sheetMode === 'delivery'}">${e(t('order.deliveryMode'))}</button></div>
-          ${sheetMode === 'delivery' ? `<div class="field"><label for="o-addr">${e(t('order.addr'))}</label><input id="o-addr" autocomplete="street-address" placeholder="${S.lang === 'uz' ? 'Yetkazish manzili (koʻcha, uy)' : 'Адрес доставки (улица, дом)'}"></div>` : ''}
-          <p class="label" style="margin-top:8px">${e(t('order.pay'))}</p>
-          <div class="pay"><label><input type="radio" name="pay" checked> ${e(t('order.cash'))} (${S.lang === 'uz' ? 'qabul qilinganda' : S.lang === 'en' ? 'upon receipt' : 'при получении'})</label></div>
-          <p class="form-note">${S.lang === 'uz' ? 'To‘lov vaqtincha faqat kuryerga yoki olib ketishda naqd pulda qabul qilinadi.' : S.lang === 'en' ? 'Payment is temporarily accepted in cash only upon delivery or pickup.' : 'Оплата временно принимается только наличными курьеру или при самовывозе.'}</p>
-        </div>`;
-      const sub = S.cartTotal();
-      const delFee = sheetMode === 'delivery' ? (sub >= 250000 ? 0 : 20000) : 0;
-      const grandTotal = sub + delFee;
-      foot = `<div class="sumrow"><span>${e(t('order.subtotal'))}</span><span>${S.money(sub)}</span></div>`;
-      if (sheetMode === 'delivery') {
-        foot += `<div class="sumrow"><span>${e(t('order.delivery'))}</span><span>${delFee === 0 ? (S.lang === 'uz' ? 'Bepul' : S.lang === 'en' ? 'Free' : 'Бесплатно') : S.money(delFee)}</span></div>`;
-      }
-      foot += `<div class="sumrow tot"><span>${e(t('order.total'))}</span><span>${S.money(grandTotal)}</span></div>
-        <button class="btn btn-accent btn-block" type="button" data-checkout>${e(t('order.checkout'))}${I('arrow')}</button>
-        <a class="small" style="text-align:center" href="${F.phones[0].href}">${e(t('order.apps'))}: ${F.phones[0].display}</a>`;
+    } else if (sheetStep === 'cart') {
+      body = `<ul class="co-list">${items.map(([id, q]) => { const it = S.byId[id], stop = S.isStopped(it); return `<li class="co-item${stop ? ' is-stopped' : ''}">
+          <span class="co-thumb">${dishImg(id)}</span>
+          <div class="co-info"><p class="n">${e(S.iName(it))}</p><p class="price">${S.money(it.price * q)}${q > 1 ? ` <span>${q} × ${S.money(it.price)}</span>` : ''}</p>${stop ? `<p class="co-stop">${e(t('order.stopped'))}</p>` : ''}</div>
+          <span class="qty"><button type="button" data-sq="${id}" data-d="-1" aria-label="${q === 1 ? e(ct('remove')) : '−1'} ${e(S.iName(it))}">${q === 1 ? '×' : '−'}</button><span aria-live="polite">${q}</span><button type="button" data-sq="${id}" data-d="1" aria-label="+1 ${e(S.iName(it))}">+</button></span>
+        </li>`; }).join('')}</ul>
+        <a class="co-more" href="#/menu" data-sheet-close>${I('plus')}<span>${e(ct('more'))}</span></a>
+        <div class="field" style="margin-top:22px"><label for="co-comment">${e(ct('comment'))}</label><textarea id="co-comment" data-co="comment" rows="2" maxlength="300" placeholder="${e(ct('commentPh'))}">${e(co.comment)}</textarea></div>
+        ${coErr.stop ? `<p class="co-msg">${e(coErr.stop)}</p>` : ''}`;
+      foot = totals(`<button class="btn btn-accent btn-block" type="button" data-co-next="where">${e(ct('next'))}${I('arrow')}</button>`);
+    } else if (sheetStep === 'where') {
+      const del = co.mode === 'delivery';
+      body = `<p class="label" style="margin-top:16px">${e(ct('how'))}</p>
+        <div class="seg" role="group" style="margin-top:10px"><button type="button" data-mode="delivery" aria-pressed="${del}">${e(t('order.deliveryMode'))}</button><button type="button" data-mode="pickup" aria-pressed="${!del}">${e(t('order.pickup'))}</button></div>
+        ${freeBar(sub)}
+        ${del ? `
+        <div class="co-search"><label class="co-search-in">${I('search')}<input id="co-q" type="search" autocomplete="off" placeholder="${e(ct('search'))}" aria-label="${e(ct('search'))}"></label><div class="co-results" id="co-results" hidden></div></div>
+        <div class="co-map-wrap"><div id="co-map" class="co-map" aria-label="${e(ct('mapHint'))}"></div><span class="co-pin" aria-hidden="true"></span>
+          <button type="button" class="co-gps" data-co-gps>${I('pin')}<span>${e(ct('gps'))}</span></button></div>
+        <p class="small co-hint">${e(ct('mapHint'))}</p>
+        <div class="co-addr${coErr.addr ? ' err' : ''}" id="co-addr" aria-live="polite"><b>${e(co.full || ct('pickOnMap'))}</b>${co.district ? `<span>${e(co.district)}</span>` : ''}</div>
+        ${coErr.addr ? `<p class="co-msg">${e(coErr.addr)}</p>` : ''}
+        <div class="co-grid3">
+          <div class="field"><label for="co-ent">${e(ct('entrance'))}</label><input id="co-ent" data-co="entrance" inputmode="numeric" maxlength="6" value="${e(co.entrance)}"></div>
+          <div class="field"><label for="co-floor">${e(ct('floor'))}</label><input id="co-floor" data-co="floor" inputmode="numeric" maxlength="4" value="${e(co.floor)}"></div>
+          <div class="field"><label for="co-apt">${e(ct('apt'))}</label><input id="co-apt" data-co="apt" maxlength="10" value="${e(co.apt)}"></div>
+        </div>
+        <div class="field" style="margin-top:14px"><label for="co-note">${e(ct('courier'))}</label><input id="co-note" data-co="note" maxlength="160" placeholder="${e(ct('courierPh'))}" value="${e(co.note)}"></div>` : `
+        <p class="label" style="margin-top:22px">${e(ct('pickupT'))}</p>
+        <div class="co-map-wrap co-pickup-map"><div id="co-pmap" class="co-map" aria-label="Fenix — ${e(F.address[S.lang] || F.address.ru)}"></div></div>
+        <div class="co-addr"><b>Fenix</b><span>${e(F.address[S.lang] || F.address.ru)}</span><span>${e(ct('hours'))}: ${e((F.hours.week[1] || []).join('–'))}</span></div>
+        <div class="map-links co-pickup-l"><a class="btn btn-line" href="${F.maps.google}" target="_blank" rel="noopener" data-track="directions">${e(t('contact.google'))}${I('arrow')}</a><a class="btn btn-line" href="${F.maps.yandex}" target="_blank" rel="noopener" data-track="directions">${e(t('contact.yandex'))}${I('arrow')}</a></div>`}`;
+      foot = totals(`<button class="btn btn-accent btn-block" type="button" data-co-next="contact">${e(ct('next'))}${I('arrow')}</button>`);
+    } else if (sheetStep === 'contact') {
+      const del = co.mode === 'delivery';
+      body = `<div style="display:grid;gap:18px;margin-top:16px">
+          <div class="field${coErr.name ? ' err' : ''}"><label for="co-name">${e(ct('name'))} *</label><input id="co-name" data-co="name" autocomplete="name" maxlength="60" value="${e(co.name)}">${coErr.name ? `<span class="msg">${e(coErr.name)}</span>` : ''}</div>
+          <div class="field${coErr.phone ? ' err' : ''}"><label for="co-phone">${e(ct('phone'))} *</label><div class="phone"><span>+998</span><input id="co-phone" data-co="phone" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="90 123 45 67" value="${e(fmtPhone(co.phone))}"></div>${coErr.phone ? `<span class="msg">${e(coErr.phone)}</span>` : ''}</div>
+        </div>
+        <p class="label" style="margin-top:26px">${e(t('order.pay'))}</p>
+        <div class="co-cash">${I('check')}<span>${e(t('order.cash'))} — ${e(del ? ct('cashCourier') : ct('cashPickup'))}</span></div>
+        <div class="co-sum">
+          <p class="label">${e(ct('summary'))}</p>
+          <p class="co-sum-l"><b>${e(del ? t('order.deliveryMode') : t('order.pickup'))}</b> · ${e(del ? coAddress(false) : (F.address[S.lang] || F.address.ru))}</p>
+          <p class="co-sum-l">${items.map(([id, q]) => e(S.iName(S.byId[id])) + (q > 1 ? ' ×' + q : '')).join(', ')}</p>
+          ${co.comment.trim() ? `<p class="co-sum-l">“${e(co.comment.trim())}”</p>` : ''}
+          <button type="button" class="link" data-co-goto="cart">${e(ct('change'))}</button>
+        </div>
+        ${coErr.send ? `<p class="co-msg">${e(coErr.send)}</p>` : ''}`;
+      foot = totals(`<button class="btn btn-accent btn-block" type="button" data-checkout>${e(ct('place'))}${I('arrow')}</button>
+        <a class="small" style="text-align:center" href="${F.phones[0].href}">${e(t('order.apps'))}: ${F.phones[0].display}</a>`);
     }
     $('#sheet').innerHTML = head + `<div class="sheet-b">${body}</div><div class="sheet-f">${foot}</div>`;
+    if (sheetStep === 'where' && co.mode === 'delivery' && items.length) initCoMap();
+    if (sheetStep === 'where' && co.mode === 'pickup' && items.length) initPickupMap();
   }
+
+  /* map — Leaflet is loaded only when the delivery step opens */
+  let leafletP = null;
+  function loadLeaflet() {
+    if (window.L) return Promise.resolve();
+    if (leafletP) return leafletP;
+    leafletP = new Promise((res, rej) => {
+      if (!document.querySelector('link[data-leaflet]')) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/leaflet.css'; l.dataset.leaflet = ''; document.head.appendChild(l); }
+      const s = document.createElement('script'); s.src = 'js/leaflet.js'; s.onload = res; s.onerror = () => { leafletP = null; rej(); }; document.head.appendChild(s);
+    });
+    return leafletP;
+  }
+  function initCoMap() {
+    loadLeaflet().then(() => {
+      const el = document.getElementById('co-map'); if (!el || coMap) return;
+      const has = co.lat != null;
+      coMap = L.map(el, { center: has ? [co.lat, co.lon] : CO_DEFAULT, zoom: has ? 17 : 12 });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(coMap);
+      coMap.on('movestart', () => { const p = document.querySelector('.co-pin'); p && p.classList.add('up'); });
+      coMap.on('moveend', () => {
+        const p = document.querySelector('.co-pin'); p && p.classList.remove('up');
+        if (coMap._coSkip) { coMap._coSkip = false; return; }
+        const c = coMap.getCenter(); setPoint(c.lat, c.lng);
+      });
+      setTimeout(() => coMap && coMap.invalidateSize(), 300);
+    }).catch(() => { const el = document.getElementById('co-map'); if (el) el.innerHTML = `<p class="small" style="padding:20px">${e(ct('mapErr'))}</p>`; });
+  }
+  function initPickupMap() {
+    loadLeaflet().then(() => {
+      const el = document.getElementById('co-pmap'); if (!el || coMap) return;
+      const pt = [F.geo.lat, F.geo.lon];
+      coMap = L.map(el, { center: pt, zoom: 16, scrollWheelZoom: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(coMap);
+      L.marker(pt, { icon: L.divIcon({ className: 'co-rmark', html: '<span class="co-pin" aria-hidden="true"></span><b>Fenix</b>', iconSize: [30, 42], iconAnchor: [15, 42] }), keyboard: false }).addTo(coMap);
+      setTimeout(() => coMap && coMap.invalidateSize(), 300);
+    }).catch(() => { const el = document.getElementById('co-pmap'); if (el) el.innerHTML = `<p class="small" style="padding:20px">${e(F.address[S.lang] || F.address.ru)}</p>`; });
+  }
+  function setAddrBox(main, sub, loading) { const b = document.getElementById('co-addr'); if (!b) return; b.classList.toggle('loading', !!loading); b.classList.remove('err'); b.innerHTML = `<b>${e(main)}</b>${sub ? `<span>${e(sub)}</span>` : ''}`; }
+  function setPoint(lat, lon, known) {
+    co.lat = lat; co.lon = lon; delete coErr.addr;
+    const m = $('#sheet .co-msg'); m && m.remove();
+    if (known) { co.street = known.title; co.full = known.title + (known.sub ? ', ' + known.sub : ''); co.district = ''; setAddrBox(co.full, ''); coSave(); return; }
+    co.full = ''; setAddrBox(ct('addrLoading'), '', true);
+    clearTimeout(coGeoT);
+    coGeoT = setTimeout(() => {
+      fetch(`/api/geo/reverse?lat=${lat}&lon=${lon}&lang=${S.lang}`).then(r => r.json()).then(r => {
+        if (co.lat !== lat || co.lon !== lon) return;
+        if (!r || !r.ok) throw 0;
+        co.street = r.street || ''; co.district = r.district || ''; co.full = r.full || [r.district, r.street].filter(Boolean).join(', ');
+        setAddrBox(co.full, co.district); coSave();
+      }).catch(() => {
+        if (co.lat !== lat || co.lon !== lon) return;
+        co.full = `${S.lang === 'uz' ? 'Toshkent' : 'Ташкент'} (${lat.toFixed(4)}, ${lon.toFixed(4)})`; co.district = ''; setAddrBox(co.full, ''); coSave();
+      });
+    }, 350);
+  }
+  function coSearch(q) {
+    const box = document.getElementById('co-results'); if (!box) return;
+    clearTimeout(coSearchT);
+    if (q.trim().length < 3) { box.hidden = true; box.innerHTML = ''; return; }
+    coSearchT = setTimeout(() => {
+      fetch(`/api/geo/search?q=${encodeURIComponent(q.trim())}&lang=${S.lang}`).then(r => r.json()).then(r => {
+        const list = (r && r.results) || [];
+        box.innerHTML = list.length ? list.slice(0, 6).map(x => `<button type="button" data-co-hit data-lat="${x.lat}" data-lon="${x.lon}" data-title="${e(x.title)}" data-sub="${e(x.subtitle || '')}"><b>${e(x.title)}</b><span>${e(x.subtitle || '')}</span></button>`).join('') : `<p class="small">${e(ct('notFound'))}</p>`;
+        box.hidden = false;
+      }).catch(() => { box.hidden = true; });
+    }, 300);
+  }
+
+  function validate(step) {
+    if (step === 'cart') { const bad = Object.keys(S.cart).map(id => S.byId[id]).filter(it => it && S.isStopped(it)); if (bad.length) coErr.stop = ct('stopErr') + ': ' + bad.map(S.iName).join(', '); }
+    if (step === 'where' && co.mode === 'delivery' && (co.lat == null || !co.full)) coErr.addr = ct('errAddr');
+    if (step === 'contact') {
+      if (co.name.trim().length < 2) coErr.name = ct('errName');
+      if (co.phone.replace(/\D/g, '').length !== 9) coErr.phone = ct('errPhone');
+    }
+    return !Object.keys(coErr).length;
+  }
+  function goStep(s) { sheetStep = s; drawSheet(); const b = $('#sheet .sheet-b'); if (b) b.scrollTop = 0; const h = $('#sheet h2'); h && h.setAttribute('tabindex', '-1'); h && h.focus({ preventScroll: true }); }
+  function showErr() { drawSheet(); const el = $('#sheet').querySelector('.field.err input, .co-msg, .co-addr.err'); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (el.tagName === 'INPUT') el.focus({ preventScroll: true }); } }
+
+  $('#sheet').addEventListener('input', ev => {
+    const k = ev.target.dataset.co;
+    if (k === 'phone') { let d = ev.target.value.replace(/\D/g, ''); if (d.length > 9 && d.startsWith('998')) d = d.slice(3); d = d.slice(0, 9); co.phone = d; ev.target.value = fmtPhone(d); }
+    else if (k) co[k] = ev.target.value;
+    if (k) { coSave(); const f = ev.target.closest('.field.err'); if (f) { f.classList.remove('err'); const m = f.querySelector('.msg'); m && m.remove(); delete coErr[k]; } }
+    if (ev.target.id === 'co-q') coSearch(ev.target.value);
+  });
   $('#sheet').addEventListener('click', async ev => {
     const b = ev.target.closest('button,a'); if (!b) return;
-    if (b.hasAttribute('data-sheet-close')) { closeSheet(); if (sheetStep === 'status') { S.cart = {}; S.setQty('_', 0); } return; }
-    if (b.dataset.sq) { S.setQty(b.dataset.sq, (S.cart[b.dataset.sq] || 0) + (+b.dataset.d)); drawSheet(); return; }
-    if (b.dataset.mode) { sheetMode = b.dataset.mode; drawSheet(); return; }
+    if (b.hasAttribute('data-sheet-close')) { closeSheet(); return; }
+    if (b.dataset.sq) { S.setQty(b.dataset.sq, (S.cart[b.dataset.sq] || 0) + (+b.dataset.d)); coErr = {}; drawSheet(); return; }
+    if (b.dataset.mode) { co.mode = b.dataset.mode; coSave(); coErr = {}; drawSheet(); return; }
+    if (b.hasAttribute('data-co-back')) { coErr = {}; goStep(sheetStep === 'contact' ? 'where' : 'cart'); return; }
+    if (b.dataset.coGoto) { coErr = {}; goStep(b.dataset.coGoto); return; }
+    if (b.dataset.coNext) { coErr = {}; if (!validate(sheetStep)) return showErr(); goStep(b.dataset.coNext); return; }
+    if (b.hasAttribute('data-co-hit')) {
+      const lat = +b.dataset.lat, lon = +b.dataset.lon, box = document.getElementById('co-results'), q = document.getElementById('co-q');
+      box.hidden = true; if (q) q.value = '';
+      if (coMap) { coMap._coSkip = true; coMap.setView([lat, lon], 17); }
+      setPoint(lat, lon, { title: b.dataset.title, sub: b.dataset.sub }); return;
+    }
+    if (b.hasAttribute('data-co-gps')) {
+      const lbl = b.querySelector('span');
+      if (!navigator.geolocation) { setAddrBox(ct('gpsErr'), ''); return; }
+      b.disabled = true; lbl.textContent = ct('locating');
+      navigator.geolocation.getCurrentPosition(p => {
+        b.disabled = false; lbl.textContent = ct('gps');
+        const { latitude: la, longitude: lo } = p.coords;
+        if (coMap) { coMap._coSkip = true; coMap.setView([la, lo], 17); }
+        setPoint(la, lo);
+      }, () => { b.disabled = false; lbl.textContent = ct('gps'); setAddrBox(ct('gpsErr'), ''); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+      return;
+    }
     if (b.hasAttribute('data-checkout')) {
-      const nameInput = $('#o-name');
-      const phoneInput = $('#o-phone');
-      const cName = nameInput ? nameInput.value.trim() : '';
-      const cPhone = phoneInput ? phoneInput.value.trim() : '';
-      if (!cName) {
-        alert(S.lang === 'uz' ? 'Iltimos, ismingizni kiriting' : S.lang === 'en' ? 'Please enter your name' : 'Пожалуйста, введите ваше имя');
-        if (nameInput) nameInput.focus();
-        return;
-      }
-      const cleanPhone = cPhone.replace(/[\s\-()]/g, '');
-      if (!cleanPhone.startsWith('+998') || cleanPhone.length !== 13) {
-        alert(S.lang === 'uz' ? 'Iltimos, toʻliq telefon raqamini kiriting (+998XXXXXXXXX)' : 'Пожалуйста, введите корректный номер телефона (+998 XX XXX XX XX)');
-        if (phoneInput) phoneInput.focus();
-        return;
-      }
-      localStorage.setItem('fx_c_name', cName);
-      localStorage.setItem('fx_c_phone', cPhone);
-
-      b.disabled = true;
-      b.innerHTML = `<span>${e(t('order.placing'))}</span><span class="spinner"></span>`;
-      const items = Object.entries(S.cart).map(([id, q]) => ({
-        id,
-        name: S.byId[id]?.name,
-        price: S.byId[id]?.price,
-        qty: q
-      }));
-      const sub = S.cartTotal();
-      const delFee = sheetMode === 'delivery' ? (sub >= 250000 ? 0 : 20000) : 0;
-      const grandTotal = sub + delFee;
-
+      coErr = {};
+      if (!validate('cart')) { sheetStep = 'cart'; return showErr(); }
+      if (!validate('where')) { sheetStep = 'where'; return showErr(); }
+      if (!validate('contact')) return showErr();
+      localStorage.setItem('fx_c_name', co.name.trim()); localStorage.setItem('fx_c_phone', '+998' + co.phone);
+      b.disabled = true; b.innerHTML = `<span>${e(t('order.placing'))}</span><span class="spinner"></span>`;
+      const items = Object.entries(S.cart).filter(([id]) => S.byId[id]).map(([id, q]) => ({ id, name: S.byId[id].name, price: S.byId[id].price, qty: q }));
       const payload = {
-        items,
-        mode: sheetMode,
-        orderType: sheetMode === 'delivery' ? 'Доставка курьером (сайт)' : 'Самовывоз (сайт)',
-        address: $('#o-addr') ? $('#o-addr').value : (sheetMode === 'delivery' ? 'Уточняется' : 'Самовывоз'),
+        items, mode: co.mode,
+        orderType: co.mode === 'delivery' ? 'Доставка курьером (сайт)' : 'Самовывоз (сайт)',
+        address: co.mode === 'delivery' ? coAddress(true) : 'Самовывоз',
+        comment: co.comment.trim(),
         payment: 'Наличными',
-        name: cName,
-        phone: cleanPhone,
-        lang: S.lang,
-        total: grandTotal
+        name: co.name.trim(), phone: '+998' + co.phone,
+        telegramUserId: S.tgUser ? S.tgUser.id : 0,
+        lang: S.lang
       };
       try {
-        const res = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const resData = await res.json();
-        if (resData && resData.ok) {
-          lastOrderId = resData.id || `WEB-${resData.orderNum}`;
-          sheetStep = 'status';
-          S.cart = {};
-          drawSheet();
-        } else {
-          alert('Ошибка оформления: ' + (resData?.error || 'Попробуйте снова'));
-          b.disabled = false;
-          b.innerHTML = `${e(t('order.checkout'))}${I('arrow')}`;
+        const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const r = await res.json().catch(() => ({}));
+        if (r && r.ok) {
+          lastOrderId = r.id || `WEB-${r.orderNum}`; co.lastMode = co.mode; co.comment = ''; coSave();
+          sheetStep = 'status'; S.cart = {}; S.setQty('_', 0); drawSheet(); return;
         }
-      } catch (err) {
-        alert('Сетевая ошибка при оформлении заказа. Пожалуйста, позвоните нам напрямую.');
-        b.disabled = false;
-        b.innerHTML = `${e(t('order.checkout'))}${I('arrow')}`;
-      }
+        coErr.send = (r && r.error) || ct('sendErr');
+      } catch (_) { coErr.send = ct('netErr'); }
+      drawSheet();
     }
   });
   document.addEventListener('fx:cart', () => {
+    const lbo = $('#lb-order'); if (lbo && !$('#lb').hidden) { const fq = document.activeElement && document.activeElement.closest('#lb-order') ? (document.activeElement.dataset.d || 'cart') : null; lbo.outerHTML = lbOrder(S.galKeys[lbI]); if (fq) { const b = $('#lb-order').querySelector(fq === 'cart' ? '[data-open-cart]' : `[data-d="${fq}"]`) || $('#lb-order').querySelector('button'); b && b.focus(); } }
     if (route === 'menu') { const list = $('#menu-list'); const y = scrollY; list.innerHTML = S.menuList(list.dataset.menu, ($('#menu-q') || {}).value); secs = [...document.querySelectorAll('.mcat')]; window.scrollTo(0, y); }
     const hdr = $('#hdr'); const foc = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.qty;
     hdr.innerHTML = S.renderHeader(route); renderFab();

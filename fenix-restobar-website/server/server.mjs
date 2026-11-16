@@ -268,6 +268,7 @@ try {
   `);
   try { db.exec("ALTER TABLE orders ADD COLUMN shift_id INTEGER;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN cancel_reason TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE orders ADD COLUMN comment TEXT;"); } catch (_) {}
 
   // Auto-seed menu_items from menu-data.js if table is empty
   try {
@@ -505,6 +506,10 @@ setInterval(() => {
   if (db) checkAutoCloseShift(db);
 }, 60_000);
 
+function escHtml(v) {
+  return String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
 function extractCoords(addr) {
   const str = String(addr || '');
   const match = str.match(/([0-9]{2}\.[0-9]+)[\s,]+([0-9]{2}\.[0-9]+)/);
@@ -715,6 +720,7 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetC
       ``,
       `📋 <b>Состав заказа:</b>`,
       itemsList.join('\n'),
+      ...(order.comment ? ['', `💬 <b>Комментарий:</b> ${escHtml(order.comment)}`] : []),
       ``,
       `💰 <b>К получению с клиента:</b> <b>${total}</b> (${pay})`,
       `━━━━━━━━━━━━━━━━━━━━`,
@@ -771,6 +777,7 @@ async function notifyCourierDeliveryOrder(order, targetCourierId = null, targetC
       ``,
       `📋 <b>Состав заказа:</b>`,
       itemsList.join('\n'),
+      ...(order.comment ? ['', `💬 <b>Комментарий:</b> ${escHtml(order.comment)}`] : []),
       ``,
       `💰 <b>Сумма к получению:</b> <b>${total}</b> (${pay})`,
       `━━━━━━━━━━━━━━━━━━━━`,
@@ -2924,14 +2931,15 @@ function normalizeOrderItems(rawItems, priceMap = null) {
 
       const address = data.address || (isDelivery ? "Уточняется" : orderType === "Заказ в зале" ? "В зале" : "Самовывоз");
       const paymentMethod = data.paymentMethod || data.payment || "Наличными";
+      const orderComment = String(data.comment || "").trim().slice(0, 300);
 
       // Save to SQLite orders table
       if (db) {
         try {
           const currentShift = getOrCreateCurrentShift(db);
           db.prepare(`
-            INSERT INTO orders (order_num, user_id, user_name, customer_name, customer_phone, order_type, address, payment_method, items_json, total_price, status, shift_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO orders (order_num, user_id, user_name, customer_name, customer_phone, order_type, address, payment_method, items_json, total_price, status, shift_id, comment)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             orderNum,
             data.telegramUserId || 0,
@@ -2944,7 +2952,8 @@ function normalizeOrderItems(rawItems, priceMap = null) {
             JSON.stringify(itemsObj),
             finalTotal,
             "новый (с сайта)",
-            currentShift ? currentShift.id : null
+            currentShift ? currentShift.id : null,
+            orderComment || null
           );
           console.log(`[DB] Saved order #${orderNum} to fenix_restaurant.db`);
 
@@ -2975,7 +2984,9 @@ function normalizeOrderItems(rawItems, priceMap = null) {
       msg += `▫️ Телефон: <b>${data.phone}</b>\n`;
       msg += `▫️ Способ: <b>${isDelivery ? "🛵 Доставка" : orderType === "Заказ в зале" ? "🍽 В зале" : "🛍 Самовывоз"}</b>\n`;
       if (isDelivery) msg += `▫️ Адрес: <b>${address}</b>\n`;
-      msg += `▫️ Оплата: <b>${paymentMethod}</b>\n\n`;
+      msg += `▫️ Оплата: <b>${paymentMethod}</b>\n`;
+      if (orderComment) msg += `▫️ Комментарий: <i>${escHtml(orderComment)}</i>\n`;
+      msg += `\n`;
       msg += `📋 <b>Состав заказа:</b>\n`;
       msg += itemsLines.join("\n") || "▫️ Позиции уточняются";
       if (deliveryFee > 0) msg += `\n▫️ Доставка: <b>${formatPrice(deliveryFee)}</b>`;
@@ -2992,6 +3003,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
             payment_method: paymentMethod,
             items_json: JSON.stringify(itemsObj),
             total_price: finalTotal,
+            comment: orderComment,
             status: "новый (с сайта)"
           };
           await notifyCourierDeliveryOrder(orderRow, "group");
