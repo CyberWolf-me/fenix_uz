@@ -117,9 +117,11 @@
   S.byId = Object.fromEntries(S.items.map(i => [i.id, i]));
   /* Dish photos (owner-supplied and generated studio photography). */
   S.DISH_PHOTOS = new Set([
-    'europe-001','europe-002','europe-004','europe-005','europe-006','europe-010','europe-012','europe-013','europe-014','europe-015',
+    'europe-001','europe-002','europe-003','europe-004','europe-005','europe-006','europe-007','europe-008','europe-009','europe-010',
+    'europe-011','europe-012','europe-013','europe-014','europe-015',
     'europe-016','europe-017','europe-018','europe-019','europe-020','europe-021','europe-022','europe-023','europe-024','europe-025',
     'europe-026','europe-027','europe-028','europe-029','europe-030','europe-031','europe-032','europe-033','europe-034','europe-035',
+    'europe-036','europe-037','europe-038','europe-039',
     'europe-040','europe-041','europe-042','europe-043','europe-044','europe-045','europe-046','europe-047','europe-048','europe-049',
     'europe-050','europe-051','europe-052','europe-053','europe-054','europe-055','europe-056','europe-057','europe-058','europe-059',
     'europe-060','europe-061','europe-062','europe-063','europe-064','europe-065','europe-066','europe-067','europe-068','europe-069',
