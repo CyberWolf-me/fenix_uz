@@ -127,8 +127,8 @@
     'europe-060','europe-061','europe-062','europe-063','europe-064','europe-065','europe-066','europe-067','europe-068','europe-069',
     'europe-070','europe-071','europe-072','europe-073','europe-074','europe-075','europe-076','europe-077','europe-078','europe-079',
     'europe-080','europe-081','europe-082',
-    'korea-094','korea-095','korea-099','korea-106','korea-110','korea-117','korea-129',
-    'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148'
+    'korea-090','korea-091','korea-094','korea-095','korea-099','korea-104','korea-106','korea-110','korea-116','korea-117','korea-119','korea-129',
+    'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148','korea-152'
   ]);
   S.sections = M.sections;
   S.secLabel = (menu, sec) => { const s = M.sections[menu].find(x => x.id === sec); return s ? (s[S.lang] || s.ru) : sec; };
