@@ -3074,6 +3074,10 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     const ext = path.extname(filePath).toLowerCase();
     const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
     if (
+      reqPath.endsWith(".html") ||
+      reqPath.includes("js/") ||
+      reqPath.includes("data/") ||
+      reqPath.includes("css/") ||
       reqPath.includes("admin") ||
       reqPath.includes("dist/") ||
       reqPath.includes("src/") ||
