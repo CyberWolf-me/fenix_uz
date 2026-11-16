@@ -120,7 +120,7 @@
     'europe-001','europe-002','europe-003','europe-004','europe-005','europe-006','europe-007','europe-008','europe-009','europe-010',
     'europe-011','europe-012','europe-013','europe-014','europe-015',
     'europe-016','europe-017','europe-018','europe-019','europe-020','europe-021','europe-022','europe-023','europe-024','europe-025',
-    'europe-026','europe-027','europe-028','europe-029','europe-030','europe-031','europe-032','europe-033','europe-034','europe-035',
+    'europe-026','europe-027','europe-028','europe-029','europe-030','europe-031',/* 032 lentil, 033 mushroom: hidden until real photos */'europe-034','europe-035',
     'europe-036','europe-037','europe-038','europe-039',
     'europe-040','europe-041','europe-042','europe-043','europe-044','europe-045','europe-046','europe-047','europe-048','europe-049',
     'europe-050','europe-051','europe-052','europe-053','europe-054','europe-055','europe-056','europe-057','europe-058','europe-059',
@@ -130,6 +130,7 @@
     'korea-090','korea-091','korea-094','korea-095','korea-099','korea-104','korea-106','korea-110','korea-116','korea-117','korea-119','korea-129',
     'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148','korea-152',
     'korea-112', 'korea-125', 'korea-126', 'korea-127', 'korea-128', 'korea-144',
+    'korea-092', 'korea-093', 'korea-096', 'korea-097', 'korea-105', 'korea-143',
     'bar-179','bar-180','bar-181','bar-182','bar-183','bar-184',
     'tg-lem-01', 'tg-lem-02', 'tg-lem-03', 'tg-lem-04', 'tg-lem-05', 'tg-lem-06', 'tg-lem-07', 'tg-lem-08', 'tg-lem-09', 'tg-lem-10'
   ]);
