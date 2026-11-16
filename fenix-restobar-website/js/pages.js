@@ -136,7 +136,7 @@
     </div></section>`;
   H.sign = () => `
     <section class="sect" data-screen-label="Home · signatures"><div class="wrap sign">
-      <div class="shot sign-img dish-stage" id="sig-photo"><img src="img/dish/${SIGS[0]}.webp" onerror="this.onerror=null;this.src='img/dish/${SIGS[0]}.png'" width="560" height="560" alt="${e(S.iName(S.byId[SIGS[0]]))}" loading="eager" fetchpriority="high" decoding="async"><div class="cap"><span id="sig-cap">${e(S.iName(S.byId[SIGS[0]]))}</span><span id="sig-n">01</span></div></div>
+      <div class="shot sign-img dish-stage" id="sig-photo"><img src="img/dish/${SIGS[0]}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${SIGS[0]}.png?v=2'" width="560" height="560" alt="${e(S.iName(S.byId[SIGS[0]]))}" loading="eager" fetchpriority="high" decoding="async"><div class="cap"><span id="sig-cap">${e(S.iName(S.byId[SIGS[0]]))}</span><span id="sig-n">01</span></div></div>
       <div>
         ${eyebrow('sign.kicker')}
         <h2 class="h2" style="margin:20px 0 10px">${tx('sign.title')}</h2>
@@ -219,7 +219,7 @@
           const ph = items.filter(i => S.DISH_PHOTOS.has(i.id));
           return ph.length ? `<div class="dstrip">${ph.map((it, idx) => `
             <button type="button" class="dcard" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}">
-              <span class="dimg"><img src="img/dish/${it.id}.webp" onerror="this.onerror=null;this.src='img/dish/${it.id}.png'" width="560" height="560" alt="${e(S.iName(it))}" ${idx < 4 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async"></span>
+              <span class="dimg"><img src="img/dish/${it.id}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${it.id}.png?v=2'" width="560" height="560" alt="${e(S.iName(it))}" ${idx < 4 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async"></span>
               <span class="dn">${e(S.iName(it))}</span>
               <span class="price">${S.iPrice(it)}</span>
             </button>`).join('')}</div>` : '';

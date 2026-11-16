@@ -34,7 +34,7 @@
   } catch (_) {}
 })();
 </script>
-<script src="data/menu-data.js?v=20261116_04"></script>
+<script src="data/menu-data.js?v=20261116_05"></script>
 <style>
 /* ── FENIX MINI APP DEDICATED STYLES ── */
 :root {
@@ -3853,7 +3853,7 @@ html[data-theme="light"] .recent-item-type {
     "korea-106": "img/dish/30.webp",  // Косари - 119 000
     // Generated dish photos (Clean transparent cutouts matching loose_dish_pngs reference assets)
     "europe-001": "img/dish/europe-001.webp", // Селёдка традиционная
-    "europe-004": "img/dish/europe-004.webp", // Холодец
+    "europe-002": "img/dish/europe-002.webp", // Холодец
     "europe-016": "img/dish/europe-016.webp", // Салат «Азиатский»
     "europe-018": "img/dish/europe-018.webp", // Салат «Руккола с овощами»
     "europe-019": "img/dish/europe-019.webp", // Салат «Грузинский»
@@ -3869,6 +3869,7 @@ html[data-theme="light"] .recent-item-type {
     "europe-032": "img/dish/europe-032.webp", // Борщ
     "europe-033": "img/dish/europe-033.webp", // Солянка
     "europe-034": "img/dish/europe-034.webp", // Лагман
+    "europe-035": "img/dish/europe-035.webp", // Солянка сборная мясная
     "europe-042": "img/dish/europe-042.webp", // Стейк миньон
     "europe-044": "img/dish/europe-044.webp", // Телятина по-провански
     "europe-046": "img/dish/europe-046.webp", // Мясо по-китайски
@@ -3906,7 +3907,8 @@ html[data-theme="light"] .recent-item-type {
   };
 
   function getDishPhoto(id) {
-    return DISH_PHOTO_MAP[id] || null;
+    const p = DISH_PHOTO_MAP[id];
+    return p ? `${p}?v=2` : null;
   }
 
   function money(val) {

@@ -186,7 +186,7 @@
   function drawLb() {
     const k = S.galKeys[lbI], lb = $('#lb');
     lb.innerHTML = `<div class="lb-top"><span aria-live="polite">${lbI + 1} ${e(t('gallery.of'))} ${S.galKeys.length} · ${e(S.IMG[k][S.lang])}</span><button type="button" data-lbx aria-label="${e(t('a11y.close'))}">${I('close').replace('<svg', '<svg width="20"')}</button></div>
-      <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp" onerror="this.onerror=null;this.src='img/' + '${k}' + '.png'" alt="${e(S.IMG[k][S.lang])}"></div>
+      <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp?v=2" onerror="this.onerror=null;this.src='img/' + '${k}' + '.png?v=2'" alt="${e(S.IMG[k][S.lang])}"></div>
       <div class="lb-nav"><button type="button" data-lbp aria-label="${e(t('a11y.prev'))}">${I('left')}</button><button type="button" data-lbn aria-label="${e(t('a11y.next'))}">${I('right')}</button></div>`;
     lb.querySelector('[data-lbx]').onclick = closeLb;
     lb.querySelector('[data-lbp]').onclick = () => stepLb(-1);
