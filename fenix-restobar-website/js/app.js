@@ -57,6 +57,7 @@
     S.mountForms();
     if (route === 'menu') initMenu();
     if (route === 'home') initSigAutoRotation();
+    if (route === 'contact') initContactMap();
     else if (sigInterval) { clearInterval(sigInterval); sigInterval = null; }
     onScroll();
     if (route === 'menu' && params[2]) {
@@ -192,7 +193,7 @@
   function drawLb() {
     const k = S.galKeys[lbI], lb = $('#lb');
     lb.innerHTML = `<div class="lb-top"><span aria-live="polite">${lbI + 1} ${e(t('gallery.of'))} ${S.galKeys.length} · ${e(S.IMG[k][S.lang])}</span><button type="button" data-lbx aria-label="${e(t('a11y.close'))}">${I('close').replace('<svg', '<svg width="20"')}</button></div>
-      <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp?v=2" onerror="this.onerror=null;this.src='img/' + '${k}' + '.png?v=2'" alt="${e(S.IMG[k][S.lang])}"></div>
+      <div class="lb-stage${k.startsWith('dish/') ? ' dish-lb' : ''}"><img src="img/${k}.webp?v=3" onerror="this.onerror=null;this.src='img/' + '${k}' + '.png?v=3'" alt="${e(S.IMG[k][S.lang])}"></div>
       ${lbOrder(k)}
       <div class="lb-nav"><button type="button" data-lbp aria-label="${e(t('a11y.prev'))}">${I('left')}</button><button type="button" data-lbn aria-label="${e(t('a11y.next'))}">${I('right')}</button></div>`;
     lb.querySelector('[data-lbx]').onclick = closeLb;
@@ -229,7 +230,7 @@
   const ct = k => t('co.' + k);
   const fee = sub => co.mode === 'delivery' ? (sub >= FREE_FROM ? 0 : DEL_FEE) : 0;
   const fmtPhone = d => { d = String(d).replace(/\D/g, '').slice(0, 9); return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' '); };
-  const dishImg = id => S.DISH_PHOTOS.has(id) ? `<img src="img/dish/${id}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${id}.png?v=2'" alt="" loading="lazy" decoding="async">` : `<img src="img/fenix-mark.svg" alt="" class="ph">`;
+  const dishImg = id => S.DISH_PHOTOS.has(id) ? `<img src="img/dish/${id}.webp?v=3" onerror="this.onerror=null;this.src='img/dish/${id}.png?v=3'" alt="" loading="lazy" decoding="async">` : `<img src="img/fenix-mark.svg" alt="" class="ph">`;
 
   function openSheet() { lastFocus = document.activeElement; if (sheetStep !== 'status') sheetStep = 'cart'; coErr = {}; drawSheet(); $('#sheet').classList.add('open'); $('#sheet').removeAttribute('inert'); $('#sheet-bg').classList.add('open'); document.body.style.overflow = 'hidden'; setTimeout(() => { const b = $('#sheet').querySelector('button'); b && b.focus({ preventScroll: true }); }, 60); }
   function closeSheet() { const s = $('#sheet'); if (!s.classList.contains('open')) return; s.classList.remove('open'); s.setAttribute('inert', ''); $('#sheet-bg').classList.remove('open'); document.body.style.overflow = ''; if (sheetStep === 'status') sheetStep = 'cart'; if (coMap) { coMap.remove(); coMap = null; } lastFocus && lastFocus.focus && lastFocus.focus(); }
@@ -354,9 +355,9 @@
       const has = co.lat != null;
       coMap = L.map(el, { center: has ? [co.lat, co.lon] : CO_DEFAULT, zoom: has ? 17 : 12 });
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(coMap);
-      coMap.on('movestart', () => { const p = document.querySelector('.co-pin'); p && p.classList.add('up'); });
+      coMap.on('movestart', () => { const p = document.querySelector('#sheet .co-pin'); p && p.classList.add('up'); });
       coMap.on('moveend', () => {
-        const p = document.querySelector('.co-pin'); p && p.classList.remove('up');
+        const p = document.querySelector('#sheet .co-pin'); p && p.classList.remove('up');
         if (coMap._coSkip) { coMap._coSkip = false; return; }
         const c = coMap.getCenter(); setPoint(c.lat, c.lng);
       });
@@ -372,6 +373,16 @@
       L.marker(pt, { icon: L.divIcon({ className: 'co-rmark', html: '<span class="co-pin" aria-hidden="true"></span><b>Fenix</b>', iconSize: [30, 42], iconAnchor: [15, 42] }), keyboard: false }).addTo(coMap);
       setTimeout(() => coMap && coMap.invalidateSize(), 300);
     }).catch(() => { const el = document.getElementById('co-pmap'); if (el) el.innerHTML = `<p class="small" style="padding:20px">${e(F.address[S.lang] || F.address.ru)}</p>`; });
+  }
+  function initContactMap() {
+    loadLeaflet().then(() => {
+      const el = document.getElementById('contact-map'); if (!el || el._leaflet_id) return;
+      const pt = [F.geo.lat, F.geo.lon];
+      const m = L.map(el, { center: pt, zoom: 16, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(m);
+      L.marker(pt, { icon: L.divIcon({ className: 'co-rmark', html: '<span class="co-pin" aria-hidden="true"></span><b>Fenix</b>', iconSize: [30, 42], iconAnchor: [15, 42] }), keyboard: false }).addTo(m);
+      setTimeout(() => m.invalidateSize(), 300);
+    }).catch(() => {});
   }
   function setAddrBox(main, sub, loading) { const b = document.getElementById('co-addr'); if (!b) return; b.classList.toggle('loading', !!loading); b.classList.remove('err'); b.innerHTML = `<b>${e(main)}</b>${sub ? `<span>${e(sub)}</span>` : ''}`; }
   function setPoint(lat, lon, known) {

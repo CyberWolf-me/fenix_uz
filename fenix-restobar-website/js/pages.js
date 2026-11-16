@@ -35,7 +35,7 @@
   /* dish photos (owner-supplied, t.me/realfeniximages) are added to the gallery as "food" */
   S.DISH_PHOTOS.forEach(id => { const it = S.byId[id]; if (it) IMG['dish/' + id] = { ru: it.name.ru, uz: it.name.uz, en: it.name.en, cat: 'food', w: 560, h: 560 }; });
   S.IMG = IMG;
-  const img = (k, cls = '', eager = false) => `<img src="img/${k}.webp" width="${IMG[k].w}" height="${IMG[k].h}" alt="${e(IMG[k][L()])}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="${cls}">`;
+  const img = (k, cls = '', eager = false) => `<img src="img/${k}.webp${k.startsWith('dish/') ? '?v=3' : ''}" width="${IMG[k].w}" height="${IMG[k].h}" alt="${e(IMG[k][L()])}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="${cls}">`;
   const eyebrow = (key, rule = true) => `<p class="eyebrow">${rule ? '<span class="rule"></span>' : ''}${e(t(key))}</p>`;
   const telLinks = (cls = '') => F.phones.map(p => `<a class="${cls}" href="${p.href}" data-track="call">${I('phone')}<span>${p.display}</span></a>`).join('');
   const pageHead = (kickerKey, titleKey, ledeKey, extra = '') => `
@@ -141,7 +141,7 @@
     </div></section>`;
   H.sign = () => `
     <section class="sect" data-screen-label="Home · signatures"><div class="wrap sign">
-      <div class="shot sign-img dish-stage" id="sig-photo"><img src="img/dish/${SIGS[0]}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${SIGS[0]}.png?v=2'" width="560" height="560" alt="${e(S.iName(S.byId[SIGS[0]]))}" loading="eager" fetchpriority="high" decoding="async"><div class="cap"><span id="sig-cap">${e(S.iName(S.byId[SIGS[0]]))}</span><span id="sig-n">01</span></div></div>
+      <div class="shot sign-img dish-stage" id="sig-photo"><img src="img/dish/${SIGS[0]}.webp?v=3" onerror="this.onerror=null;this.src='img/dish/${SIGS[0]}.png?v=3'" width="560" height="560" alt="${e(S.iName(S.byId[SIGS[0]]))}" loading="eager" fetchpriority="high" decoding="async"><div class="cap"><span id="sig-cap">${e(S.iName(S.byId[SIGS[0]]))}</span><span id="sig-n">01</span></div></div>
       <div>
         ${eyebrow('sign.kicker')}
         <h2 class="h2" style="margin:20px 0 10px">${tx('sign.title')}</h2>
@@ -224,7 +224,7 @@
           const ph = items.filter(i => S.DISH_PHOTOS.has(i.id));
           return ph.length ? `<div class="dstrip">${ph.map((it, idx) => `
             <button type="button" class="dcard" data-dish="${it.id}" aria-label="${e(t('menu.photo'))}: ${e(S.iName(it))}">
-              <span class="dimg"><img src="img/dish/${it.id}.webp?v=2" onerror="this.onerror=null;this.src='img/dish/${it.id}.png?v=2'" width="560" height="560" alt="${e(S.iName(it))}" ${idx < 4 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async"></span>
+              <span class="dimg"><img src="img/dish/${it.id}.webp?v=3" onerror="this.onerror=null;this.src='img/dish/${it.id}.png?v=3'" width="560" height="560" alt="${e(S.iName(it))}" ${idx < 4 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async"></span>
               <span class="dn">${e(S.iName(it))}</span>
               <span class="price">${S.iPrice(it)}</span>
             </button>`).join('')}</div>` : '';
@@ -306,9 +306,10 @@
             <h2 class="h3" style="margin-top:28px">${e(t('contact.social'))}</h2><p class="body"><a class="link" href="${F.telegram.href}" target="_blank" rel="noopener">Telegram</a> · <a class="link" href="${F.instagram.href}" target="_blank" rel="noopener">Instagram</a></p></div>
           <div><h2 class="h3">${e(t('contact.hours'))}${S.dot(F.hours.status)}</h2><p style="margin-bottom:8px">${S.statusHTML()}</p><ul>${S.hoursRows()}</ul></div>
         </div>
-        <a class="map-card" style="margin-top:56px" href="${F.maps.yandex}" target="_blank" rel="noopener" data-track="directions" aria-label="${e(t('contact.route'))} — ${e(t('contact.yandex'))}">
-          <span class="pin">${I('pin')}<span class="h3">Fenix</span><span class="small">${e(F.address[L()])}</span><span class="link">${e(t('contact.route'))}</span></span>
-        </a>
+        <div class="map-card map-live" style="margin-top:56px">
+          <div id="contact-map" class="map-live-el" role="region" aria-label="Fenix — ${e(F.address[L()])}"></div>
+          <a class="map-route btn btn-accent" href="${F.maps.yandex}" target="_blank" rel="noopener" data-track="directions">${e(t('contact.route'))}${I('arrow')}</a>
+        </div>
       </div></section>
       ${H.reserve()}
     </div>`;

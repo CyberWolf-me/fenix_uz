@@ -129,6 +129,7 @@
     'europe-080','europe-081','europe-082',
     'korea-090','korea-091','korea-094','korea-095','korea-099','korea-104','korea-106','korea-110','korea-116','korea-117','korea-119','korea-129',
     'korea-137','korea-139','korea-142','korea-145','korea-146','korea-147','korea-148','korea-152',
+    'korea-112', 'korea-125', 'korea-126', 'korea-127', 'korea-128', 'korea-144',
     'bar-179','bar-180','bar-181','bar-182','bar-183','bar-184',
     'tg-lem-01', 'tg-lem-02', 'tg-lem-03', 'tg-lem-04', 'tg-lem-05', 'tg-lem-06', 'tg-lem-07', 'tg-lem-08', 'tg-lem-09', 'tg-lem-10'
   ]);
