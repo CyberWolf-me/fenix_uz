@@ -3098,7 +3098,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
         };
 
         // Safeguard 1: Safe Cache-Control headers
-        const isHtml = ext === ".html" || reqPath.endsWith(".html");
+        const isHtml = ext === ".html" || reqPath.endsWith(".html") || reqPath.includes("menu-data.js");
         const isMedia = [".webp", ".png", ".jpg", ".jpeg", ".svg", ".woff2", ".woff", ".ico"].includes(ext);
         if (isHtml) {
           headers["Cache-Control"] = "no-cache";
