@@ -1660,3 +1660,61 @@
   background: var(--surface-2);
   color: var(--text);
 }
+
+/* ═══════════ 2026-11 fixes: alarm · maps · comment · cash count · confirm ═══════════ */
+.auth-boot { min-height: 100vh; background: var(--bg); }
+
+.order-alarm {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 10px 16px 0; padding: 10px 14px;
+  background: var(--accent-soft); border: 1px solid var(--accent);
+  border-radius: var(--r-sm); animation: alarmPulse 1.6s ease-in-out infinite;
+}
+.order-alarm-bell { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--bg); flex: none; }
+.order-alarm-txt { display: grid; gap: 2px; flex: 1; min-width: 180px; }
+.order-alarm-txt b { font-size: 13px; color: var(--text); }
+.order-alarm-txt span { font-size: 11.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-alarm-act { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-alarm-mute { background: none; border: 0; color: var(--text-3); font-size: 11px; cursor: pointer; padding: 6px 4px; text-decoration: underline; }
+@keyframes alarmPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .order-alarm { animation: none; } }
+@media (max-width: 768px) { .order-alarm { margin: 8px 10px 0; } .order-alarm-act { width: 100%; } .order-alarm-act .btn { flex: 1; } }
+
+.oaddr-map { flex: none; align-self: center; display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--r-xs); color: var(--accent); border: 1px solid var(--line); background: var(--surface-1, transparent); }
+.oaddr-map:hover { border-color: var(--accent); }
+.onote { margin-top: 6px; padding: 6px 9px; font-size: 11px; line-height: 1.4; color: var(--text); background: var(--warn-soft); border-radius: var(--r-xs); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.drawer-maps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.drawer-maps .btn { text-decoration: none; }
+.drawer-maps-hint { font-size: 10.5px; color: var(--warn); flex-basis: 100%; }
+
+.floor-err { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 8px 12px; font-size: 12px; color: var(--danger); background: var(--danger-soft); border-radius: var(--r-sm); }
+
+.cash-count { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+.cash-count-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.cash-count-field { display: grid; gap: 4px; flex: 1; min-width: 180px; font-size: 11px; color: var(--text-2); }
+.cash-count-field .input { width: 100%; font-size: 15px; padding: 8px 10px; }
+.cash-count-diff { font-size: 12.5px; font-weight: 600; padding: 9px 0; }
+.cash-count-diff[data-tone="ok"] { color: var(--ok); }
+.cash-count-diff[data-tone="danger"] { color: var(--danger); }
+.cash-count-diff[data-tone="muted"] { color: var(--text-3); font-weight: 400; }
+.cash-count > .input { width: 100%; }
+
+.confirm-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+
+/* ═══════════ top bar: one theme toggle, larger daily buttons ═══════════ */
+.topbar-right .topbar-btn { height: 36px; padding: 0 15px; font-size: 12.5px; gap: 7px; border-radius: var(--r-sm); }
+.topbar-lang { font-family: var(--f-mono); letter-spacing: .04em; background: var(--surface-2); border-color: var(--line-strong); color: var(--text); min-width: 74px; }
+.topbar-day { color: var(--accent); background: transparent; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); }
+.topbar-day:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.topbar-create { padding: 0 18px !important; }
+.topbar-theme { width: 36px; height: 36px; color: var(--text-2); }
+
+/* tables with action buttons: never let buttons overlap the status pill */
+.tbl-actions td { overflow: hidden; text-overflow: ellipsis; }
+.tbl-actions td:last-child { overflow: visible; }
+.tbl-actions .pill { white-space: nowrap; }
+
+/* couriers: compact map */
+.couriers-layout { min-height: 0; align-items: start; }
+.courier-map-el { flex: 1; min-height: 0; }
+.couriers-layout > .card:first-child { height: min(52vh, 460px); min-height: 320px; }

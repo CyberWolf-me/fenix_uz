@@ -27,24 +27,17 @@ function LoginScreen({ onLoginSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: username.trim(),
-          password: password.trim()
+          password: password.trim(),
+          remember
         })
       });
 
       const data = await res.json();
 
       if (res.ok && data.ok) {
-        const token = data.token;
-        if (remember) {
-          localStorage.setItem('fenix_admin_auth', token);
-        } else {
-          sessionStorage.setItem('fenix_admin_auth', token);
-        }
-        // Set persistent cookie
-        document.cookie = `fenix_admin_auth=${encodeURIComponent(token)}; path=/; max-age=2592000; SameSite=Lax`;
-        
+        /* session lives in an HttpOnly cookie set by the server */
         if (onLoginSuccess) {
-          onLoginSuccess(token, data.user);
+          onLoginSuccess(null, data.user);
         }
       } else {
         setError(data.error || 'Неверное имя пользователя или пароль');

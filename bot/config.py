@@ -30,8 +30,8 @@ COURIER_BOT_USERNAME = os.getenv("COURIER_BOT_USERNAME", "FenixRestaurantCourier
 
 # Optional: Admin Chat IDs (comma-separated if multiple)
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_CHAT_ID", "").split(",") if x.strip().isdigit()]
-BOT_ADMIN_PASSWORD = os.getenv("BOT_ADMIN_PASSWORD", "fenix_admin_2026")
-BOT_COURIER_PASSWORD = os.getenv("BOT_COURIER_PASSWORD", "fenix_courier_2026")
+BOT_ADMIN_PASSWORD = (os.getenv("BOT_ADMIN_PASSWORD") or os.getenv("ADMIN_PASSWORD") or "").strip()
+BOT_COURIER_PASSWORD = (os.getenv("BOT_COURIER_PASSWORD") or "").strip()
 
 # Official Website URL (configurable, for local dev: http://localhost:3000 or production domain)
 WEBSITE_URL = os.getenv("WEBSITE_URL", "https://fenix.mosaiclabs.tech")

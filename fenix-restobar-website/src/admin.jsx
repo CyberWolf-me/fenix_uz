@@ -15,28 +15,27 @@ const TASHKENT_DISTRICT_COORDS = {
 };
 
 function getCoordsForAddress(addr) {
+  const exact = coordsOf(addr);
+  if (exact && exact[0] > 40 && exact[0] < 43 && exact[1] > 68 && exact[1] < 71) return exact;
   const str = String(addr || '');
   const match = str.match(/([0-9]{2}\.[0-9]+)[\s,]+([0-9]{2}\.[0-9]+)/);
   if (match) {
     const lat = parseFloat(match[1]);
     const lon = parseFloat(match[2]);
-    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) {
-      return [lat, lon];
-    }
+    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) return [lat, lon];
   }
-  const s = str.toLowerCase();
+  return null;
+}
+/* district centre — only used to label an approximate area, never as a delivery point */
+function districtOf(addr) {
+  const s = String(addr || '').toLowerCase();
   if (s.includes('чиланзар') || s.includes('chilonzor')) return TASHKENT_DISTRICT_COORDS.chilanzar;
   if (s.includes('юнусабад') || s.includes('yunusobod')) return TASHKENT_DISTRICT_COORDS.yunusabad;
   if (s.includes('мирабад') || s.includes('mirobod')) return TASHKENT_DISTRICT_COORDS.mirabad;
   if (s.includes('сергели') || s.includes('sergeli')) return TASHKENT_DISTRICT_COORDS.sergeli;
   if (s.includes('шайхантахур') || s.includes('shayxontohur')) return TASHKENT_DISTRICT_COORDS.shaykhontohur;
   if (s.includes('улугбек') || s.includes('ulug')) return TASHKENT_DISTRICT_COORDS.mirzoulugbek;
-  if (s.includes('яшнабад') || s.includes('yashnobod') || s.includes('хуснобод')) return [41.2890, 69.3350];
-  // Default offset around Tashkent center
-  const hash = s.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const latOffset = ((hash % 100) - 50) * 0.0008;
-  const lngOffset = (((hash * 7) % 100) - 50) * 0.0010;
-  return [41.3111 + latOffset, 69.2797 + lngOffset];
+  return null;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -131,7 +130,10 @@ function Couriers({ t, toast, orders = [] }) {
 
     // Add marker for each delivery order
     deliveryOrders.forEach((ord) => {
-      const coords = getCoordsForAddress(ord.addr);
+      const exact = getCoordsForAddress(ord.addrRaw || ord.addr);
+      const approx = exact ? null : districtOf(ord.addr);
+      const coords = exact || approx;
+      if (!coords) return; /* no location — shown in the list only */
       const isSel = currentOrder && currentOrder.id === ord.id;
       const isDone = ord.col === 'done';
 
@@ -141,7 +143,8 @@ function Couriers({ t, toast, orders = [] }) {
           <div style="
             width: ${isSel ? 36 : 28}px; height: ${isSel ? 36 : 28}px; border-radius: 50%;
             background: ${isDone ? '#57a877' : isSel ? '#d3aa63' : '#4a7fc1'};
-            border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            opacity: ${approx ? 0.55 : 1};
+            border: 2px ${approx ? 'dashed' : 'solid'} #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: center; color: #fff;
             cursor: pointer; transition: all 0.2s ease;
           ">
@@ -158,9 +161,10 @@ function Couriers({ t, toast, orders = [] }) {
 
       marker.bindPopup(`
         <div style="font-family: sans-serif; color: #111; padding: 4px; min-width: 170px;">
-          <b style="color: #d3aa63;">Заказ #${ord.id}</b><br/>
-          <b>${ord.client || 'Клиент'}</b> · ${ord.phone || '—'}<br/>
-          <span style="font-size: 11px; color: #444;">${ord.addr || 'Адрес доставки'}</span><br/>
+          <b style="color: #d3aa63;">Заказ #${escHtml(ord.id)}</b><br/>
+          <b>${escHtml(ord.client || 'Клиент')}</b> · ${escHtml(ord.phone || '—')}<br/>
+          <span style="font-size: 11px; color: #444;">${escHtml(ord.addr || 'Адрес доставки')}</span><br/>
+          ${approx ? '<span style="font-size: 11px; color: #b5651d;">Точка не указана — показан район</span><br/>' : ''}
           <b>${summ(ord.total)} сум</b>
         </div>
       `);
@@ -173,15 +177,13 @@ function Couriers({ t, toast, orders = [] }) {
     if (selId && selId !== lastPannedIdRef.current) {
       lastPannedIdRef.current = selId;
       const target = deliveryOrders.find((o) => o.id === selId);
-      if (target && target.addr) {
-        const targetCoords = getCoordsForAddress(target.addr);
-        map.flyTo(targetCoords, Math.max(map.getZoom(), 14), { duration: 0.8 });
-      }
+      const targetCoords = target && (getCoordsForAddress(target.addrRaw || target.addr) || districtOf(target.addr));
+      if (targetCoords) map.flyTo(targetCoords, Math.max(map.getZoom(), 14), { duration: 0.8 });
     } else if (!lastPannedIdRef.current && currentOrder && currentOrder.addr) {
       // One-time initial centering on first load
       lastPannedIdRef.current = currentOrder.id;
-      const targetCoords = getCoordsForAddress(currentOrder.addr);
-      map.setView(targetCoords, 13);
+      const targetCoords = getCoordsForAddress(currentOrder.addrRaw || currentOrder.addr) || districtOf(currentOrder.addr);
+      if (targetCoords) map.setView(targetCoords, 13);
     }
   }, [deliveryOrders, selId, currentOrder]);
 
@@ -295,7 +297,7 @@ function Couriers({ t, toast, orders = [] }) {
           </div>
 
           {/* Leaflet DOM container */}
-          <div ref={mapRef} style={{ width: '100%', height: '100%', minHeight: 480, background: '#0b0a08' }} />
+          <div ref={mapRef} className="courier-map-el" style={{ width: '100%', height: '100%', background: '#0b0a08' }} />
 
           {/* Legend bar */}
           <div style={{
@@ -347,8 +349,8 @@ function Couriers({ t, toast, orders = [] }) {
                     #{currentOrder.id}
                   </div>
                 </div>
-                <Pill tone={currentOrder.col === 'done' ? 'ok' : currentOrder.col === 'way' ? 'info' : 'warn'}>
-                  {currentOrder.col === 'done' ? 'Доставлен' : currentOrder.col === 'way' ? 'В пути' : 'Кухня готовит'}
+                <Pill tone={currentOrder.col === 'done' ? 'ok' : currentOrder.col === 'way' ? 'info' : currentOrder.col === 'new' ? 'accent' : 'warn'}>
+                  {currentOrder.col === 'done' ? 'Доставлен' : currentOrder.col === 'way' ? 'В пути' : currentOrder.col === 'new' ? 'Новый — не принят' : 'Кухня готовит'}
                 </Pill>
               </div>
 
@@ -430,9 +432,11 @@ function Couriers({ t, toast, orders = [] }) {
                   </Btn>
                 )}
 
+                {(() => { const cc = getCoordsForAddress(currentOrder.addrRaw || currentOrder.addr); const q = encodeURIComponent(stripCoords(currentOrder.addr) + ', Ташкент'); return (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {!cc && <div style={{ gridColumn: '1 / -1', fontSize: 11.5, color: 'var(--warn)' }}>Клиент не отметил точку на карте — маршрут по тексту адреса</div>}
                   <a
-                    href={`https://yandex.uz/maps/?rtext=41.2858,69.3402~${getCoordsForAddress(currentOrder.addr)[0]},${getCoordsForAddress(currentOrder.addr)[1]}&rtt=auto`}
+                    href={cc ? `https://yandex.uz/maps/?rtext=${FENIX_GEO[0]},${FENIX_GEO[1]}~${cc[0]},${cc[1]}&rtt=auto` : `https://yandex.uz/maps/?text=${q}`}
                     target="_blank"
                     rel="noreferrer"
                     className="btn btn-sm"
@@ -441,14 +445,15 @@ function Couriers({ t, toast, orders = [] }) {
                     <Icon name="pin" size={13} /> Яндекс Карты
                   </a>
                   <a
-                    href={`yandexnavi://build_route_on_map?lat_to=${getCoordsForAddress(currentOrder.addr)[0]}&lon_to=${getCoordsForAddress(currentOrder.addr)[1]}`}
+                    href={cc ? `yandexnavi://build_route_on_map?lat_to=${cc[0]}&lon_to=${cc[1]}` : `https://www.google.com/maps/search/?api=1&query=${q}`}
                     className="btn btn-sm"
                     title="Запустить приложение Яндекс.Навигатор"
                     style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, background: 'var(--surface-3)' }}
                   >
-                    <Icon name="pin" size={13} /> Навигатор
+                    <Icon name="pin" size={13} /> {cc ? 'Навигатор' : 'Google Maps'}
                   </a>
                 </div>
+                ); })()}
 
                 <a
                   href={`tel:${currentOrder.phone}`}
@@ -486,8 +491,8 @@ function Couriers({ t, toast, orders = [] }) {
                         <span className="mono" style={{ fontWeight: 700, fontSize: 12, color: isSel ? 'var(--accent-2)' : 'var(--text)' }}>
                           #{o.id}
                         </span>
-                        <Pill tone={o.col === 'done' ? 'ok' : o.col === 'way' ? 'info' : 'warn'}>
-                          {o.col === 'done' ? 'Доставлен' : o.col === 'way' ? 'В пути' : 'Кухня'}
+                        <Pill tone={o.col === 'done' ? 'ok' : o.col === 'way' ? 'info' : o.col === 'new' ? 'accent' : 'warn'}>
+                          {o.col === 'done' ? 'Доставлен' : o.col === 'way' ? 'В пути' : o.col === 'new' ? 'Новый' : 'Кухня'}
                         </Pill>
                       </div>
                       <div style={{ fontSize: 11.5, color: 'var(--text-2)' }} className="trunc">
@@ -613,7 +618,7 @@ function MenuScreen({ t, toast }) {
 
   const handleDeleteDish = async (dish) => {
     if (!dish) return;
-    if (!window.confirm(`Вы уверены, что хотите удалить блюдо "${dish.n}" из меню?`)) return;
+    if (!(await fxConfirm(`Удалить блюдо «${dish.n}» из меню? Это действие нельзя отменить.`, { title: 'Удалить блюдо' }))) return;
     try {
       const res = await fetch('/api/admin/menu/delete', {
         method: 'POST',
@@ -1740,7 +1745,7 @@ function Staff({ t, toast }) {
   };
 
   const handleDelete = async (m) => {
-    if (!window.confirm(`Удалить сотрудника ${m.name} (${m.role}) из штата ресторана?`)) return;
+    if (!(await fxConfirm(`Удалить сотрудника ${m.name} (${m.role}) из штата ресторана?`, { title: 'Удалить сотрудника' }))) return;
     try {
       const res = await fetch('/api/admin/staff/delete', {
         method: 'POST',

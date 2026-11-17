@@ -105,6 +105,7 @@ function Analytics({ t, orders = [] }) {
                   <th>Кто закрыл</th>
                   <th style={{ textAlign: 'right' }}>Чеков</th>
                   <th style={{ textAlign: 'right' }}>Наличные</th>
+                  <th style={{ textAlign: 'right' }}>Пересчёт кассы</th>
                   <th style={{ textAlign: 'right' }}>Карты / Онлайн</th>
                   <th style={{ textAlign: 'right' }}>Итого выручка</th>
                 </tr>
@@ -115,8 +116,8 @@ function Analytics({ t, orders = [] }) {
                     <td className="mono" style={{ fontWeight: 700, color: 'var(--accent)' }}>
                       #{s.shift_num}
                     </td>
-                    <td>{s.opened_at ? new Date(s.opened_at.replace(' ', 'T')).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                    <td>{s.closed_at ? new Date(s.closed_at.replace(' ', 'T')).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                    <td>{s.opened_at ? new Date(parseDbTime(s.opened_at)).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                    <td>{s.closed_at ? new Date(parseDbTime(s.closed_at)).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
                     <td>
                       {s.auto_closed === 1 ? (
                         <span className="pill" style={{ background: 'var(--warn-soft)', color: 'var(--warn)', fontSize: 9.5, padding: '2px 6px', borderRadius: 4 }}>
@@ -128,6 +129,11 @@ function Analytics({ t, orders = [] }) {
                     </td>
                     <td className="mono" style={{ textAlign: 'right' }}>{s.total_orders || 0}</td>
                     <td className="mono" style={{ textAlign: 'right', color: 'var(--ok)' }}>{summ(s.cash_total || 0)}</td>
+                    <td className="mono" style={{ textAlign: 'right' }} title={s.cash_note || ''}>
+                      {s.cash_counted == null ? <span className="dim">—</span> : (() => { const d = s.cash_counted - (s.cash_total || 0); return (
+                        <span style={{ color: d === 0 ? 'var(--ok)' : 'var(--danger)' }}>{d === 0 ? 'сошлось' : (d > 0 ? '+' : '−') + summ(Math.abs(d))}</span>
+                      ); })()}
+                    </td>
                     <td className="mono" style={{ textAlign: 'right', color: 'var(--info)' }}>{summ(s.card_total || 0)}</td>
                     <td className="mono" style={{ textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>
                       {summ(s.total_revenue || 0)} <small style={{ fontSize: 9.5 }}>сум</small>

@@ -20,6 +20,7 @@ const ACCENTS = {
 function mapBackendStatusToCol(status) {
   if (!status) return 'new';
   const s = String(status).toLowerCase();
+  if (s.includes('отмен') || s === 'cancelled') return 'cancelled';
   if (s.includes('выполнен') || s.includes('доставлен') || s.includes('завершен') || s === 'done') return 'done';
   if (s.includes('пути') || s.includes('выдаче') || s === 'way') return 'way';
   if (s.includes('кухн') || s.includes('готов') || s === 'kitchen') return 'kitchen';
@@ -94,21 +95,9 @@ function parseOrderItems(raw) {
   return [{ n: 'Заказ по меню', q: 1, p: 0 }];
 }
 
-// Automatic auth interceptor for admin API requests
-if (typeof window !== 'undefined' && !window.__fetchInterceptorInstalled) {
-  window.__fetchInterceptorInstalled = true;
-  const origFetch = window.fetch;
-  window.fetch = function(input, init = {}) {
-    try {
-      const token = localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth');
-      if (token && typeof input === 'string' && input.startsWith('/api/admin/')) {
-        init = Object.assign({}, init);
-        init.headers = Object.assign({}, init.headers || {}, { 'X-Admin-Key': token });
-      }
-    } catch (_) {}
-    return origFetch.call(this, input, init);
-  };
-}
+/* Auth: the server keeps the session in an HttpOnly cookie, so no token is handled here.
+   Old builds stored the password in localStorage — wipe it. */
+try { localStorage.removeItem('fenix_admin_auth'); sessionStorage.removeItem('fenix_admin_auth'); } catch (_) {}
 
 function SwitchOperatorModal({ isOpen, onClose, currentUser, onSelectUser, toast }) {
   const [staffList, setStaffList] = useState([]);
@@ -247,15 +236,8 @@ function App() {
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const theme = tw.theme, dir = tw.dir, lang = tw.lang;
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      const match = document.cookie.match(/(?:^|;\s*)fenix_admin_auth=([^;]+)/);
-      if (match) return true;
-      return Boolean(localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth'));
-    } catch (_) {
-      return false;
-    }
-  });
+  /* null = still checking with the server */
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   const [page, setPage] = useState(() => {
     try { return localStorage.getItem('fx.page') || 'dispatch'; } catch (e) { return 'dispatch'; }
@@ -268,6 +250,7 @@ function App() {
   const [printOrder, setPrintOrder] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [bookingsCount, setBookingsCount] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState(0);
   const [cmdk, setCmdk] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toasts, pushToast] = useToasts();
@@ -290,11 +273,6 @@ function App() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (_) {}
-    try {
-      localStorage.removeItem('fenix_admin_auth');
-      sessionStorage.removeItem('fenix_admin_auth');
-      document.cookie = 'fenix_admin_auth=; path=/; max-age=0; SameSite=Lax';
-    } catch (_) {}
     setIsAuthenticated(false);
     pushToast('Вы успешно вышли из системы', 'info', 'logOut');
   }, [pushToast]);
@@ -303,14 +281,9 @@ function App() {
     fetch('/api/auth/me')
       .then(r => r.json())
       .then(d => {
-        if (d && d.authenticated) {
-          setIsAuthenticated(true);
-        } else {
-          const localToken = localStorage.getItem('fenix_admin_auth') || sessionStorage.getItem('fenix_admin_auth');
-          if (!localToken) setIsAuthenticated(false);
-        }
+        setIsAuthenticated(!!(d && d.authenticated));
       })
-      .catch(() => {});
+      .catch(() => setIsAuthenticated(false));
   }, []);
 
   // Live Sync with Backend Orders
@@ -327,7 +300,8 @@ function App() {
         const mapped = data.orders.map((r) => {
           const type = mapOrderType(r.orderType, r.address);
           const col = mapBackendStatusToCol(r.status);
-          const createdTs = r.createdAt ? new Date(r.createdAt.replace(' ', 'T')).getTime() : Date.now();
+          const parsedTs = parseDbTime(r.createdAt);
+          const createdTs = isNaN(parsedTs) ? Date.now() : parsedTs;
           const elapsed = Math.max(1, Math.round((Date.now() - createdTs) / 60000));
           const items = parseOrderItems(r.items);
           const itemsTotal = items.reduce((sum, it) => sum + (Number(it.p || 0) * Number(it.q || 1)), 0);
@@ -342,27 +316,27 @@ function App() {
             col,
             client: r.customerName || 'Клиент',
             phone: r.customerPhone || '—',
-            addr: type === 'delivery' ? (r.address || 'Адрес доставки') : undefined,
+            addr: type === 'delivery' ? (stripCoords(r.address) || 'Адрес доставки') : undefined,
+            addrRaw: type === 'delivery' ? (r.address || '') : undefined,
             table: type === 'hall' ? (r.address || 'Стол в зале') : undefined,
             elapsed: isNaN(elapsed) ? 3 : elapsed,
             sla: type === 'delivery' ? 45 : 25,
             pay: (r.paymentMethod || '').toLowerCase().includes('налич') ? 'cash' : 'card',
-            note: '',
+            note: r.comment || '',
             items,
             fee,
-            total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 120000),
+            total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 0),
             createdAt: createdTs,
             isBackend: true,
             courier: r.courier || r.courierName || undefined,
             courierId: r.courierId || undefined,
           };
-        });
+        }).filter((o) => o.col !== 'cancelled');
 
         if (!isInitial) {
           mapped.forEach((o) => {
             if (!seenOrderIds.current.has(o.id)) {
               seenOrderIds.current.add(o.id);
-              if (tw.sound) beep('alert');
               pushToast(`Новый заказ #${o.id}!`, 'ok', 'dpad');
             }
           });
@@ -395,12 +369,15 @@ function App() {
       if (!res.ok) return;
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.reservations)) {
-        setBookingsCount(data.reservations.length);
+        const live = data.reservations.filter((r) => bookingStatus(r.status) !== 'cancelled');
+        setBookingsCount(live.filter((r) => isTodayDate(r.date)).length);
+        setPendingBookings(live.filter((r) => bookingStatus(r.status) === 'pending').length);
       }
     } catch (_) {}
   }, []);
 
   useEffect(() => {
+    if (isAuthenticated !== true) return;
     syncOrders(true);
     syncBookingsCount();
     const interval = setInterval(() => {
@@ -408,7 +385,7 @@ function App() {
       syncBookingsCount();
     }, 6000);
     return () => clearInterval(interval);
-  }, [syncOrders, syncBookingsCount]);
+  }, [syncOrders, syncBookingsCount, isAuthenticated]);
 
   /* persist */
   useEffect(() => { try { localStorage.setItem('fx.page', page); } catch (e) {} }, [page]);
@@ -514,15 +491,43 @@ function App() {
     else if (action === 'print') setPrintOrder(o);
   }, [advance, pushToast, orders]);
 
-  const counts = { live: orders.filter((o) => o.col !== 'done').length };
+  const counts = {
+    live: orders.filter((o) => o.col !== 'done').length,
+    bookings: pendingBookings,
+    couriers: orders.filter((o) => o.type === 'delivery' && o.col !== 'done').length,
+  };
   const loaded = openOrder ? orders.find((o) => o.id === openOrder.id) || openOrder : null;
+
+  /* New-order alarm: rings every 5 s while any order waits in "New", until someone accepts it */
+  const waiting = orders.filter((o) => o.col === 'new').sort((a, b) => a.createdAt - b.createdAt);
+  const [alarmMuteUntil, setAlarmMuteUntil] = useState(0);
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  useEffect(() => {
+    if (isAuthenticated !== true || !tw.sound || waiting.length === 0) return;
+    const ring = () => {
+      if (Date.now() < alarmMuteUntil) return;
+      beep('order');
+      setTimeout(() => setAudioBlocked(audioState() !== 'running'), 300);
+    };
+    ring();
+    const iv = setInterval(ring, 5000);
+    return () => clearInterval(iv);
+  }, [isAuthenticated, tw.sound, waiting.length, alarmMuteUntil]);
+  useEffect(() => {
+    document.title = waiting.length ? `(${waiting.length}) Новый заказ — FENIX` : 'FENIX — Диспетчерская';
+  }, [waiting.length]);
+  useEffect(() => {
+    const unlock = () => unlockAudio().then((st) => setAudioBlocked(st !== 'running'));
+    window.addEventListener('pointerdown', unlock, { once: true });
+    return () => window.removeEventListener('pointerdown', unlock);
+  }, []);
 
   const screens = {
     dispatch: <Dispatch t={t} orders={orders} dispatch={dispatch} view={view} setView={setView}
                         onOpen={setOpenOrder} onAdvance={(o) => advance(o)}
                         onPrint={setPrintOrder} toast={pushToast} lang={lang}
                         bookingsCount={bookingsCount}
-                        onUpdateOrder={(updated) => setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))}
+                        onUpdateOrder={(updated) => setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)).filter((o) => o.col !== 'cancelled'))}
                         onDeleteOrder={(deletedId) => setOrders((prev) => prev.filter((o) => o.id !== deletedId))} />,
     bookings: <Bookings t={t} toast={pushToast} />,
     banquets: <Banquets t={t} toast={pushToast} />,
@@ -536,6 +541,9 @@ function App() {
                        rail={tw.rail} setRail={(v) => setTweak('rail', v)} />,
   };
 
+  if (isAuthenticated === null) {
+    return <div className="auth-boot" aria-busy="true" />;
+  }
   if (!isAuthenticated) {
     return (
       <LoginScreen
@@ -591,9 +599,29 @@ function App() {
           currentShift={currentShift}
           onOpenShiftModal={() => setShiftModalOpen(true)}
         />
+        {waiting.length > 0 && (
+          <div className="order-alarm" role="alert">
+            <span className="order-alarm-bell" aria-hidden="true"><Icon name="bell" size={16} /></span>
+            <div className="order-alarm-txt">
+              <b>{waiting.length === 1 ? 'Новый заказ' : `Новых заказов: ${waiting.length}`}</b>
+              <span>#{waiting[0].id} · {waiting[0].client} · {summ(waiting[0].total)} сум{waiting[0].type === 'delivery' ? ' · доставка' : ''}</span>
+            </div>
+            <div className="order-alarm-act">
+              {audioBlocked && tw.sound && (
+                <Btn size="sm" onClick={() => unlockAudio().then((st) => setAudioBlocked(st !== 'running'))}>Включить звук</Btn>
+              )}
+              <Btn size="sm" onClick={() => setOpenOrder(waiting[0])}>Открыть</Btn>
+              <Btn size="sm" variant="accent" icon="check" onClick={() => advance(waiting[0])}>Принять</Btn>
+              {Date.now() >= alarmMuteUntil && tw.sound && (
+                <button type="button" className="order-alarm-mute" onClick={() => setAlarmMuteUntil(Date.now() + 120000)} title="Тишина на 2 минуты">Тише 2 мин</button>
+              )}
+            </div>
+          </div>
+        )}
         <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {screens[page]}
         </main>
+        <ConfirmHost />
         <MobileBottomNav
           page={page}
           setPage={(p) => { setPage(p); setMobileMenuOpen(false); }}

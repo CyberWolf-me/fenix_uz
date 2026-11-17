@@ -4,8 +4,8 @@ from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMar
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 
-from config import LOGO_AVATAR, WEBSITE_URL, BOT_ADMIN_PASSWORD, BOT_COURIER_PASSWORD
-from keyboards import main_reply_keyboard, cuisines_inline_keyboard, admin_panel_keyboard, website_inline_button
+from config import LOGO_AVATAR, WEBSITE_URL
+from keyboards import main_reply_keyboard, cuisines_inline_keyboard, website_inline_button
 import db
 from utils import safe_edit_or_send
 
@@ -49,8 +49,6 @@ HELP_TEXT = (
     "📲 Instagram: @fenix.tashkent\n"
     "📢 Telegram-канал: @fenix_tashkent"
 )
-
-ADMIN_PASSWORD = BOT_ADMIN_PASSWORD
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
@@ -127,114 +125,7 @@ async def callback_cancel(callback: CallbackQuery, state: FSMContext):
         reply_markup=cuisines_inline_keyboard()
     )
 
-# Admin authentication & panel
-@router.message(Command("admin"))
-@router.message(F.text == "⚙️ Панель администратора")
-async def cmd_admin(message: Message):
-    user_id = message.from_user.id
-    parts = message.text.split() if message.text else []
-    
-    if len(parts) > 1 and parts[1].strip() in (ADMIN_PASSWORD, "fenix"):
-        db.register_staff(user_id, message.from_user.username or "", message.from_user.full_name or "")
-        await message.answer(
-            "✅ <b>Авторизация успешна!</b>\nВы зарегистрированы как сотрудник ресторана Fenix.\n"
-            "Теперь вы будете получать уведомления обо всех новых заказах и бронированиях столов в реальном времени.",
-            parse_mode="HTML",
-            reply_markup=main_reply_keyboard(is_admin=True)
-        )
-        await message.answer("Панель управления персоналом:", reply_markup=admin_panel_keyboard())
-        return
-        
-    if db.is_staff(user_id):
-        stats = db.get_stats()
-        text = (
-            "⚙️ <b>Панель администратора FENIX</b>\n\n"
-            f"📦 Всего заказов: <b>{stats['total_orders']}</b>\n"
-            f"💰 Общая выручка: <b>{stats['total_revenue']:,} сум</b>\n".replace(",", " ") +
-            f"📅 Всего броней столов: <b>{stats['total_reservations']}</b>\n"
-            f"🎪 Всего заявок на банкеты: <b>{stats.get('total_events', 0)}</b>\n\n"
-            "Выберите раздел для просмотра:"
-        )
-        await message.answer(text, parse_mode="HTML", reply_markup=admin_panel_keyboard())
-    else:
-        await message.answer(
-            "🔒 <b>Вход для персонала Fenix:</b>\n\n"
-            "Для авторизации отправьте команду с паролем: <code>/admin fenix</code>",
-            parse_mode="HTML"
-        )
-
-@router.callback_query(F.data.startswith("adm:"))
-async def callback_admin_actions(callback: CallbackQuery):
-    user_id = callback.from_user.id
-    if not db.is_staff(user_id):
-        await callback.answer("У вас нет доступа к этой панели.", show_alert=True)
-        return
-        
-    action = callback.data.split(":")[1]
-    
-    if action == "orders":
-        orders = db.get_recent_orders(5)
-        if not orders:
-            await callback.answer("Заказов пока нет", show_alert=True)
-            return
-        lines = ["📋 <b>Последние 5 заказов:</b>\n"]
-        for o in orders:
-            lines.append(
-                f"▫️ <b>Заказ №{o['order_num']}</b> ({o['created_at'][:16]})\n"
-                f"   Клиент: {o['customer_name']} ({o['customer_phone']})\n"
-                f"   Тип: {o['order_type']}\n"
-                f"   Сумма: <b>{o['total_price']:,} сум</b>\n".replace(",", " ") +
-                f"   Статус: {o['status']}\n"
-            )
-        await safe_edit_or_send(callback, "\n".join(lines), reply_markup=admin_panel_keyboard())
-        await callback.answer()
-        
-    elif action == "reservations":
-        res_list = db.get_recent_reservations(5)
-        if not res_list:
-            await callback.answer("Броней пока нет", show_alert=True)
-            return
-        lines = ["📅 <b>Последние 5 броней столов:</b>\n"]
-        for r in res_list:
-            lines.append(
-                f"▫️ <b>Бронь №{r['code']}</b> ({r['created_at'][:16]})\n"
-                f"   Гость: {r['customer_name']} ({r['customer_phone']})\n"
-                f"   Дата и время: <b>{r['res_date']} в {r['res_time']}</b>\n"
-                f"   Персоны: {r['guests']} | Зона: {r['zone']}\n"
-                f"   Статус: {r['status']}\n"
-            )
-        await safe_edit_or_send(callback, "\n".join(lines), reply_markup=admin_panel_keyboard())
-        await callback.answer()
-
-    elif action == "events":
-        events_list = db.get_recent_events(5)
-        if not events_list:
-            await callback.answer("Заявок на банкеты пока нет", show_alert=True)
-            return
-        lines = ["🎪 <b>Последние 5 заявок на банкеты (с сайта):</b>\n"]
-        for ev in events_list:
-            lines.append(
-                f"▫️ <b>Заявка #{ev.get('event_id', ev['id'])}</b> ({ev['created_at'][:16]})\n"
-                f"   Клиент: {ev['customer_name']} ({ev['customer_phone']})\n"
-                f"   Событие: {ev['event_type']} | Зал: {ev['hall']}\n"
-                f"   Гостей: {ev['guests']} | Дата: {ev['event_date']}\n"
-                f"   Статус: {ev['status']}\n"
-            )
-        await safe_edit_or_send(callback, "\n".join(lines), reply_markup=admin_panel_keyboard())
-        await callback.answer()
-        
-    elif action in ("stats", "refresh"):
-        stats = db.get_stats()
-        text = (
-            "⚙️ <b>Панель администратора FENIX</b>\n\n"
-            f"📦 Всего заказов: <b>{stats['total_orders']}</b>\n"
-            f"💰 Общая выручка: <b>{stats['total_revenue']:,} сум</b>\n".replace(",", " ") +
-            f"📅 Всего броней столов: <b>{stats['total_reservations']}</b>\n"
-            f"🎪 Всего заявок на банкеты: <b>{stats.get('total_events', 0)}</b>\n\n"
-            "Данные обновлены."
-        )
-        await safe_edit_or_send(callback, text, reply_markup=admin_panel_keyboard())
-        await callback.answer("Обновлено")
+# Staff work in the web admin panel; the bot has no staff login.
 
 # ── Option 3: Telegram Courier Group Dispatch & Claim Fulfillment ───
 @router.message(Command("set_courier_group"))
@@ -247,6 +138,10 @@ async def cmd_set_courier_group(message: Message):
             "3. Отправьте в группе команду <code>/set_courier_group</code>.",
             parse_mode="HTML"
         )
+        return
+
+    if not db.is_staff(message.from_user.id):
+        await message.answer("🔒 Привязать группу курьеров может только сотрудник ресторана. Группу также можно указать в админ-панели (раздел «Курьеры»).")
         return
 
     chat_id = message.chat.id

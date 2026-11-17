@@ -202,6 +202,10 @@ try {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'новая заявка'
     );
+    CREATE TABLE IF NOT EXISTS admin_sessions (
+      token TEXT PRIMARY KEY,
+      created_at INTEGER NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
       value TEXT,
@@ -269,6 +273,8 @@ try {
   try { db.exec("ALTER TABLE orders ADD COLUMN shift_id INTEGER;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN cancel_reason TEXT;"); } catch (_) {}
   try { db.exec("ALTER TABLE orders ADD COLUMN comment TEXT;"); } catch (_) {}
+  try { db.exec("ALTER TABLE shifts ADD COLUMN cash_counted INTEGER;"); } catch (_) {}
+  try { db.exec("ALTER TABLE shifts ADD COLUMN cash_note TEXT;"); } catch (_) {}
 
   // Auto-seed menu_items from menu-data.js if table is empty
   try {
@@ -336,6 +342,45 @@ function getCourierGroupId() {
     } catch (_) {}
   }
   return process.env.COURIER_GROUP_CHAT_ID ? String(process.env.COURIER_GROUP_CHAT_ID).trim() : null;
+}
+
+// -- Admin sessions: random token in an HttpOnly cookie; the password never leaves the server --
+const SESSION_TTL_S = 30 * 24 * 3600;
+function createAdminSession() {
+  const token = crypto.randomBytes(32).toString("hex");
+  if (db) {
+    try {
+      db.prepare("DELETE FROM admin_sessions WHERE created_at < ?").run(Date.now() - SESSION_TTL_S * 1000);
+      db.prepare("INSERT INTO admin_sessions (token, created_at) VALUES (?, ?)").run(token, Date.now());
+    } catch (e) { console.error("[AUTH] session save failed:", e.message); }
+  }
+  return token;
+}
+function sessionTokenOf(req) {
+  const m = String(req.headers["cookie"] || "").match(/(?:^|;\s*)fenix_admin_session=([a-f0-9]{64})/);
+  return m ? m[1] : null;
+}
+function adminSession(req) {
+  const tok = sessionTokenOf(req);
+  if (!tok || !db) return false;
+  try {
+    const row = db.prepare("SELECT created_at FROM admin_sessions WHERE token = ?").get(tok);
+    return !!row && Date.now() - Number(row.created_at) < SESSION_TTL_S * 1000;
+  } catch (_) { return false; }
+}
+function clientIpOf(req) {
+  return String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "?";
+}
+// Login brute-force guard: 8 failed attempts per IP -> 15 min lock
+const loginFails = new Map();
+function loginLocked(ip) {
+  const f = loginFails.get(ip);
+  return !!f && f.n >= 8 && Date.now() - f.t < 15 * 60_000;
+}
+function noteLoginFail(ip) {
+  const f = loginFails.get(ip);
+  if (!f || Date.now() - f.t > 15 * 60_000) loginFails.set(ip, { n: 1, t: Date.now() });
+  else { f.n += 1; f.t = Date.now(); }
 }
 
 // Simple in-memory IP rate limiter (max 15 requests per 5 minutes)
@@ -424,7 +469,7 @@ function closeShiftInternal(dbInstance, shiftId, closedBy = "admin", autoClosed 
       COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%самовыв%' THEN 1 ELSE 0 END), 0) AS pickup_orders,
       COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%зал%' THEN 1 ELSE 0 END), 0) AS hall_orders
     FROM orders
-    WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+    WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%' AND LOWER(status) NOT LIKE '%отмен%'
   `).get(shiftId) || {};
 
   dbInstance.prepare(`
@@ -936,9 +981,11 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-key, Authorization");
+  if (!url.pathname.startsWith("/api/admin/") && !url.pathname.startsWith("/api/auth/")) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -948,23 +995,16 @@ const server = http.createServer(async (req, res) => {
 
   // Admin OS & API Authentication Guard
   const ADMIN_USER = process.env.ADMIN_USER || "admin";
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "fenix_admin_2026";
-  const VALID_PASSWORDS = process.env.ADMIN_PASSWORD
-    ? new Set([process.env.ADMIN_PASSWORD.trim()])
-    : new Set(["fenix_admin_2026", "fenix2026"]);
+  const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
+  if (!ADMIN_PASSWORD && !globalThis.__fxNoPwWarned) { globalThis.__fxNoPwWarned = true; console.warn("[AUTH] ADMIN_PASSWORD is not set - admin login is disabled."); }
+  const VALID_PASSWORDS = new Set(ADMIN_PASSWORD ? [ADMIN_PASSWORD] : []);
 
   function isRequestAuthorized(req, url) {
     // 1. Check Cookie
-    const cookieHeader = req.headers["cookie"] || "";
-    if (cookieHeader) {
-      const match = cookieHeader.match(/(?:^|;\s*)fenix_admin_auth=([^;]+)/);
-      if (match && VALID_PASSWORDS.has(decodeURIComponent(match[1]))) {
-        return true;
-      }
-    }
-    // 2. Check X-Admin-Key header or ?key= parameter
-    const keyHeader = req.headers["x-admin-key"] || url.searchParams.get("key");
-    if (VALID_PASSWORDS.has(keyHeader)) return true;
+    if (adminSession(req)) return true;
+    // 2. X-Admin-Key header (server-to-server scripts only; never in the URL)
+    const keyHeader = req.headers["x-admin-key"];
+    if (keyHeader && VALID_PASSWORDS.has(String(keyHeader))) return true;
 
     // 3. Check Authorization header (Bearer or Basic)
     const authHeader = req.headers["authorization"] || "";
@@ -989,21 +1029,31 @@ const server = http.createServer(async (req, res) => {
     for await (const chunk of req) rawBody += chunk;
     let payload = {};
     try { payload = JSON.parse(rawBody || "{}"); } catch (_) {}
-    const { username, password } = payload;
+    const { username, password, remember } = payload;
     const cleanUser = String(username || "").trim().toLowerCase();
     const cleanPass = String(password || "").trim();
+    const ip = clientIpOf(req);
 
-    if ((cleanUser === ADMIN_USER.toLowerCase() || cleanUser === "admin" || cleanUser === "fenix") && VALID_PASSWORDS.has(cleanPass)) {
+    if (loginLocked(ip)) {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Слишком много попыток. Подождите 15 минут." }));
+      return;
+    }
+    if ((cleanUser === ADMIN_USER.toLowerCase() || cleanUser === "admin" || cleanUser === "fenix") && cleanPass && VALID_PASSWORDS.has(cleanPass)) {
+      loginFails.delete(ip);
+      const token = createAdminSession();
+      const secure = String(req.headers["x-forwarded-proto"] || "").includes("https") || req.socket.encrypted ? "; Secure" : "";
+      const maxAge = remember === false ? "" : `; Max-Age=${SESSION_TTL_S}`;
       res.writeHead(200, {
         "Content-Type": "application/json",
-        "Set-Cookie": `fenix_admin_auth=${encodeURIComponent(cleanPass)}; Path=/; Max-Age=2592000; SameSite=Lax`
+        "Set-Cookie": [`fenix_admin_session=${token}; Path=/; HttpOnly; SameSite=Strict${maxAge}${secure}`, "fenix_admin_auth=; Path=/; Max-Age=0"]
       });
       res.end(JSON.stringify({
         ok: true,
-        token: cleanPass,
         user: { username: cleanUser, name: "Администратор Fenix", role: "Диспетчер" }
       }));
     } else {
+      noteLoginFail(ip);
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: "Неверный логин или пароль" }));
     }
@@ -1011,9 +1061,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && url.pathname === "/api/auth/logout") {
+    const tok = sessionTokenOf(req);
+    if (tok && db) { try { db.prepare("DELETE FROM admin_sessions WHERE token = ?").run(tok); } catch (_) {} }
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Set-Cookie": "fenix_admin_auth=; Path=/; Max-Age=0; SameSite=Lax"
+      "Set-Cookie": ["fenix_admin_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict", "fenix_admin_auth=; Path=/; Max-Age=0"]
     });
     res.end(JSON.stringify({ ok: true }));
     return;
@@ -1645,7 +1697,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
         COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%самовыв%' THEN 1 ELSE 0 END), 0) AS pickup_orders,
         COALESCE(SUM(CASE WHEN LOWER(order_type) LIKE '%зал%' THEN 1 ELSE 0 END), 0) AS hall_orders
       FROM orders
-      WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%'
+      WHERE shift_id = ? AND LOWER(status) NOT LIKE '%тест%' AND LOWER(status) NOT LIKE '%отмен%'
     `).get(currentShift.id) || {};
 
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -1711,6 +1763,13 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     }
 
     const result = closeShiftInternal(db, currentShift.id, closedBy, false);
+    const cashCounted = Number.isFinite(Number(payload.cashCounted)) && payload.cashCounted !== null && payload.cashCounted !== "" ? Math.round(Number(payload.cashCounted)) : null;
+    if (cashCounted !== null) {
+      try {
+        db.prepare("UPDATE shifts SET cash_counted = ?, cash_note = ? WHERE id = ?")
+          .run(cashCounted, String(payload.cashNote || "").slice(0, 300) || null, currentShift.id);
+      } catch (e) { console.error("[Shift] cash count save failed:", e.message); }
+    }
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
@@ -1739,7 +1798,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
     const history = db.prepare(`
       SELECT id, shift_num, opened_at, closed_at, opened_by, closed_by, auto_closed,
              total_orders, total_revenue, cash_total, card_total,
-             delivery_orders, pickup_orders, hall_orders, status
+             delivery_orders, pickup_orders, hall_orders, status, cash_counted, cash_note
       FROM shifts
       WHERE status = 'closed'
       ORDER BY id DESC LIMIT 50
@@ -1794,12 +1853,14 @@ function normalizeOrderItems(rawItems, priceMap = null) {
       }
 
       // Aggregate metrics
+      const allOrderRows = ordersRows;
+      ordersRows = ordersRows.filter(o => !String(o.status || '').toLowerCase().includes('отмен'));
       const totalOrders = ordersRows.length;
       const totalRevenue = ordersRows.reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
       const avgCheck = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
       const completedOrders = ordersRows.filter(o => String(o.status || '').toLowerCase().includes('выполнен') || String(o.status || '').toLowerCase().includes('заверш'));
-      const cancelledOrders = ordersRows.filter(o => String(o.status || '').toLowerCase().includes('отмен'));
-      const completionRate = totalOrders > 0 ? Math.round((completedOrders.length / totalOrders) * 100) : 100;
+      const cancelledOrders = allOrderRows.filter(o => String(o.status || '').toLowerCase().includes('отмен'));
+      const completionRate = allOrderRows.length > 0 ? Math.round((completedOrders.length / allOrderRows.length) * 100) : 100;
 
       const cashTotal = ordersRows.filter(o => String(o.payment_method || '').toLowerCase().includes('налич')).reduce((s, o) => s + (Number(o.total_price) || 0), 0);
       const cardTotal = totalRevenue - cashTotal;
@@ -1923,7 +1984,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
           rows = db.prepare(`
             SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
                    order_type, address, payment_method, items_json, total_price, 
-                   created_at, status, courier_name, courier_id, shift_id, cancel_reason
+                   created_at, status, courier_name, courier_id, shift_id, cancel_reason, comment
             FROM orders 
             ORDER BY id DESC LIMIT 200
           `).all();
@@ -1931,7 +1992,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
           rows = db.prepare(`
             SELECT id, order_num, user_id, user_name, customer_name, customer_phone, 
                    order_type, address, payment_method, items_json, total_price, 
-                   created_at, status, courier_name, courier_id, shift_id, cancel_reason
+                   created_at, status, courier_name, courier_id, shift_id, cancel_reason, comment
             FROM orders 
             WHERE (shift_id = ? 
                    OR (shift_id IS NULL AND DATE(created_at) >= DATE('now', '-1 day'))
@@ -1964,6 +2025,7 @@ function normalizeOrderItems(rawItems, priceMap = null) {
             courierId: r.courier_id || null,
             shiftId: r.shift_id || null,
             cancelReason: r.cancel_reason || null,
+            comment: r.comment || "",
           };
         });
       } catch (err) {
@@ -2239,6 +2301,40 @@ function normalizeOrderItems(rawItems, priceMap = null) {
   }
 
   // 4. Admin Reservations List
+  // Floor plan (table positions + live status), shared between all admin devices
+  if (url.pathname === "/api/admin/floor" && (req.method === "GET" || req.method === "POST")) {
+    if (req.method === "GET") {
+      let layout = null;
+      try {
+        const row = db && db.prepare("SELECT value FROM app_settings WHERE key = 'floor_layout'").get();
+        if (row && row.value) layout = JSON.parse(row.value);
+      } catch (_) {}
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, layout }));
+      return;
+    }
+    let body = "";
+    for await (const chunk of req) { body += chunk; if (body.length > 200000) break; }
+    let data = null;
+    try { data = JSON.parse(body); } catch (_) {}
+    const okTable = (x) => x && typeof x.id === "string" && Number.isFinite(x.x) && Number.isFinite(x.y);
+    if (!data || !Array.isArray(data.f1) || !Array.isArray(data.f2) || data.f1.length > 200 || data.f2.length > 200 || ![...data.f1, ...data.f2].every(okTable)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "bad layout" }));
+      return;
+    }
+    try {
+      db.prepare("INSERT INTO app_settings (key, value, updated_at) VALUES ('floor_layout', ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP")
+        .run(JSON.stringify({ f1: data.f1, f2: data.f2 }));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: e.message }));
+    }
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/admin/reservations") {
     let reservations = [];
     if (db) {

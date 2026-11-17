@@ -63,8 +63,7 @@ def main_reply_keyboard(is_admin: bool = False) -> ReplyKeyboardMarkup:
             KeyboardButton(text="📞 Контакты и соцсети")
         ]
     ]
-    if is_admin:
-        kb.append([KeyboardButton(text="⚙️ Панель администратора")])
+    # staff tools live in the web admin panel, not in the bot
     return ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
 
 def cuisines_inline_keyboard() -> InlineKeyboardMarkup:

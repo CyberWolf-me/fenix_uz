@@ -3,6 +3,37 @@ const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } = R
 
 /* ── formatters ───────────────────────────────────────── */
 const nf = new Intl.NumberFormat('ru-RU');
+/* address helpers: website orders end with " [lat, lon]" */
+const COORD_RX = /\s*\[\s*(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*\]\s*$/;
+const FENIX_GEO = [41.2858, 69.3402];
+function escHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function stripCoords(a) { return String(a || '').replace(COORD_RX, '').trim(); }
+function coordsOf(a) { const m = String(a || '').match(COORD_RX); return m ? [parseFloat(m[1]), parseFloat(m[2])] : null; }
+/* SQLite CURRENT_TIMESTAMP is UTC without a zone marker */
+function parseDbTime(v) {
+  if (!v) return NaN;
+  const s = String(v).trim().replace(' ', 'T');
+  return Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+}
+/* reservation status → pending | confirmed | seated | cancelled */
+function bookingStatus(raw) {
+  const s = String(raw || '').toLowerCase();
+  if (s.includes('отмен') || s === 'cancelled') return 'cancelled';
+  if (s.includes('ожида') || s === 'pending' || s.includes('нов')) return 'pending';
+  if (s.includes('посажен') || s === 'seated') return 'seated';
+  if (s.includes('подтвержд') || s === 'confirmed') return 'confirmed';
+  return 'pending';
+}
+function mapsLinks(addrRaw) {
+  const c = coordsOf(addrRaw);
+  const q = c ? `${c[0]},${c[1]}` : stripCoords(addrRaw) + ', Ташкент';
+  return {
+    yandex: c ? `https://yandex.uz/maps/?pt=${c[1]},${c[0]}&z=17&l=map` : `https://yandex.uz/maps/?text=${encodeURIComponent(q)}`,
+    google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,
+    exact: !!c,
+  };
+}
+
 function money(n, cur) { return nf.format(Math.round(n)) + (cur === false ? '' : ''); }
 function summ(n) { return nf.format(Math.round(n)); }
 function initials(name) {
@@ -71,6 +102,8 @@ const ICON_PATHS = {
   logOut: 'M7 17.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-12A1.5 1.5 0 0 1 4.5 2.5H7 M12.5 14l4-4-4-4 M16.5 10H7',
   music: 'M9 18V5l8-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M17 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
   hamburger: 'M3 5.5h14 M3 10h14 M3 14.5h14',
+  sun: 'M10 6.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z M10 2.2v1.6 M10 16.2v1.6 M2.2 10h1.6 M16.2 10h1.6 M4.5 4.5l1.1 1.1 M14.4 14.4l1.1 1.1 M4.5 15.5l1.1-1.1 M14.4 5.6l1.1-1.1',
+  moon: 'M16.4 12.4A6.6 6.6 0 0 1 7.6 3.6a6.6 6.6 0 1 0 8.8 8.8Z',
 };
 
 function Icon({ name, size = 16, stroke = 1.6, style, className }) {
@@ -272,13 +305,15 @@ function beep(kind = 'alert') {
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const t0 = audioCtx.currentTime;
-    const tones = kind === 'danger' ? [740, 560] : [560, 740];
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    const tones = kind === 'order' ? [660, 880, 990] : kind === 'danger' ? [740, 560] : [560, 740];
+    const vol = kind === 'order' ? 0.22 : 0.05;
     tones.forEach((f, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine'; osc.frequency.value = f;
       gain.gain.setValueAtTime(0, t0 + i * 0.13);
-      gain.gain.linearRampToValueAtTime(0.05, t0 + i * 0.13 + 0.015);
+      gain.gain.linearRampToValueAtTime(vol, t0 + i * 0.13 + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.13 + 0.11);
       osc.connect(gain); gain.connect(audioCtx.destination);
       osc.start(t0 + i * 0.13); osc.stop(t0 + i * 0.13 + 0.12);
@@ -286,7 +321,43 @@ function beep(kind = 'alert') {
   } catch (e) { /* no audio */ }
 }
 
+/* audio is blocked until the user interacts with the page */
+function audioState() { try { return audioCtx ? audioCtx.state : 'suspended'; } catch (_) { return 'suspended'; } }
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx.resume().then(() => audioCtx.state);
+  } catch (_) { return Promise.resolve('suspended'); }
+}
+
+/* in-app confirm dialog: `if (!(await fxConfirm('…'))) return;` */
+let confirmSetter = null;
+function fxConfirm(message, opts = {}) {
+  if (!confirmSetter) return Promise.resolve(window.confirm(message));
+  return new Promise((resolve) => confirmSetter({ message, ...opts, resolve }));
+}
+function ConfirmHost() {
+  const [req, setReq] = useState(null);
+  useEffect(() => { confirmSetter = setReq; return () => { confirmSetter = null; }; }, []);
+  if (!req) return null;
+  const done = (v) => { req.resolve(v); setReq(null); };
+  return (
+    <Modal onClose={() => done(false)} width={400} label="Подтверждение">
+      <div className="modal-head">
+        <Icon name="alert" size={16} style={{ color: req.danger === false ? 'var(--accent)' : 'var(--danger)' }} />
+        <div className="modal-title grow">{req.title || 'Подтвердите действие'}</div>
+      </div>
+      <div className="modal-body"><p className="confirm-msg">{req.message}</p></div>
+      <div className="modal-foot">
+        <Btn variant={req.danger === false ? 'accent' : 'danger'} className="grow" autoFocus onClick={() => done(true)}>{req.okText || 'Удалить'}</Btn>
+        <Btn variant="ghost" onClick={() => done(false)}>Отмена</Btn>
+      </div>
+    </Modal>
+  );
+}
+
 Object.assign(window, {
+  audioState, unlockAudio, fxConfirm, ConfirmHost,
   useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect,
   nf, money, summ, initials, Icon, Btn, Pill, PILL_TONES, TYPE_META, TypeTag,
   slaState, fmtElapsed, SlaBar, SlaTime, Spark, Bars, LineChart, useTick, Modal, useToasts, Toasts, beep,

@@ -2,12 +2,12 @@
 const NAV = [
   { group: 'grp_ops', items: [
     { id: 'dispatch', icon: 'dpad', k: 'dispatch', badge: 'live' },
-    { id: 'bookings', icon: 'calendar', k: 'bookings', badge: 4 },
+    { id: 'bookings', icon: 'calendar', k: 'bookings', badge: 'bookings' },
     { id: 'banquets', icon: 'star', k: 'banquets' },
   ]},
   { group: 'grp_venue', items: [
     { id: 'floor', icon: 'grid', k: 'floor' },
-    { id: 'couriers', icon: 'bike', k: 'couriers', badge: 3 },
+    { id: 'couriers', icon: 'bike', k: 'couriers', badge: 'couriers' },
   ]},
   { group: 'grp_admin', items: [
     { id: 'menu', icon: 'menuBook', k: 'menu' },
@@ -66,7 +66,7 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
               <div className="nav-group-label">{t(g.group)}</div>
               {g.items.map((it) => {
                 const on = page === it.id;
-                const b = it.badge === 'live' ? counts.live : it.badge;
+                const b = it.badge ? (counts[it.badge] || null) : null;
                 return (
                   <button key={it.id} className="nav-item" data-on={on ? '1' : '0'}
                           onClick={() => { setPage(it.id); if (onCloseMobile) onCloseMobile(); }}
@@ -185,36 +185,30 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
           <span className="kbd hide-mobile">⌘K</span>
         </button>
 
-        <div className="seg hide-mobile" role="group" aria-label={t('theme')}>
-          {THEMES.map((th) => (
-            <button key={th.id} data-on={theme === th.id ? '1' : '0'} onClick={() => setTheme(th.id)}
-                    title={th.label} style={{ padding: '0 7px' }}>
-              <span style={{
-                width: 9, height: 9, borderRadius: 2, display: 'block',
-                background: th.swatch, boxShadow: '0 0 0 1px var(--line)',
-              }} />
-            </button>
-          ))}
-        </div>
+        <button type="button" className="btn btn-ghost btn-icon topbar-theme hide-mobile"
+                onClick={() => setTheme(theme === 'cream' ? 'gold' : 'cream')}
+                title={theme === 'cream' ? 'Тёмная тема' : 'Светлая тема'} aria-label={theme === 'cream' ? 'Тёмная тема' : 'Светлая тема'}>
+          <Icon name={theme === 'cream' ? 'moon' : 'sun'} size={17} />
+        </button>
 
-        <button className="btn btn-ghost btn-sm hide-mobile" onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'en' : 'ru')}
-                title={t('language')}
-                style={{ fontFamily: 'var(--f-mono)', fontSize: 10, letterSpacing: '.04em', padding: '0 6px' }}>
-          {lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : lang === 'en' ? 'EN' : 'ЎЗ'}
+        <button type="button" className="btn topbar-btn topbar-lang hide-mobile"
+                onClick={() => setLang(lang === 'ru' ? 'uz' : lang === 'uz' ? 'en' : 'ru')}
+                title={t('language')}>
+          <Icon name="globe" size={15} />
+          <span>{lang === 'ru' ? 'RU' : lang === 'uz' ? 'UZ' : lang === 'en' ? 'EN' : 'ЎЗ'}</span>
         </button>
 
         <button
           type="button"
-          className="btn btn-ghost btn-sm hide-mobile"
+          className="btn topbar-btn topbar-day hide-mobile"
           onClick={onOpenShiftModal}
           title={t('close_shift_zreport')}
-          style={{ gap: 5, color: 'var(--accent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' }}
         >
-          <Icon name="check" size={13} />
+          <Icon name="check" size={15} />
           <span>{t('day_summary')}</span>
         </button>
 
-        <Btn size="sm" variant="accent" icon="plus" onClick={onNew}>{t('create')}</Btn>
+        <Btn variant="accent" icon="plus" className="topbar-btn topbar-create" onClick={onNew}>{t('create')}</Btn>
         {onLogout && (
           <button className="btn btn-ghost btn-icon btn-sm hide-mobile" title="Выйти из системы" onClick={onLogout} style={{ color: 'var(--text-3)' }}>
             <Icon name="logOut" size={15} />
@@ -228,9 +222,9 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
 function MobileBottomNav({ page, setPage, counts, onOpenDrawer }) {
   const PRIMARY_TABS = [
     { id: 'dispatch', label: 'Заказы', icon: 'dpad', badge: counts.live },
-    { id: 'bookings', label: 'Брони', icon: 'calendar', badge: 4 },
+    { id: 'bookings', label: 'Брони', icon: 'calendar', badge: counts.bookings },
     { id: 'floor', label: 'Зал', icon: 'grid' },
-    { id: 'couriers', label: 'Курьеры', icon: 'bike', badge: 3 },
+    { id: 'couriers', label: 'Курьеры', icon: 'bike', badge: counts.couriers },
     { id: 'menu', label: 'Меню', icon: 'menuBook' },
   ];
 
@@ -595,12 +589,15 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
 
 function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast }) {
   const [loading, setLoading] = useState(false);
+  const [cashCounted, setCashCounted] = useState('');
+  const [cashNote, setCashNote] = useState('');
   const [shiftData, setShiftData] = useState(null);
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
+      setCashCounted(''); setCashNote('');
       fetch('/api/admin/shift/current')
         .then(r => r.json())
         .then(d => {
@@ -621,7 +618,9 @@ function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           closedBy: currentUser?.full_name || currentUser?.name || 'Администратор Fenix',
-          force
+          force,
+          cashCounted: cashCounted === '' ? null : Number(String(cashCounted).replace(/\D/g, '')),
+          cashNote
         })
       });
       const data = await res.json();
@@ -710,6 +709,31 @@ function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast })
               </div>
             </div>
 
+            {(() => {
+              const counted = cashCounted === '' ? null : Number(String(cashCounted).replace(/\D/g, ''));
+              const diff = counted == null ? null : counted - (s.cashTotal || 0);
+              return (
+                <div className="cash-count">
+                  <div className="label">Пересчёт кассы</div>
+                  <div className="cash-count-row">
+                    <label className="cash-count-field">
+                      <span>Фактически в кассе, сум</span>
+                      <input className="input mono" inputMode="numeric" placeholder={summ(s.cashTotal || 0)}
+                             value={cashCounted === '' ? '' : summ(Number(String(cashCounted).replace(/\D/g, '')) || 0)}
+                             onChange={(e) => setCashCounted(e.target.value.replace(/\D/g, ''))} />
+                    </label>
+                    <div className="cash-count-diff" data-tone={diff == null ? 'muted' : diff === 0 ? 'ok' : 'danger'}>
+                      {diff == null ? 'Введите сумму' : diff === 0 ? 'Касса сошлась' : `${diff > 0 ? 'Излишек' : 'Недостача'}: ${summ(Math.abs(diff))} сум`}
+                    </div>
+                  </div>
+                  {diff != null && diff !== 0 && (
+                    <input className="input" placeholder="Комментарий к расхождению (необязательно)" value={cashNote}
+                           maxLength={300} onChange={(e) => setCashNote(e.target.value)} />
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="card" style={{ padding: '10px 14px', background: 'var(--surface-2)' }}>
               <div className="label" style={{ marginBottom: 6 }}>Разбивка по каналам заказов</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, fontSize: 11.5 }}>
@@ -720,7 +744,7 @@ function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast })
             </div>
 
             <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>
-              Смена открыта: <b>{s.openedAt ? new Date(s.openedAt).toLocaleString('ru-RU') : '—'}</b> (оператор: {s.openedBy || 'admin'}).
+              Смена открыта: <b>{s.openedAt ? new Date(parseDbTime(s.openedAt)).toLocaleString('ru-RU') : '—'}</b> (оператор: {s.openedBy || 'admin'}).
               После нажатия «Завершить смену» текущий день будет сохранён в архиве, а рабочий экран заказов и кассы сбросится до 0.
             </div>
           </>

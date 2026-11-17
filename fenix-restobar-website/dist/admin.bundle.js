@@ -684,6 +684,40 @@ function useTwkTypewriter(items, { placeholder, typeMs = 35, eraseMs = 22, pause
 Object.assign(window, { TweakSuggestionBar });
 const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } = React;
 const nf = new Intl.NumberFormat("ru-RU");
+const COORD_RX = /\s*\[\s*(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*\]\s*$/;
+const FENIX_GEO = [41.2858, 69.3402];
+function escHtml(v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+function stripCoords(a) {
+  return String(a || "").replace(COORD_RX, "").trim();
+}
+function coordsOf(a) {
+  const m = String(a || "").match(COORD_RX);
+  return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+}
+function parseDbTime(v) {
+  if (!v) return NaN;
+  const s = String(v).trim().replace(" ", "T");
+  return Date.parse(/[zZ]$|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z");
+}
+function bookingStatus(raw) {
+  const s = String(raw || "").toLowerCase();
+  if (s.includes("\u043E\u0442\u043C\u0435\u043D") || s === "cancelled") return "cancelled";
+  if (s.includes("\u043E\u0436\u0438\u0434\u0430") || s === "pending" || s.includes("\u043D\u043E\u0432")) return "pending";
+  if (s.includes("\u043F\u043E\u0441\u0430\u0436\u0435\u043D") || s === "seated") return "seated";
+  if (s.includes("\u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434") || s === "confirmed") return "confirmed";
+  return "pending";
+}
+function mapsLinks(addrRaw) {
+  const c = coordsOf(addrRaw);
+  const q = c ? `${c[0]},${c[1]}` : stripCoords(addrRaw) + ", \u0422\u0430\u0448\u043A\u0435\u043D\u0442";
+  return {
+    yandex: c ? `https://yandex.uz/maps/?pt=${c[1]},${c[0]}&z=17&l=map` : `https://yandex.uz/maps/?text=${encodeURIComponent(q)}`,
+    google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,
+    exact: !!c
+  };
+}
 function money(n, cur) {
   return nf.format(Math.round(n)) + (cur === false ? "" : "");
 }
@@ -753,7 +787,9 @@ const ICON_PATHS = {
   eyeOff: "M2 2l16 16 M8.4 8.5a2.6 2.6 0 0 0 3.1 3.1 M5.1 5.3C3.5 6.6 2 10 2 10s3 5.5 8 5.5c1.9 0 3.6-.6 5-1.6 M11.8 4.7C17 5.2 18.5 10 18.5 10s-1 1.9-2.5 3.3",
   logOut: "M7 17.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-12A1.5 1.5 0 0 1 4.5 2.5H7 M12.5 14l4-4-4-4 M16.5 10H7",
   music: "M9 18V5l8-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M17 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
-  hamburger: "M3 5.5h14 M3 10h14 M3 14.5h14"
+  hamburger: "M3 5.5h14 M3 10h14 M3 14.5h14",
+  sun: "M10 6.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z M10 2.2v1.6 M10 16.2v1.6 M2.2 10h1.6 M16.2 10h1.6 M4.5 4.5l1.1 1.1 M14.4 14.4l1.1 1.1 M4.5 15.5l1.1-1.1 M14.4 5.6l1.1-1.1",
+  moon: "M16.4 12.4A6.6 6.6 0 0 1 7.6 3.6a6.6 6.6 0 1 0 8.8 8.8Z"
 };
 function Icon({ name, size = 16, stroke = 1.6, style, className }) {
   const d = ICON_PATHS[name] || ICON_PATHS.box;
@@ -954,14 +990,17 @@ function beep(kind = "alert") {
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     const t0 = audioCtx.currentTime;
-    const tones = kind === "danger" ? [740, 560] : [560, 740];
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {
+    });
+    const tones = kind === "order" ? [660, 880, 990] : kind === "danger" ? [740, 560] : [560, 740];
+    const vol = kind === "order" ? 0.22 : 0.05;
     tones.forEach((f, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = f;
       gain.gain.setValueAtTime(0, t0 + i * 0.13);
-      gain.gain.linearRampToValueAtTime(0.05, t0 + i * 0.13 + 0.015);
+      gain.gain.linearRampToValueAtTime(vol, t0 + i * 0.13 + 0.015);
       gain.gain.exponentialRampToValueAtTime(1e-4, t0 + i * 0.13 + 0.11);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
@@ -971,7 +1010,46 @@ function beep(kind = "alert") {
   } catch (e) {
   }
 }
+function audioState() {
+  try {
+    return audioCtx ? audioCtx.state : "suspended";
+  } catch (_) {
+    return "suspended";
+  }
+}
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx.resume().then(() => audioCtx.state);
+  } catch (_) {
+    return Promise.resolve("suspended");
+  }
+}
+let confirmSetter = null;
+function fxConfirm(message, opts = {}) {
+  if (!confirmSetter) return Promise.resolve(window.confirm(message));
+  return new Promise((resolve) => confirmSetter({ message, ...opts, resolve }));
+}
+function ConfirmHost() {
+  const [req, setReq] = useState(null);
+  useEffect(() => {
+    confirmSetter = setReq;
+    return () => {
+      confirmSetter = null;
+    };
+  }, []);
+  if (!req) return null;
+  const done = (v) => {
+    req.resolve(v);
+    setReq(null);
+  };
+  return /* @__PURE__ */ React.createElement(Modal, { onClose: () => done(false), width: 400, label: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435" }, /* @__PURE__ */ React.createElement("div", { className: "modal-head" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 16, style: { color: req.danger === false ? "var(--accent)" : "var(--danger)" } }), /* @__PURE__ */ React.createElement("div", { className: "modal-title grow" }, req.title || "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435")), /* @__PURE__ */ React.createElement("div", { className: "modal-body" }, /* @__PURE__ */ React.createElement("p", { className: "confirm-msg" }, req.message)), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(Btn, { variant: req.danger === false ? "accent" : "danger", className: "grow", autoFocus: true, onClick: () => done(true) }, req.okText || "\u0423\u0434\u0430\u043B\u0438\u0442\u044C"), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: () => done(false) }, "\u041E\u0442\u043C\u0435\u043D\u0430")));
+}
 Object.assign(window, {
+  audioState,
+  unlockAudio,
+  fxConfirm,
+  ConfirmHost,
   useState,
   useEffect,
   useRef,
@@ -1004,12 +1082,12 @@ Object.assign(window, {
 const NAV = [
   { group: "grp_ops", items: [
     { id: "dispatch", icon: "dpad", k: "dispatch", badge: "live" },
-    { id: "bookings", icon: "calendar", k: "bookings", badge: 4 },
+    { id: "bookings", icon: "calendar", k: "bookings", badge: "bookings" },
     { id: "banquets", icon: "star", k: "banquets" }
   ] },
   { group: "grp_venue", items: [
     { id: "floor", icon: "grid", k: "floor" },
-    { id: "couriers", icon: "bike", k: "couriers", badge: 3 }
+    { id: "couriers", icon: "bike", k: "couriers", badge: "couriers" }
   ] },
   { group: "grp_admin", items: [
     { id: "menu", icon: "menuBook", k: "menu" },
@@ -1051,7 +1129,7 @@ function Sidebar({ page, setPage, rail, t, counts, onLogout, mobileOpen, onClose
     /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 16 })
   )), /* @__PURE__ */ React.createElement("div", { className: "nav-scroll" }, NAV.map((g) => /* @__PURE__ */ React.createElement("div", { className: "nav-group", key: g.group }, /* @__PURE__ */ React.createElement("div", { className: "nav-group-label" }, t(g.group)), g.items.map((it) => {
     const on = page === it.id;
-    const b = it.badge === "live" ? counts.live : it.badge;
+    const b = it.badge ? counts[it.badge] || null : null;
     return /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -1138,51 +1216,44 @@ function Topbar({ page, t, rail, setRail, now, onSearch, theme, setTheme, lang, 
     },
     /* @__PURE__ */ React.createElement("span", { className: "shift-status-dot" }),
     /* @__PURE__ */ React.createElement("span", null, "\u0421\u043C\u0435\u043D\u0430 #", currentShift?.shiftNum || 1)
-  ), /* @__PURE__ */ React.createElement("span", { className: "clock" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 13 }), t("shift"), ": ", /* @__PURE__ */ React.createElement("b", null, clock))), /* @__PURE__ */ React.createElement("div", { className: "topbar-right" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", onClick: onSearch, title: t("search_short"), style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 14 }), /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K")), /* @__PURE__ */ React.createElement("div", { className: "seg hide-mobile", role: "group", "aria-label": t("theme") }, THEMES.map((th) => /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("span", { className: "clock" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: 13 }), t("shift"), ": ", /* @__PURE__ */ React.createElement("b", null, clock))), /* @__PURE__ */ React.createElement("div", { className: "topbar-right" }, /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-sm", onClick: onSearch, title: t("search_short"), style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "search", size: 14 }), /* @__PURE__ */ React.createElement("span", { className: "kbd hide-mobile" }, "\u2318K")), /* @__PURE__ */ React.createElement(
     "button",
     {
-      key: th.id,
-      "data-on": theme === th.id ? "1" : "0",
-      onClick: () => setTheme(th.id),
-      title: th.label,
-      style: { padding: "0 7px" }
+      type: "button",
+      className: "btn btn-ghost btn-icon topbar-theme hide-mobile",
+      onClick: () => setTheme(theme === "cream" ? "gold" : "cream"),
+      title: theme === "cream" ? "\u0422\u0451\u043C\u043D\u0430\u044F \u0442\u0435\u043C\u0430" : "\u0421\u0432\u0435\u0442\u043B\u0430\u044F \u0442\u0435\u043C\u0430",
+      "aria-label": theme === "cream" ? "\u0422\u0451\u043C\u043D\u0430\u044F \u0442\u0435\u043C\u0430" : "\u0421\u0432\u0435\u0442\u043B\u0430\u044F \u0442\u0435\u043C\u0430"
     },
-    /* @__PURE__ */ React.createElement("span", { style: {
-      width: 9,
-      height: 9,
-      borderRadius: 2,
-      display: "block",
-      background: th.swatch,
-      boxShadow: "0 0 0 1px var(--line)"
-    } })
-  ))), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      className: "btn btn-ghost btn-sm hide-mobile",
-      onClick: () => setLang(lang === "ru" ? "uz" : lang === "uz" ? "en" : "ru"),
-      title: t("language"),
-      style: { fontFamily: "var(--f-mono)", fontSize: 10, letterSpacing: ".04em", padding: "0 6px" }
-    },
-    lang === "ru" ? "RU" : lang === "uz" ? "UZ" : lang === "en" ? "EN" : "\u040E\u0417"
+    /* @__PURE__ */ React.createElement(Icon, { name: theme === "cream" ? "moon" : "sun", size: 17 })
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
       type: "button",
-      className: "btn btn-ghost btn-sm hide-mobile",
-      onClick: onOpenShiftModal,
-      title: t("close_shift_zreport"),
-      style: { gap: 5, color: "var(--accent)", border: "1px solid color-mix(in srgb, var(--accent) 30%, transparent)" }
+      className: "btn topbar-btn topbar-lang hide-mobile",
+      onClick: () => setLang(lang === "ru" ? "uz" : lang === "uz" ? "en" : "ru"),
+      title: t("language")
     },
-    /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 13 }),
+    /* @__PURE__ */ React.createElement(Icon, { name: "globe", size: 15 }),
+    /* @__PURE__ */ React.createElement("span", null, lang === "ru" ? "RU" : lang === "uz" ? "UZ" : lang === "en" ? "EN" : "\u040E\u0417")
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      className: "btn topbar-btn topbar-day hide-mobile",
+      onClick: onOpenShiftModal,
+      title: t("close_shift_zreport")
+    },
+    /* @__PURE__ */ React.createElement(Icon, { name: "check", size: 15 }),
     /* @__PURE__ */ React.createElement("span", null, t("day_summary"))
-  ), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: onNew }, t("create")), onLogout && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm hide-mobile", title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B", onClick: onLogout, style: { color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 15 }))));
+  ), /* @__PURE__ */ React.createElement(Btn, { variant: "accent", icon: "plus", className: "topbar-btn topbar-create", onClick: onNew }, t("create")), onLogout && /* @__PURE__ */ React.createElement("button", { className: "btn btn-ghost btn-icon btn-sm hide-mobile", title: "\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B", onClick: onLogout, style: { color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "logOut", size: 15 }))));
 }
 function MobileBottomNav({ page, setPage, counts, onOpenDrawer }) {
   const PRIMARY_TABS = [
     { id: "dispatch", label: "\u0417\u0430\u043A\u0430\u0437\u044B", icon: "dpad", badge: counts.live },
-    { id: "bookings", label: "\u0411\u0440\u043E\u043D\u0438", icon: "calendar", badge: 4 },
+    { id: "bookings", label: "\u0411\u0440\u043E\u043D\u0438", icon: "calendar", badge: counts.bookings },
     { id: "floor", label: "\u0417\u0430\u043B", icon: "grid" },
-    { id: "couriers", label: "\u041A\u0443\u0440\u044C\u0435\u0440\u044B", icon: "bike", badge: 3 },
+    { id: "couriers", label: "\u041A\u0443\u0440\u044C\u0435\u0440\u044B", icon: "bike", badge: counts.couriers },
     { id: "menu", label: "\u041C\u0435\u043D\u044E", icon: "menuBook" }
   ];
   return /* @__PURE__ */ React.createElement("nav", { className: "mobile-bottom-nav", "aria-label": "\u041C\u043E\u0431\u0438\u043B\u044C\u043D\u0430\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F" }, PRIMARY_TABS.map((tab) => {
@@ -1528,11 +1599,15 @@ function CreateModal({ t, onClose, onCreatedOrder, onCreatedBooking, toast }) {
 }
 function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast }) {
   const [loading, setLoading] = useState(false);
+  const [cashCounted, setCashCounted] = useState("");
+  const [cashNote, setCashNote] = useState("");
   const [shiftData, setShiftData] = useState(null);
   const [closing, setClosing] = useState(false);
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
+      setCashCounted("");
+      setCashNote("");
       fetch("/api/admin/shift/current").then((r) => r.json()).then((d) => {
         if (d && d.ok && d.shift) setShiftData(d.shift);
       }).catch(() => {
@@ -1548,7 +1623,9 @@ function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast })
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           closedBy: currentUser?.full_name || currentUser?.name || "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440 Fenix",
-          force
+          force,
+          cashCounted: cashCounted === "" ? null : Number(String(cashCounted).replace(/\D/g, "")),
+          cashNote
         })
       });
       const data = await res.json();
@@ -1575,7 +1652,29 @@ function ShiftCloseModal({ isOpen, onClose, currentUser, onShiftClosed, toast })
     border: "1px solid color-mix(in srgb, var(--warn) 30%, transparent)",
     color: "var(--warn)",
     fontSize: 12
-  } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 14 }), /* @__PURE__ */ React.createElement("span", null, "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: ", s.openOrdersCount, " \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u0430(\u043E\u0432) \u0435\u0449\u0451 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u044B!")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 4, color: "var(--text-2)" } }, "\u041F\u0440\u0438 \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u0438 \u0441\u043C\u0435\u043D\u044B \u043E\u043D\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0435\u0440\u0435\u0439\u0434\u0443\u0442 \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0443\u044E \u0441\u043C\u0435\u043D\u0443.")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-grid" }, /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0437\u0430 \u0441\u043C\u0435\u043D\u0443"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--accent)" } }, summ(s.totalRevenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, s.totalOrders || 0, " \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u043D\u044B\u0445 \u0447\u0435\u043A\u043E\u0432")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A"), /* @__PURE__ */ React.createElement("div", { className: "val" }, summ(s.totalOrders > 0 ? Math.round((s.totalRevenue || 0) / s.totalOrders) : 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u043F\u043E \u0432\u0441\u0435\u043C \u0437\u0430\u043A\u0430\u0437\u0430\u043C")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 (\u043A\u0443\u0440\u044C\u0435\u0440\u044B / \u0441\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437)"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--ok)" } }, summ(s.cashTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0441\u0443\u043C\u043C\u0430 \u043A \u0441\u0434\u0430\u0447\u0435 \u0432 \u043A\u0430\u0441\u0441\u0443")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041E\u043D\u043B\u0430\u0439\u043D / \u0422\u0435\u0440\u043C\u0438\u043D\u0430\u043B"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--info)" } }, summ(s.cardTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0431\u0435\u0437\u043D\u0430\u043B\u0438\u0447\u043D\u0430\u044F \u043E\u043F\u043B\u0430\u0442\u0430"))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "10px 14px", background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { marginBottom: 6 } }, "\u0420\u0430\u0437\u0431\u0438\u0432\u043A\u0430 \u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C \u0437\u0430\u043A\u0430\u0437\u043E\u0432"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, fontSize: 11.5 } }, /* @__PURE__ */ React.createElement("div", null, "\u0414\u043E\u0441\u0442\u0430\u0432\u043A\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.deliveryOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0421\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437: ", /* @__PURE__ */ React.createElement("b", null, s.pickupOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0412 \u0437\u0430\u043B\u0435: ", /* @__PURE__ */ React.createElement("b", null, s.hallOrders || 0)))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 } }, "\u0421\u043C\u0435\u043D\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.openedAt ? new Date(s.openedAt).toLocaleString("ru-RU") : "\u2014"), " (\u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440: ", s.openedBy || "admin", "). \u041F\u043E\u0441\u043B\u0435 \u043D\u0430\u0436\u0430\u0442\u0438\u044F \xAB\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0441\u043C\u0435\u043D\u0443\xBB \u0442\u0435\u043A\u0443\u0449\u0438\u0439 \u0434\u0435\u043D\u044C \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435, \u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0439 \u044D\u043A\u0440\u0430\u043D \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0438 \u043A\u0430\u0441\u0441\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u0441\u044F \u0434\u043E 0."))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(
+  } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 700, display: "flex", alignItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 14 }), /* @__PURE__ */ React.createElement("span", null, "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: ", s.openOrdersCount, " \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u0430(\u043E\u0432) \u0435\u0449\u0451 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u044B!")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 4, color: "var(--text-2)" } }, "\u041F\u0440\u0438 \u0437\u0430\u043A\u0440\u044B\u0442\u0438\u0438 \u0441\u043C\u0435\u043D\u044B \u043E\u043D\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0435\u0440\u0435\u0439\u0434\u0443\u0442 \u0432 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0443\u044E \u0441\u043C\u0435\u043D\u0443.")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-grid" }, /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0412\u044B\u0440\u0443\u0447\u043A\u0430 \u0437\u0430 \u0441\u043C\u0435\u043D\u0443"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--accent)" } }, summ(s.totalRevenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, s.totalOrders || 0, " \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u043D\u044B\u0445 \u0447\u0435\u043A\u043E\u0432")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0447\u0435\u043A"), /* @__PURE__ */ React.createElement("div", { className: "val" }, summ(s.totalOrders > 0 ? Math.round((s.totalRevenue || 0) / s.totalOrders) : 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u043F\u043E \u0432\u0441\u0435\u043C \u0437\u0430\u043A\u0430\u0437\u0430\u043C")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 (\u043A\u0443\u0440\u044C\u0435\u0440\u044B / \u0441\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437)"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--ok)" } }, summ(s.cashTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0441\u0443\u043C\u043C\u0430 \u043A \u0441\u0434\u0430\u0447\u0435 \u0432 \u043A\u0430\u0441\u0441\u0443")), /* @__PURE__ */ React.createElement("div", { className: "shift-report-box" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041E\u043D\u043B\u0430\u0439\u043D / \u0422\u0435\u0440\u043C\u0438\u043D\u0430\u043B"), /* @__PURE__ */ React.createElement("div", { className: "val", style: { color: "var(--info)" } }, summ(s.cardTotal || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 11, fontWeight: 500 } }, "\u0441\u0443\u043C")), /* @__PURE__ */ React.createElement("div", { className: "hint" }, "\u0431\u0435\u0437\u043D\u0430\u043B\u0438\u0447\u043D\u0430\u044F \u043E\u043F\u043B\u0430\u0442\u0430"))), (() => {
+    const counted = cashCounted === "" ? null : Number(String(cashCounted).replace(/\D/g, ""));
+    const diff = counted == null ? null : counted - (s.cashTotal || 0);
+    return /* @__PURE__ */ React.createElement("div", { className: "cash-count" }, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u041F\u0435\u0440\u0435\u0441\u0447\u0451\u0442 \u043A\u0430\u0441\u0441\u044B"), /* @__PURE__ */ React.createElement("div", { className: "cash-count-row" }, /* @__PURE__ */ React.createElement("label", { className: "cash-count-field" }, /* @__PURE__ */ React.createElement("span", null, "\u0424\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432 \u043A\u0430\u0441\u0441\u0435, \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "input mono",
+        inputMode: "numeric",
+        placeholder: summ(s.cashTotal || 0),
+        value: cashCounted === "" ? "" : summ(Number(String(cashCounted).replace(/\D/g, "")) || 0),
+        onChange: (e) => setCashCounted(e.target.value.replace(/\D/g, ""))
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "cash-count-diff", "data-tone": diff == null ? "muted" : diff === 0 ? "ok" : "danger" }, diff == null ? "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u0443\u043C\u043C\u0443" : diff === 0 ? "\u041A\u0430\u0441\u0441\u0430 \u0441\u043E\u0448\u043B\u0430\u0441\u044C" : `${diff > 0 ? "\u0418\u0437\u043B\u0438\u0448\u0435\u043A" : "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0447\u0430"}: ${summ(Math.abs(diff))} \u0441\u0443\u043C`)), diff != null && diff !== 0 && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        className: "input",
+        placeholder: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u043A \u0440\u0430\u0441\u0445\u043E\u0436\u0434\u0435\u043D\u0438\u044E (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+        value: cashNote,
+        maxLength: 300,
+        onChange: (e) => setCashNote(e.target.value)
+      }
+    ));
+  })(), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "10px 14px", background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { marginBottom: 6 } }, "\u0420\u0430\u0437\u0431\u0438\u0432\u043A\u0430 \u043F\u043E \u043A\u0430\u043D\u0430\u043B\u0430\u043C \u0437\u0430\u043A\u0430\u0437\u043E\u0432"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, fontSize: 11.5 } }, /* @__PURE__ */ React.createElement("div", null, "\u0414\u043E\u0441\u0442\u0430\u0432\u043A\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.deliveryOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0421\u0430\u043C\u043E\u0432\u044B\u0432\u043E\u0437: ", /* @__PURE__ */ React.createElement("b", null, s.pickupOrders || 0)), /* @__PURE__ */ React.createElement("div", null, "\u0412 \u0437\u0430\u043B\u0435: ", /* @__PURE__ */ React.createElement("b", null, s.hallOrders || 0)))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 } }, "\u0421\u043C\u0435\u043D\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0430: ", /* @__PURE__ */ React.createElement("b", null, s.openedAt ? new Date(parseDbTime(s.openedAt)).toLocaleString("ru-RU") : "\u2014"), " (\u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440: ", s.openedBy || "admin", "). \u041F\u043E\u0441\u043B\u0435 \u043D\u0430\u0436\u0430\u0442\u0438\u044F \xAB\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u0441\u043C\u0435\u043D\u0443\xBB \u0442\u0435\u043A\u0443\u0449\u0438\u0439 \u0434\u0435\u043D\u044C \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435, \u0430 \u0440\u0430\u0431\u043E\u0447\u0438\u0439 \u044D\u043A\u0440\u0430\u043D \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0438 \u043A\u0430\u0441\u0441\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u0441\u044F \u0434\u043E 0."))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(
     Btn,
     {
       type: "submit",
@@ -1626,8 +1725,8 @@ function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCo
       label: "bookings_today",
       icon: "calendar",
       num: bookingsCount,
-      foot: bookingsCount > 0 ? `${bookingsCount} \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u0431\u0440\u043E\u043D\u0435\u0439` : "\u0411\u0440\u043E\u043D\u0435\u0439 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0435\u0442",
-      pills: [{ tone: "info", text: "3 \u0437\u0430\u043B\u0430" }]
+      foot: bookingsCount > 0 ? `${bookingsCount} \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F` : "\u0411\u0440\u043E\u043D\u0435\u0439 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0435\u0442",
+      pills: [{ tone: "info", text: t("today") }]
     },
     {
       label: "attention",
@@ -1693,7 +1792,20 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete, on
     /* @__PURE__ */ React.createElement("div", { className: "ocard-tags" }, /* @__PURE__ */ React.createElement(TypeTag, { type: o.type, t })),
     /* @__PURE__ */ React.createElement("div", { className: "ocard-client" }, /* @__PURE__ */ React.createElement("span", { className: "oclient" }, o.client)),
     /* @__PURE__ */ React.createElement("div", { className: "ophone", style: { marginTop: 2 } }, o.phone),
-    o.addr && /* @__PURE__ */ React.createElement("div", { className: "oaddr" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { className: "oaddr-lbl" }, t("address")), /* @__PURE__ */ React.createElement("span", { className: "oaddr-txt" }, o.addr))),
+    o.addr && /* @__PURE__ */ React.createElement("div", { className: "oaddr" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 } }, /* @__PURE__ */ React.createElement("span", { className: "oaddr-lbl" }, t("address")), /* @__PURE__ */ React.createElement("span", { className: "oaddr-txt" }, o.addr)), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        className: "oaddr-map",
+        href: mapsLinks(o.addrRaw || o.addr).yandex,
+        target: "_blank",
+        rel: "noreferrer",
+        onClick: (e) => e.stopPropagation(),
+        title: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u042F\u043D\u0434\u0435\u043A\u0441 \u041A\u0430\u0440\u0442\u0430\u0445",
+        "aria-label": "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0430\u0434\u0440\u0435\u0441 \u0432 \u042F\u043D\u0434\u0435\u043A\u0441 \u041A\u0430\u0440\u0442\u0430\u0445"
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 13 })
+    )),
+    o.note && /* @__PURE__ */ React.createElement("div", { className: "onote", title: o.note }, /* @__PURE__ */ React.createElement("span", { "aria-hidden": "true" }, "\u{1F4AC}"), " ", o.note),
     o.courier && /* @__PURE__ */ React.createElement("div", { className: "oaddr", style: { padding: "4px 8px", background: "var(--surface-3)", border: "1px solid var(--accent-line, var(--line))", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, marginTop: 4 } }, /* @__PURE__ */ React.createElement(Icon, { name: "bike", size: 12, style: { color: "var(--accent)" } }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 11.5, fontWeight: 600, color: "var(--accent-2)" } }, "\u041A\u0443\u0440\u044C\u0435\u0440: ", o.courier)),
     o.table && /* @__PURE__ */ React.createElement("div", { className: "oaddr", style: { padding: "5px 8px" } }, /* @__PURE__ */ React.createElement(Icon, { name: "grid", size: 11, style: { color: "var(--text-3)", marginTop: 1 } }), /* @__PURE__ */ React.createElement("span", { className: "oaddr-txt" }, o.table)),
     /* @__PURE__ */ React.createElement("div", { className: "oitems" }, o.items.slice(0, 3).map((it, i) => /* @__PURE__ */ React.createElement("div", { className: "oitem", key: i }, /* @__PURE__ */ React.createElement("span", { className: "oitem-n" }, it.n), /* @__PURE__ */ React.createElement("span", { className: "oitem-q" }, "\xD7 ", it.q))), o.items.length > 3 && /* @__PURE__ */ React.createElement("div", { className: "oitem" }, /* @__PURE__ */ React.createElement("span", { className: "oitem-n dim" }, "+", o.items.length - 3, " \u0435\u0449\u0451"))),
@@ -1831,7 +1943,10 @@ function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast, onCancel }) {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
-  } }, st.label))))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11, background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 7 } }, /* @__PURE__ */ React.createElement(TypeTag, { type: o.type, t }), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("client")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, marginTop: 2 } }, o.client)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("phone")), /* @__PURE__ */ React.createElement("a", { href: "tel:" + o.phone.replace(/\s/g, ""), className: "mono", style: { fontSize: 11, marginTop: 2, display: "block", color: "var(--accent)", textDecoration: "none" } }, o.phone)), o.addr && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("address")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2, color: "var(--text-2)" } }, o.addr)), o.table && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("table")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.table)), o.courier && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("courier")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.courier)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("status")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3 } }, /* @__PURE__ */ React.createElement(Pill, { tone: s.late ? "danger" : "ok" }, s.late ? t("late") : t("on_time")))))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "sect-title" }, t("items")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "4px 11px" } }, o.items.map((it, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "row", style: { padding: "8px 0", borderBottom: i < o.items.length - 1 ? "1px solid var(--line-soft)" : 0 } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11.5 } }, it.n), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 10 } }, "\xD7 ", it.q), /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontSize: 11, minWidth: 62, textAlign: "right" } }, summ(it.q * it.p)))))), o.note && /* @__PURE__ */ React.createElement("div", { style: { padding: "9px 11px", borderRadius: "var(--r-sm)", background: "var(--warn-soft)", border: "1px solid color-mix(in srgb, var(--warn) 24%, transparent)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { color: "var(--warn)" } }, t("notes")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.note)), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("subtotal")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, summ(o.total - o.fee))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("delivery_fee")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, o.fee ? summ(o.fee) : "\u2014")), /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-2)" } }, t("total")), /* @__PURE__ */ React.createElement("span", { className: "ototal", style: { fontSize: 17 } }, summ(o.total), /* @__PURE__ */ React.createElement("small", null, "\u0441\u0443\u043C")))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Btn, { icon: "phone", onClick: () => onToast("\u0417\u0432\u043E\u043D\u043E\u043A: " + o.phone), style: { flex: 1 } }, t("call_client")), /* @__PURE__ */ React.createElement(Btn, { icon: "printer", onClick: () => onPrint(o), style: { flex: 1 } }, t("print")), /* @__PURE__ */ React.createElement(Btn, { icon: "x", onClick: () => {
+  } }, st.label))))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11, background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 7 } }, /* @__PURE__ */ React.createElement(TypeTag, { type: o.type, t }), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("client")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, fontWeight: 600, marginTop: 2 } }, o.client)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("phone")), /* @__PURE__ */ React.createElement("a", { href: "tel:" + o.phone.replace(/\s/g, ""), className: "mono", style: { fontSize: 11, marginTop: 2, display: "block", color: "var(--accent)", textDecoration: "none" } }, o.phone)), o.addr && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("address")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2, color: "var(--text-2)" } }, o.addr), (() => {
+    const ml = mapsLinks(o.addrRaw || o.addr);
+    return /* @__PURE__ */ React.createElement("div", { className: "drawer-maps" }, /* @__PURE__ */ React.createElement("a", { className: "btn btn-sm", href: ml.yandex, target: "_blank", rel: "noreferrer" }, /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 12 }), " \u042F\u043D\u0434\u0435\u043A\u0441 \u041A\u0430\u0440\u0442\u044B"), /* @__PURE__ */ React.createElement("a", { className: "btn btn-sm", href: ml.google, target: "_blank", rel: "noreferrer" }, /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 12 }), " Google Maps"), !ml.exact && /* @__PURE__ */ React.createElement("span", { className: "drawer-maps-hint" }, "\u0422\u043E\u0447\u043A\u0430 \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u0430 \u2014 \u043F\u043E\u0438\u0441\u043A \u043F\u043E \u0430\u0434\u0440\u0435\u0441\u0443"));
+  })()), o.table && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1" } }, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("table")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.table)), o.courier && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("courier")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.courier)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, t("status")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 3 } }, /* @__PURE__ */ React.createElement(Pill, { tone: s.late ? "danger" : "ok" }, s.late ? t("late") : t("on_time")))))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "sect-title" }, t("items")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "4px 11px" } }, o.items.map((it, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "row", style: { padding: "8px 0", borderBottom: i < o.items.length - 1 ? "1px solid var(--line-soft)" : 0 } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11.5 } }, it.n), /* @__PURE__ */ React.createElement("span", { className: "mono dim", style: { fontSize: 10 } }, "\xD7 ", it.q), /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontSize: 11, minWidth: 62, textAlign: "right" } }, summ(it.q * it.p)))))), o.note && /* @__PURE__ */ React.createElement("div", { style: { padding: "9px 11px", borderRadius: "var(--r-sm)", background: "var(--warn-soft)", border: "1px solid color-mix(in srgb, var(--warn) 24%, transparent)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { color: "var(--warn)" } }, t("notes")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, marginTop: 2 } }, o.note)), /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 11 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)", marginBottom: 5 } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("subtotal")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, summ(o.total - o.fee))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { fontSize: 11.5, color: "var(--text-2)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow" }, t("delivery_fee")), /* @__PURE__ */ React.createElement("span", { className: "mono" }, o.fee ? summ(o.fee) : "\u2014")), /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("span", { className: "grow", style: { fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-2)" } }, t("total")), /* @__PURE__ */ React.createElement("span", { className: "ototal", style: { fontSize: 17 } }, summ(o.total), /* @__PURE__ */ React.createElement("small", null, "\u0441\u0443\u043C")))), /* @__PURE__ */ React.createElement("div", { className: "row", style: { gap: 6 } }, /* @__PURE__ */ React.createElement(Btn, { icon: "phone", onClick: () => onToast("\u0417\u0432\u043E\u043D\u043E\u043A: " + o.phone), style: { flex: 1 } }, t("call_client")), /* @__PURE__ */ React.createElement(Btn, { icon: "printer", onClick: () => onPrint(o), style: { flex: 1 } }, t("print")), /* @__PURE__ */ React.createElement(Btn, { icon: "x", onClick: () => {
     onClose();
     onCancel && onCancel(o);
   }, style: { flex: 1, color: "var(--danger)" } }, "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C"))), /* @__PURE__ */ React.createElement("div", { className: "modal-foot" }, /* @__PURE__ */ React.createElement(Btn, { variant: "accent", icon: "check", className: "grow", onClick: () => onAdvance(o) }, o.col === "new" ? t("accept") : o.col === "kitchen" ? t("ready") : o.col === "way" ? t("mark_done") : t("done")), /* @__PURE__ */ React.createElement(Btn, { variant: "ghost", onClick: onClose }, t("close"))));
@@ -1896,7 +2011,7 @@ function EditOrderModal({ o, onClose, onSave, toast }) {
           orderNum: o.orderNum,
           client,
           phone,
-          addr,
+          addr: o.type === "delivery" && addr === o.addr && o.addrRaw ? o.addrRaw : addr,
           total: Number(total)
         })
       });
@@ -1906,6 +2021,7 @@ function EditOrderModal({ o, onClose, onSave, toast }) {
           client,
           phone,
           addr: o.type === "delivery" ? addr : void 0,
+          addrRaw: o.type === "delivery" ? addr === o.addr && o.addrRaw ? o.addrRaw : addr : void 0,
           table: o.type === "hall" ? addr : void 0,
           total: Number(total)
         });
@@ -2186,9 +2302,9 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
         }
       )), !list.length && /* @__PURE__ */ React.createElement("div", { className: "empty" }, /* @__PURE__ */ React.createElement(Icon, { name: "box", size: 22 }), /* @__PURE__ */ React.createElement("span", null, c.id === "new" ? "\u041D\u043E\u0432\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043D\u0435\u0442" : c.id === "kitchen" ? "\u041D\u0430 \u043A\u0443\u0445\u043D\u0435 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E" : c.id === "way" ? "\u041D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0432 \u043F\u0443\u0442\u0438" : "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043D\u0435\u0442")))
     );
-  })) : /* @__PURE__ */ React.createElement("div", { className: "card tbl-wrap" }, /* @__PURE__ */ React.createElement("table", { className: "tbl" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "ID"), /* @__PURE__ */ React.createElement("th", null, t("client")), /* @__PURE__ */ React.createElement("th", null, t("status")), /* @__PURE__ */ React.createElement("th", null, t("items")), /* @__PURE__ */ React.createElement("th", null, "SLA"), /* @__PURE__ */ React.createElement("th", null, t("courier"), " / ", t("address")), /* @__PURE__ */ React.createElement("th", { className: "tbl-right" }, t("total")))), /* @__PURE__ */ React.createElement("tbody", null, filtered.map((o) => {
+  })) : /* @__PURE__ */ React.createElement("div", { className: "card tbl-wrap" }, /* @__PURE__ */ React.createElement("table", { className: "tbl" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "ID"), /* @__PURE__ */ React.createElement("th", null, t("client")), /* @__PURE__ */ React.createElement("th", null, t("status")), /* @__PURE__ */ React.createElement("th", null, t("items")), /* @__PURE__ */ React.createElement("th", null, "SLA"), /* @__PURE__ */ React.createElement("th", null, t("courier"), " / ", t("address")), /* @__PURE__ */ React.createElement("th", { className: "tbl-right" }, t("total")), /* @__PURE__ */ React.createElement("th", { className: "tbl-right", style: { width: 170 } }, t("actions")))), /* @__PURE__ */ React.createElement("tbody", null, filtered.map((o) => {
     const s = slaState(o);
-    return /* @__PURE__ */ React.createElement("tr", { key: o.id, "data-late": s.late ? "1" : "0", onClick: () => onOpen(o) }, /* @__PURE__ */ React.createElement("td", { className: "mono" }, "#", o.id), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 600 } }, o.client), /* @__PURE__ */ React.createElement("div", { className: "dim mono", style: { fontSize: 9.5 } }, o.phone)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(Pill, { tone: COL_TONE[o.col] }, t(o.col))), /* @__PURE__ */ React.createElement("td", { className: "dim" }, o.items.length, " \u043F\u043E\u0437."), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("td", { className: "dim trunc", style: { maxWidth: 190 } }, o.courier || o.addr || o.table || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "tbl-right mono", style: { fontWeight: 700 } }, summ(o.total)));
+    return /* @__PURE__ */ React.createElement("tr", { key: o.id, "data-late": s.late ? "1" : "0", onClick: () => onOpen(o) }, /* @__PURE__ */ React.createElement("td", { className: "mono" }, "#", o.id), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: 600 } }, o.client), /* @__PURE__ */ React.createElement("div", { className: "dim mono", style: { fontSize: 9.5 } }, o.phone)), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(Pill, { tone: COL_TONE[o.col] }, t(o.col))), /* @__PURE__ */ React.createElement("td", { className: "dim" }, o.items.length, " \u043F\u043E\u0437."), /* @__PURE__ */ React.createElement("td", null, /* @__PURE__ */ React.createElement(SlaTime, { o, t })), /* @__PURE__ */ React.createElement("td", { className: "dim trunc", style: { maxWidth: 190 } }, o.courier || o.addr || o.table || "\u2014"), /* @__PURE__ */ React.createElement("td", { className: "tbl-right mono", style: { fontWeight: 700 } }, summ(o.total)), /* @__PURE__ */ React.createElement("td", { className: "tbl-right", onClick: (e) => e.stopPropagation() }, o.col !== "done" && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: o.col === "new" ? "accent" : void 0, icon: "check", onClick: () => onAdvance(o) }, t({ new: "accept", kitchen: "ready", way: "mark_done" }[o.col]))));
   }))))), editingOrder && /* @__PURE__ */ React.createElement(
     EditOrderModal,
     {
@@ -2218,7 +2334,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
         if (reason === "\u0422\u0435\u0441\u0442 / \u0414\u0443\u0431\u043B\u0438\u043A\u0430\u0442") {
           onDeleteOrder && onDeleteOrder(id);
         } else {
-          onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: "done", status: "\u043E\u0442\u043C\u0435\u043D\u0451\u043D", cancelReason: reason });
+          onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: "cancelled", status: "\u043E\u0442\u043C\u0435\u043D\u0451\u043D", cancelReason: reason });
         }
       },
       toast,
@@ -2266,11 +2382,7 @@ function Bookings({ t, toast }) {
         const data = await res.json();
         if (active && data && data.ok && Array.isArray(data.reservations)) {
           const mapped = data.reservations.map((r) => {
-            let status = "pending";
-            const s = (r.status || "").toLowerCase();
-            if (s.includes("\u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434") || s === "confirmed") status = "confirmed";
-            else if (s.includes("\u043F\u043E\u0441\u0430\u0436\u0435\u043D") || s === "seated") status = "seated";
-            else if (s.includes("\u043E\u0442\u043C\u0435\u043D\u0435\u043D") || s === "cancelled") status = "cancelled";
+            const status = bookingStatus(r.status);
             return {
               id: r.codeFormatted || `WEB-${r.code}`,
               code: r.code,
@@ -2387,7 +2499,7 @@ function Bookings({ t, toast }) {
       title: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 12 })
-  ))), /* @__PURE__ */ React.createElement("div", { className: "venue-toolbar-actions" }, /* @__PURE__ */ React.createElement(Pill, { tone: "neutral" }, list.length, " \u0431\u0440\u043E\u043D\u0435\u0439"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: () => toast("\u0424\u043E\u0440\u043C\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u0431\u0440\u043E\u043D\u0438", "ok", "plus") }, t("create")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" } }, /* @__PURE__ */ React.createElement("table", { className: "tbl", style: { tableLayout: "fixed", width: "100%", minWidth: 920 } }, /* @__PURE__ */ React.createElement("colgroup", null, /* @__PURE__ */ React.createElement("col", { style: { width: "75px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "95px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "65px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "155px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "125px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "115px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "75px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "105px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "80px" } })), /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { paddingLeft: 18, textAlign: "left" } }, t("id")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("date")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("time")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("client")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("phone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("zone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 16 } }, t("guests")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("table")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "center" } }, t("status")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("actions")))), /* @__PURE__ */ React.createElement("tbody", null, list.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.id + b.time, style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { paddingLeft: 18 } }, "#", b.id), /* @__PURE__ */ React.createElement("td", { style: { whiteSpace: "nowrap" } }, b.date === "today" ? t("today") : b.date === "tomorrow" ? t("tomorrow") : b.date), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { fontWeight: 600 } }, b.time), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 600 }, className: "trunc" }, b.client), /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { fontSize: 11 } }, b.phone), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.zone === "any" ? "\u041B\u044E\u0431\u043E\u0439" : b.zone), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 16, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, /* @__PURE__ */ React.createElement("span", { className: "row", style: { justifyContent: "flex-end", gap: 4 } }, /* @__PURE__ */ React.createElement(Icon, { name: "users", size: 12, style: { color: "var(--text-3)" } }), b.guests)), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.table || "\u2014"), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement(Pill, { tone: BOOK_TONE[b.status], dot: b.status === "pending" }, t(b.status === "pending" ? "pending_b" : b.status))), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18 } }, b.status === "pending" ? /* @__PURE__ */ React.createElement("span", { className: "row", style: { justifyContent: "flex-end", gap: 4 } }, /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => act(b.id, "confirmed") }, t("confirm")), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", className: "btn-icon", onClick: () => act(b.id, "cancelled") }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 12 })), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more", onClick: () => setActionMenuBooking(b) })) : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more", onClick: () => setActionMenuBooking(b) })))), !list.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "10", style: { textAlign: "center", padding: "38px 12px", color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 24, style: { display: "block", margin: "0 auto 8px", opacity: 0.5 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--text-2)" } }, "\u0411\u0440\u043E\u043D\u0435\u0439 \u043D\u0430 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u0443\u044E \u0434\u0430\u0442\u0443 \u043D\u0435\u0442"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 3 } }, "\u041D\u043E\u0432\u044B\u0435 \u0437\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0431\u0440\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0441\u0442\u043E\u043B\u043E\u0432 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438")))))), !list.length && /* @__PURE__ */ React.createElement("div", { className: "empty", style: { padding: 40 } }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 24 }), /* @__PURE__ */ React.createElement("span", null, t("no_bookings")))), actionMenuBooking && /* @__PURE__ */ React.createElement(Modal, { onClose: () => setActionMenuBooking(null), width: 460, label: "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441 \u0431\u0440\u043E\u043D\u044C\u044E" }, /* @__PURE__ */ React.createElement("div", { style: { padding: "6px 8px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: "var(--text)" } }, "\u0411\u0440\u043E\u043D\u044C #", actionMenuBooking.id), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "var(--dim)", marginTop: 2 } }, actionMenuBooking.client, " \xB7 ", actionMenuBooking.phone)), /* @__PURE__ */ React.createElement(Pill, { tone: BOOK_TONE[actionMenuBooking.status] }, actionMenuBooking.status === "seated" ? "\u041F\u043E\u0441\u0430\u0436\u0435\u043D \u0432 \u0437\u0430\u043B\u0435" : actionMenuBooking.status === "confirmed" ? "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E" : actionMenuBooking.status === "pending" ? "\u0412 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u0438" : "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { background: "var(--surface-2)", padding: "12px 14px", marginBottom: 16, fontSize: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0414\u0430\u0442\u0430:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.date)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0412\u0440\u0435\u043C\u044F:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.time)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0417\u0430\u043B:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.zone)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0413\u043E\u0441\u0442\u0435\u0439:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.guests, " \u0447\u0435\u043B."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("label", { style: { display: "block", fontSize: 11, color: "var(--dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" } }, "\u041D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044B\u0439 \u0441\u0442\u043E\u043B:"), /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement("div", { className: "venue-toolbar-actions" }, /* @__PURE__ */ React.createElement(Pill, { tone: "neutral" }, list.length, " \u0431\u0440\u043E\u043D\u0435\u0439"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: () => toast("\u0424\u043E\u0440\u043C\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u0431\u0440\u043E\u043D\u0438", "ok", "plus") }, t("create")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" } }, /* @__PURE__ */ React.createElement("table", { className: "tbl tbl-actions", style: { tableLayout: "fixed", width: "100%", minWidth: 1140 } }, /* @__PURE__ */ React.createElement("colgroup", null, /* @__PURE__ */ React.createElement("col", { style: { width: "100px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "100px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", null), /* @__PURE__ */ React.createElement("col", { style: { width: "135px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "150px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "130px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "220px" } })), /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { paddingLeft: 18, textAlign: "left" } }, t("id")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("date")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("time")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("client")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("phone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("zone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 16 } }, t("guests")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("table")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "center" } }, t("status")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("actions")))), /* @__PURE__ */ React.createElement("tbody", null, list.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.id + b.time, style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { paddingLeft: 18 } }, "#", b.id), /* @__PURE__ */ React.createElement("td", { style: { whiteSpace: "nowrap" } }, b.date === "today" ? t("today") : b.date === "tomorrow" ? t("tomorrow") : b.date), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { fontWeight: 600 } }, b.time), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 600 }, className: "trunc" }, b.client), /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { fontSize: 11 } }, b.phone), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.zone === "any" ? "\u041B\u044E\u0431\u043E\u0439" : b.zone), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 16, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, /* @__PURE__ */ React.createElement("span", { className: "row", style: { justifyContent: "flex-end", gap: 4 } }, /* @__PURE__ */ React.createElement(Icon, { name: "users", size: 12, style: { color: "var(--text-3)" } }), b.guests)), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.table || "\u2014"), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement(Pill, { tone: BOOK_TONE[b.status], dot: b.status === "pending" }, t(b.status === "pending" ? "pending_b" : b.status))), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18 } }, b.status === "pending" ? /* @__PURE__ */ React.createElement("span", { className: "row", style: { justifyContent: "flex-end", gap: 4 } }, /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => act(b.id, "confirmed") }, t("confirm")), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", className: "btn-icon", onClick: () => act(b.id, "cancelled") }, /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 12 })), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more", onClick: () => setActionMenuBooking(b) })) : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more", onClick: () => setActionMenuBooking(b) })))), !list.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "10", style: { textAlign: "center", padding: "38px 12px", color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 24, style: { display: "block", margin: "0 auto 8px", opacity: 0.5 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--text-2)" } }, "\u0411\u0440\u043E\u043D\u0435\u0439 \u043D\u0430 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u0443\u044E \u0434\u0430\u0442\u0443 \u043D\u0435\u0442"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 3 } }, "\u041D\u043E\u0432\u044B\u0435 \u0437\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0431\u0440\u043E\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0441\u0442\u043E\u043B\u043E\u0432 \u043F\u043E\u044F\u0432\u044F\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438")))))), !list.length && /* @__PURE__ */ React.createElement("div", { className: "empty", style: { padding: 40 } }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", size: 24 }), /* @__PURE__ */ React.createElement("span", null, t("no_bookings")))), actionMenuBooking && /* @__PURE__ */ React.createElement(Modal, { onClose: () => setActionMenuBooking(null), width: 460, label: "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441 \u0431\u0440\u043E\u043D\u044C\u044E" }, /* @__PURE__ */ React.createElement("div", { style: { padding: "6px 8px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 16, fontWeight: 700, color: "var(--text)" } }, "\u0411\u0440\u043E\u043D\u044C #", actionMenuBooking.id), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12, color: "var(--dim)", marginTop: 2 } }, actionMenuBooking.client, " \xB7 ", actionMenuBooking.phone)), /* @__PURE__ */ React.createElement(Pill, { tone: BOOK_TONE[actionMenuBooking.status] }, actionMenuBooking.status === "seated" ? "\u041F\u043E\u0441\u0430\u0436\u0435\u043D \u0432 \u0437\u0430\u043B\u0435" : actionMenuBooking.status === "confirmed" ? "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E" : actionMenuBooking.status === "pending" ? "\u0412 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u0438" : "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E")), /* @__PURE__ */ React.createElement("div", { className: "card", style: { background: "var(--surface-2)", padding: "12px 14px", marginBottom: 16, fontSize: 12 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 14px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0414\u0430\u0442\u0430:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.date)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0412\u0440\u0435\u043C\u044F:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.time)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0417\u0430\u043B:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.zone)), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)" } }, "\u0413\u043E\u0441\u0442\u0435\u0439:"), " ", /* @__PURE__ */ React.createElement("b", null, actionMenuBooking.guests, " \u0447\u0435\u043B."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("label", { style: { display: "block", fontSize: 11, color: "var(--dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" } }, "\u041D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044B\u0439 \u0441\u0442\u043E\u043B:"), /* @__PURE__ */ React.createElement(
     "select",
     {
       value: actionMenuBooking.table && actionMenuBooking.table !== "\u2014" ? actionMenuBooking.table : "",
@@ -2584,33 +2696,33 @@ function Banquets({ t, toast }) {
       title: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "x", size: 12 })
-  ))), /* @__PURE__ */ React.createElement("div", { className: "venue-toolbar-actions" }, /* @__PURE__ */ React.createElement(Pill, { tone: "neutral" }, filteredRows.length, " \u0441\u043E\u0431\u044B\u0442\u0438\u0439"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: () => toast("\u041D\u043E\u0432\u0430\u044F \u0431\u0430\u043D\u043A\u0435\u0442\u043D\u0430\u044F \u0437\u0430\u044F\u0432\u043A\u0430", "ok", "plus") }, t("create")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" } }, /* @__PURE__ */ React.createElement("table", { className: "tbl", style: { tableLayout: "fixed", width: "100%", minWidth: 920 } }, /* @__PURE__ */ React.createElement("colgroup", null, /* @__PURE__ */ React.createElement("col", { style: { width: "75px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "95px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "155px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "125px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "100px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "120px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "115px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "105px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "80px" } })), /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { paddingLeft: 18, textAlign: "left" } }, t("id")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("date")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("client")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("phone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("kind")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 16 } }, t("guests_lbl")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("hall_lbl")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("deposit")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "center" } }, t("status")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("actions")))), /* @__PURE__ */ React.createElement("tbody", null, filteredRows.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.id, style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { paddingLeft: 18 } }, b.id), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { whiteSpace: "nowrap" } }, b.date), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 600 }, className: "trunc" }, b.client), /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { fontSize: 11 } }, b.phone), /* @__PURE__ */ React.createElement("td", null, b.kind), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 16, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, b.guests), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.hall), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "var(--accent-2)" } }, summ(b.deposit), " \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement(Pill, { tone: b.status === "waiting" ? "warn" : b.status === "confirmed" ? "ok" : "muted", dot: b.status === "waiting" }, t(b.status))), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18 } }, b.status === "waiting" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => confirmBanquet(b) }, t("confirm")) : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more" })))), !filteredRows.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "10", style: { textAlign: "center", padding: "38px 12px", color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "star", size: 24, style: { display: "block", margin: "0 auto 8px", opacity: 0.5 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--text-2)" } }, "\u0417\u0430\u044F\u0432\u043E\u043A \u043D\u0430 \u0431\u0430\u043D\u043A\u0435\u0442\u044B \u043F\u043E\u043A\u0430 \u043D\u0435\u0442"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 3 } }, "\u0412\u0445\u043E\u0434\u044F\u0449\u0438\u0435 \u0437\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0431\u0430\u043D\u043A\u0435\u0442\u044B \u0438 \u0442\u043E\u0440\u0436\u0435\u0441\u0442\u0432\u0430 \u0431\u0443\u0434\u0443\u0442 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0442\u044C\u0441\u044F \u0437\u0434\u0435\u0441\u044C"))))))));
+  ))), /* @__PURE__ */ React.createElement("div", { className: "venue-toolbar-actions" }, /* @__PURE__ */ React.createElement(Pill, { tone: "neutral" }, filteredRows.length, " \u0441\u043E\u0431\u044B\u0442\u0438\u0439"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "plus", onClick: () => toast("\u041D\u043E\u0432\u0430\u044F \u0431\u0430\u043D\u043A\u0435\u0442\u043D\u0430\u044F \u0437\u0430\u044F\u0432\u043A\u0430", "ok", "plus") }, t("create")))), /* @__PURE__ */ React.createElement("div", { className: "card", style: { overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" } }, /* @__PURE__ */ React.createElement("table", { className: "tbl tbl-actions", style: { tableLayout: "fixed", width: "100%", minWidth: 1140 } }, /* @__PURE__ */ React.createElement("colgroup", null, /* @__PURE__ */ React.createElement("col", { style: { width: "120px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "100px" } }), /* @__PURE__ */ React.createElement("col", null), /* @__PURE__ */ React.createElement("col", { style: { width: "135px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "150px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "70px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "120px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "135px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "120px" } }), /* @__PURE__ */ React.createElement("col", { style: { width: "160px" } })), /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { paddingLeft: 18, textAlign: "left" } }, t("id")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("date")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("client")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("phone")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("kind")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 16 } }, t("guests_lbl")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left" } }, t("hall_lbl")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("deposit")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "center" } }, t("status")), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", paddingRight: 18 } }, t("actions")))), /* @__PURE__ */ React.createElement("tbody", null, filteredRows.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.id, style: { cursor: "default" } }, /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { paddingLeft: 18, whiteSpace: "nowrap" } }, b.id), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { whiteSpace: "nowrap" } }, b.date), /* @__PURE__ */ React.createElement("td", { style: { fontWeight: 600 }, className: "trunc" }, b.client), /* @__PURE__ */ React.createElement("td", { className: "mono dim", style: { fontSize: 11 } }, b.phone), /* @__PURE__ */ React.createElement("td", null, b.kind), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 16, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, b.guests), /* @__PURE__ */ React.createElement("td", { className: "dim trunc" }, b.hall), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18, fontFamily: "var(--f-mono)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: "var(--accent-2)" } }, summ(b.deposit), " \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "center" } }, /* @__PURE__ */ React.createElement(Pill, { tone: b.status === "waiting" ? "warn" : b.status === "confirmed" ? "ok" : "muted", dot: b.status === "waiting" }, t(b.status))), /* @__PURE__ */ React.createElement("td", { style: { textAlign: "right", paddingRight: 18 } }, b.status === "waiting" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => confirmBanquet(b) }, t("confirm")) : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "more" })))), !filteredRows.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "10", style: { textAlign: "center", padding: "38px 12px", color: "var(--text-3)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "star", size: 24, style: { display: "block", margin: "0 auto 8px", opacity: 0.5 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--text-2)" } }, "\u0417\u0430\u044F\u0432\u043E\u043A \u043D\u0430 \u0431\u0430\u043D\u043A\u0435\u0442\u044B \u043F\u043E\u043A\u0430 \u043D\u0435\u0442"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11, marginTop: 3 } }, "\u0412\u0445\u043E\u0434\u044F\u0449\u0438\u0435 \u0437\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0431\u0430\u043D\u043A\u0435\u0442\u044B \u0438 \u0442\u043E\u0440\u0436\u0435\u0441\u0442\u0432\u0430 \u0431\u0443\u0434\u0443\u0442 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0442\u044C\u0441\u044F \u0437\u0434\u0435\u0441\u044C"))))))));
 }
 const FLOOR_1_TABLES = [
   { id: "T1", label: "\u0421\u0442\u043E\u043B 1", x: 8, y: 14, seats: 4, st: "free" },
-  { id: "T2", label: "\u0421\u0442\u043E\u043B 2", x: 8, y: 42, seats: 4, st: "occupied" },
-  { id: "T3", label: "\u0421\u0442\u043E\u043B 3", x: 8, y: 70, seats: 2, st: "booked" },
-  { id: "T4", label: "\u0421\u0442\u043E\u043B 4", x: 26, y: 14, seats: 6, st: "occupied" },
+  { id: "T2", label: "\u0421\u0442\u043E\u043B 2", x: 8, y: 42, seats: 4, st: "free" },
+  { id: "T3", label: "\u0421\u0442\u043E\u043B 3", x: 8, y: 70, seats: 2, st: "free" },
+  { id: "T4", label: "\u0421\u0442\u043E\u043B 4", x: 26, y: 14, seats: 6, st: "free" },
   { id: "T5", label: "\u0421\u0442\u043E\u043B 5", x: 26, y: 42, seats: 4, st: "free" },
-  { id: "T6", label: "\u0421\u0442\u043E\u043B 6", x: 26, y: 70, seats: 4, st: "cleaning" },
+  { id: "T6", label: "\u0421\u0442\u043E\u043B 6", x: 26, y: 70, seats: 4, st: "free" },
   { id: "T7", label: "\u0421\u0442\u043E\u043B 7", x: 45, y: 14, seats: 8, st: "free" },
-  { id: "T8", label: "\u0421\u0442\u043E\u043B 8", x: 45, y: 42, seats: 6, st: "occupied" },
-  { id: "T9", label: "\u0421\u0442\u043E\u043B 9", x: 45, y: 70, seats: 4, st: "booked" },
+  { id: "T8", label: "\u0421\u0442\u043E\u043B 8", x: 45, y: 42, seats: 6, st: "free" },
+  { id: "T9", label: "\u0421\u0442\u043E\u043B 9", x: 45, y: 70, seats: 4, st: "free" },
   { id: "T10", label: "\u0421\u0442\u043E\u043B 10", x: 64, y: 14, seats: 4, st: "free" },
   { id: "T11", label: "\u0421\u0442\u043E\u043B 11", x: 64, y: 42, seats: 6, st: "free" },
   { id: "T12", label: "\u0421\u0442\u043E\u043B 12", x: 64, y: 70, seats: 4, st: "free" },
   { id: "STAGE", label: "\u0421\u0446\u0435\u043D\u0430 & DJ", x: 83, y: 12, seats: 0, st: "special", stage: true },
-  { id: "BAR", label: "\u0411\u0430\u0440\u043D\u0430\u044F \u0441\u0442\u043E\u0439\u043A\u0430", x: 83, y: 55, seats: 8, st: "occupied", bar: true }
+  { id: "BAR", label: "\u0411\u0430\u0440\u043D\u0430\u044F \u0441\u0442\u043E\u0439\u043A\u0430", x: 83, y: 55, seats: 8, st: "free", bar: true }
 ];
 const FLOOR_2_TABLES = [
-  { id: "B1", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-1", x: 8, y: 16, seats: 20, st: "booked", banquet: true },
+  { id: "B1", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-1", x: 8, y: 16, seats: 20, st: "free", banquet: true },
   { id: "B2", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-2", x: 8, y: 58, seats: 20, st: "free", banquet: true },
   { id: "B3", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-3", x: 36, y: 16, seats: 24, st: "free", banquet: true },
-  { id: "B4", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-4", x: 36, y: 58, seats: 24, st: "occupied", banquet: true },
+  { id: "B4", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-4", x: 36, y: 58, seats: 24, st: "free", banquet: true },
   { id: "B5", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-5", x: 62, y: 16, seats: 16, st: "free", banquet: true },
-  { id: "B6", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-6", x: 62, y: 58, seats: 16, st: "cleaning", banquet: true },
-  { id: "VIP1", label: "VIP 1 \u041A\u0430\u0440\u0430\u043E\u043A\u0435", x: 84, y: 10, seats: 10, st: "booked", vip: true },
-  { id: "VIP2", label: "VIP 2 \u041B\u0430\u0443\u043D\u0436", x: 84, y: 42, seats: 8, st: "occupied", vip: true },
+  { id: "B6", label: "\u0411\u0430\u043D\u043A\u0435\u0442 \u0411-6", x: 62, y: 58, seats: 16, st: "free", banquet: true },
+  { id: "VIP1", label: "VIP 1 \u041A\u0430\u0440\u0430\u043E\u043A\u0435", x: 84, y: 10, seats: 10, st: "free", vip: true },
+  { id: "VIP2", label: "VIP 2 \u041B\u0430\u0443\u043D\u0436", x: 84, y: 42, seats: 8, st: "free", vip: true },
   { id: "VIP3", label: "VIP 3 \u041F\u0440\u0435\u043C\u0438\u0443\u043C", x: 84, y: 74, seats: 12, st: "free", vip: true }
 ];
 const FLOOR_TONE = { free: "ok", occupied: "danger", booked: "warn", cleaning: "info", special: "accent" };
@@ -2623,20 +2735,54 @@ function Floor({ t, toast }) {
   const [liveBookings, setLiveBookings] = useState([]);
   const activeTables = currentFloor === 1 ? floor1Tables : floor2Tables;
   const setActiveTables = currentFloor === 1 ? setFloor1Tables : setFloor2Tables;
+  const syncedRef = useRef(null);
+  const [floorErr, setFloorErr] = useState(false);
+  const loadFloor = useCallback(() => {
+    fetch("/api/admin/floor").then((r) => r.json()).then((d) => {
+      if (!d || !d.ok || !d.layout || drag) return;
+      const { f1, f2 } = d.layout;
+      if (!Array.isArray(f1) || !Array.isArray(f2)) return;
+      syncedRef.current = JSON.stringify({ f1, f2 });
+      setFloor1Tables(f1);
+      setFloor2Tables(f2);
+    }).catch(() => {
+    });
+  }, [drag]);
+  useEffect(() => {
+    loadFloor();
+    const iv = setInterval(loadFloor, 15e3);
+    return () => clearInterval(iv);
+  }, [loadFloor]);
+  useEffect(() => {
+    const cur = JSON.stringify({ f1: floor1Tables, f2: floor2Tables });
+    if (syncedRef.current === null) {
+      syncedRef.current = cur;
+      return;
+    }
+    if (cur === syncedRef.current) return;
+    const tm = setTimeout(() => {
+      fetch("/api/admin/floor", { method: "POST", headers: { "Content-Type": "application/json" }, body: cur }).then((r) => {
+        if (!r.ok) throw new Error();
+        syncedRef.current = cur;
+        setFloorErr(false);
+      }).catch(() => setFloorErr(true));
+    }, 500);
+    return () => clearTimeout(tm);
+  }, [floor1Tables, floor2Tables]);
   useEffect(() => {
     fetch("/api/admin/reservations").then((res) => res.json()).then((data) => {
       if (data.ok && Array.isArray(data.reservations)) {
         setLiveBookings(
           data.reservations.map((r) => ({
             id: r.id || r.code,
-            time: r.res_time || "19:00",
-            date: r.res_date || "",
-            client: r.customer_name || "\u0413\u043E\u0441\u0442\u044C",
-            phone: r.customer_phone || "",
+            time: r.time || "\u2014",
+            date: r.date || "",
+            client: r.customerName || "\u0413\u043E\u0441\u0442\u044C",
+            phone: r.customerPhone || "",
             guests: r.guests || 2,
             zone: r.zone || "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0437\u0430\u043B",
-            table: r.table || r.zone || "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0437\u0430\u043B",
-            status: r.status || "confirmed"
+            table: r.table && r.table !== "\u2014" ? r.table : "",
+            status: bookingStatus(r.status)
           }))
         );
       }
@@ -2676,7 +2822,7 @@ function Floor({ t, toast }) {
   const freeCount = activeTables.filter((x) => x.st === "free" && !x.stage).length;
   const occupiedCount = activeTables.filter((x) => x.st === "occupied").length;
   const bookedCount = activeTables.filter((x) => x.st === "booked").length;
-  return /* @__PURE__ */ React.createElement("div", { className: "page" }, /* @__PURE__ */ React.createElement("div", { className: "filters", style: { marginTop: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "page" }, floorErr && /* @__PURE__ */ React.createElement("div", { className: "floor-err" }, /* @__PURE__ */ React.createElement(Icon, { name: "alert", size: 13 }), " \u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0441\u0445\u0435\u043C\u0443 \u0437\u0430\u043B\u0430 \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435"), /* @__PURE__ */ React.createElement("div", { className: "filters", style: { marginTop: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement(
     "button",
     {
       className: "chip",
@@ -2877,27 +3023,26 @@ const TASHKENT_DISTRICT_COORDS = {
   center: [41.3111, 69.2797]
 };
 function getCoordsForAddress(addr) {
+  const exact = coordsOf(addr);
+  if (exact && exact[0] > 40 && exact[0] < 43 && exact[1] > 68 && exact[1] < 71) return exact;
   const str = String(addr || "");
   const match = str.match(/([0-9]{2}\.[0-9]+)[\s,]+([0-9]{2}\.[0-9]+)/);
   if (match) {
     const lat = parseFloat(match[1]);
     const lon = parseFloat(match[2]);
-    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) {
-      return [lat, lon];
-    }
+    if (lat > 40 && lat < 43 && lon > 68 && lon < 71) return [lat, lon];
   }
-  const s = str.toLowerCase();
+  return null;
+}
+function districtOf(addr) {
+  const s = String(addr || "").toLowerCase();
   if (s.includes("\u0447\u0438\u043B\u0430\u043D\u0437\u0430\u0440") || s.includes("chilonzor")) return TASHKENT_DISTRICT_COORDS.chilanzar;
   if (s.includes("\u044E\u043D\u0443\u0441\u0430\u0431\u0430\u0434") || s.includes("yunusobod")) return TASHKENT_DISTRICT_COORDS.yunusabad;
   if (s.includes("\u043C\u0438\u0440\u0430\u0431\u0430\u0434") || s.includes("mirobod")) return TASHKENT_DISTRICT_COORDS.mirabad;
   if (s.includes("\u0441\u0435\u0440\u0433\u0435\u043B\u0438") || s.includes("sergeli")) return TASHKENT_DISTRICT_COORDS.sergeli;
   if (s.includes("\u0448\u0430\u0439\u0445\u0430\u043D\u0442\u0430\u0445\u0443\u0440") || s.includes("shayxontohur")) return TASHKENT_DISTRICT_COORDS.shaykhontohur;
   if (s.includes("\u0443\u043B\u0443\u0433\u0431\u0435\u043A") || s.includes("ulug")) return TASHKENT_DISTRICT_COORDS.mirzoulugbek;
-  if (s.includes("\u044F\u0448\u043D\u0430\u0431\u0430\u0434") || s.includes("yashnobod") || s.includes("\u0445\u0443\u0441\u043D\u043E\u0431\u043E\u0434")) return [41.289, 69.335];
-  const hash = s.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const latOffset = (hash % 100 - 50) * 8e-4;
-  const lngOffset = (hash * 7 % 100 - 50) * 1e-3;
-  return [41.3111 + latOffset, 69.2797 + lngOffset];
+  return null;
 }
 function Couriers({ t, toast, orders = [] }) {
   const deliveryOrders = orders.filter((o) => o.type === "delivery");
@@ -2966,7 +3111,10 @@ function Couriers({ t, toast, orders = [] }) {
     markersRef.current.forEach((m) => map.removeLayer(m));
     markersRef.current = [];
     deliveryOrders.forEach((ord) => {
-      const coords = getCoordsForAddress(ord.addr);
+      const exact = getCoordsForAddress(ord.addrRaw || ord.addr);
+      const approx = exact ? null : districtOf(ord.addr);
+      const coords = exact || approx;
+      if (!coords) return;
       const isSel = currentOrder && currentOrder.id === ord.id;
       const isDone = ord.col === "done";
       const orderIcon = window.L.divIcon({
@@ -2975,7 +3123,8 @@ function Couriers({ t, toast, orders = [] }) {
           <div style="
             width: ${isSel ? 36 : 28}px; height: ${isSel ? 36 : 28}px; border-radius: 50%;
             background: ${isDone ? "#57a877" : isSel ? "#d3aa63" : "#4a7fc1"};
-            border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            opacity: ${approx ? 0.55 : 1};
+            border: 2px ${approx ? "dashed" : "solid"} #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: center; color: #fff;
             cursor: pointer; transition: all 0.2s ease;
           ">
@@ -2990,9 +3139,10 @@ function Couriers({ t, toast, orders = [] }) {
       const marker = window.L.marker(coords, { icon: orderIcon }).addTo(map);
       marker.bindPopup(`
         <div style="font-family: sans-serif; color: #111; padding: 4px; min-width: 170px;">
-          <b style="color: #d3aa63;">\u0417\u0430\u043A\u0430\u0437 #${ord.id}</b><br/>
-          <b>${ord.client || "\u041A\u043B\u0438\u0435\u043D\u0442"}</b> \xB7 ${ord.phone || "\u2014"}<br/>
-          <span style="font-size: 11px; color: #444;">${ord.addr || "\u0410\u0434\u0440\u0435\u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438"}</span><br/>
+          <b style="color: #d3aa63;">\u0417\u0430\u043A\u0430\u0437 #${escHtml(ord.id)}</b><br/>
+          <b>${escHtml(ord.client || "\u041A\u043B\u0438\u0435\u043D\u0442")}</b> \xB7 ${escHtml(ord.phone || "\u2014")}<br/>
+          <span style="font-size: 11px; color: #444;">${escHtml(ord.addr || "\u0410\u0434\u0440\u0435\u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438")}</span><br/>
+          ${approx ? '<span style="font-size: 11px; color: #b5651d;">\u0422\u043E\u0447\u043A\u0430 \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u0430 \u2014 \u043F\u043E\u043A\u0430\u0437\u0430\u043D \u0440\u0430\u0439\u043E\u043D</span><br/>' : ""}
           <b>${summ(ord.total)} \u0441\u0443\u043C</b>
         </div>
       `);
@@ -3002,14 +3152,12 @@ function Couriers({ t, toast, orders = [] }) {
     if (selId && selId !== lastPannedIdRef.current) {
       lastPannedIdRef.current = selId;
       const target = deliveryOrders.find((o) => o.id === selId);
-      if (target && target.addr) {
-        const targetCoords = getCoordsForAddress(target.addr);
-        map.flyTo(targetCoords, Math.max(map.getZoom(), 14), { duration: 0.8 });
-      }
+      const targetCoords = target && (getCoordsForAddress(target.addrRaw || target.addr) || districtOf(target.addr));
+      if (targetCoords) map.flyTo(targetCoords, Math.max(map.getZoom(), 14), { duration: 0.8 });
     } else if (!lastPannedIdRef.current && currentOrder && currentOrder.addr) {
       lastPannedIdRef.current = currentOrder.id;
-      const targetCoords = getCoordsForAddress(currentOrder.addr);
-      map.setView(targetCoords, 13);
+      const targetCoords = getCoordsForAddress(currentOrder.addrRaw || currentOrder.addr) || districtOf(currentOrder.addr);
+      if (targetCoords) map.setView(targetCoords, 13);
     }
   }, [deliveryOrders, selId, currentOrder]);
   const advanceDeliveryStatus = async (ord, nextCol, nextRu) => {
@@ -3101,7 +3249,7 @@ function Couriers({ t, toast, orders = [] }) {
       }
     },
     "\u041E\u0431\u0437\u043E\u0440 \u0433\u043E\u0440\u043E\u0434\u0430"
-  )), /* @__PURE__ */ React.createElement("div", { ref: mapRef, style: { width: "100%", height: "100%", minHeight: 480, background: "#0b0a08" } }), /* @__PURE__ */ React.createElement("div", { style: {
+  )), /* @__PURE__ */ React.createElement("div", { ref: mapRef, className: "courier-map-el", style: { width: "100%", height: "100%", background: "#0b0a08" } }), /* @__PURE__ */ React.createElement("div", { style: {
     position: "absolute",
     bottom: 12,
     left: 14,
@@ -3134,7 +3282,7 @@ function Couriers({ t, toast, orders = [] }) {
     "\u0412\u0441\u0435 (",
     deliveryOrders.length,
     ")"
-  )), currentOrder ? /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14, border: "1px solid var(--line-strong)", background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u0437\u0430\u043A\u0430\u0437"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, fontFamily: "var(--f-mono)", color: "var(--accent-2)" } }, "#", currentOrder.id)), /* @__PURE__ */ React.createElement(Pill, { tone: currentOrder.col === "done" ? "ok" : currentOrder.col === "way" ? "info" : "warn" }, currentOrder.col === "done" ? "\u0414\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D" : currentOrder.col === "way" ? "\u0412 \u043F\u0443\u0442\u0438" : "\u041A\u0443\u0445\u043D\u044F \u0433\u043E\u0442\u043E\u0432\u0438\u0442")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("b", null, "\u041A\u043B\u0438\u0435\u043D\u0442:"), " ", currentOrder.client), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("b", null, "\u0422\u0435\u043B\u0435\u0444\u043E\u043D:"), " ", /* @__PURE__ */ React.createElement("a", { href: `tel:${currentOrder.phone}`, style: { color: "var(--accent)", textDecoration: "none" } }, currentOrder.phone)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, padding: "6px 8px", background: "var(--surface)", borderRadius: "6px", border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("b", null, "\u0410\u0434\u0440\u0435\u0441:"), " ", currentOrder.addr || "\u0422\u0430\u0448\u043A\u0435\u043D\u0442"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("b", null, "\u0421\u0443\u043C\u043C\u0430:"), " ", /* @__PURE__ */ React.createElement("span", { className: "mono", style: { color: "var(--accent-2)", fontWeight: 700 } }, summ(currentOrder.total), " \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement("span", { className: "dim", style: { marginLeft: 8 } }, "(", currentOrder.pay === "cash" ? "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u043C\u0438" : "\u041A\u0430\u0440\u0442\u043E\u0439", ")")), currentOrder.courier && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, padding: "5px 8px", background: "var(--surface)", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, color: "var(--accent-2)", fontWeight: 600, fontSize: 12, border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "bike", size: 13 }), " \u041A\u0443\u0440\u044C\u0435\u0440: ", currentOrder.courier)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, marginBottom: 10, padding: "8px 10px", background: "var(--surface-3)", borderRadius: 8, border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement(Icon, { name: "bike", size: 12 }), " \u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0443 (Telegram):"), courierGroupInfo?.configured ? /* @__PURE__ */ React.createElement("span", { style: { color: "var(--ok)", fontSize: 10, display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: "var(--ok)" } }), " \u0413\u0440\u0443\u043F\u043F\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0430") : /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)", fontSize: 10 } }, "/set_courier_group \u0432 \u0447\u0430\u0442\u0435")), /* @__PURE__ */ React.createElement(
+  )), currentOrder ? /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14, border: "1px solid var(--line-strong)", background: "var(--surface-2)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0412\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u0437\u0430\u043A\u0430\u0437"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 18, fontWeight: 700, fontFamily: "var(--f-mono)", color: "var(--accent-2)" } }, "#", currentOrder.id)), /* @__PURE__ */ React.createElement(Pill, { tone: currentOrder.col === "done" ? "ok" : currentOrder.col === "way" ? "info" : currentOrder.col === "new" ? "accent" : "warn" }, currentOrder.col === "done" ? "\u0414\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D" : currentOrder.col === "way" ? "\u0412 \u043F\u0443\u0442\u0438" : currentOrder.col === "new" ? "\u041D\u043E\u0432\u044B\u0439 \u2014 \u043D\u0435 \u043F\u0440\u0438\u043D\u044F\u0442" : "\u041A\u0443\u0445\u043D\u044F \u0433\u043E\u0442\u043E\u0432\u0438\u0442")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("b", null, "\u041A\u043B\u0438\u0435\u043D\u0442:"), " ", currentOrder.client), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("b", null, "\u0422\u0435\u043B\u0435\u0444\u043E\u043D:"), " ", /* @__PURE__ */ React.createElement("a", { href: `tel:${currentOrder.phone}`, style: { color: "var(--accent)", textDecoration: "none" } }, currentOrder.phone)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, padding: "6px 8px", background: "var(--surface)", borderRadius: "6px", border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("b", null, "\u0410\u0434\u0440\u0435\u0441:"), " ", currentOrder.addr || "\u0422\u0430\u0448\u043A\u0435\u043D\u0442"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 6 } }, /* @__PURE__ */ React.createElement("b", null, "\u0421\u0443\u043C\u043C\u0430:"), " ", /* @__PURE__ */ React.createElement("span", { className: "mono", style: { color: "var(--accent-2)", fontWeight: 700 } }, summ(currentOrder.total), " \u0441\u0443\u043C"), /* @__PURE__ */ React.createElement("span", { className: "dim", style: { marginLeft: 8 } }, "(", currentOrder.pay === "cash" ? "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u043C\u0438" : "\u041A\u0430\u0440\u0442\u043E\u0439", ")")), currentOrder.courier && /* @__PURE__ */ React.createElement("div", { style: { marginTop: 8, padding: "5px 8px", background: "var(--surface)", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, color: "var(--accent-2)", fontWeight: 600, fontSize: 12, border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "bike", size: 13 }), " \u041A\u0443\u0440\u044C\u0435\u0440: ", currentOrder.courier)), /* @__PURE__ */ React.createElement("div", { style: { marginTop: 4, marginBottom: 10, padding: "8px 10px", background: "var(--surface-3)", borderRadius: 8, border: "1px solid var(--line)" } }, /* @__PURE__ */ React.createElement("div", { className: "label", style: { marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement(Icon, { name: "bike", size: 12 }), " \u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0443 (Telegram):"), courierGroupInfo?.configured ? /* @__PURE__ */ React.createElement("span", { style: { color: "var(--ok)", fontSize: 10, display: "flex", alignItems: "center", gap: 4 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 6, height: 6, borderRadius: "50%", background: "var(--ok)" } }), " \u0413\u0440\u0443\u043F\u043F\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0430") : /* @__PURE__ */ React.createElement("span", { style: { color: "var(--dim)", fontSize: 10 } }, "/set_courier_group \u0432 \u0447\u0430\u0442\u0435")), /* @__PURE__ */ React.createElement(
     "select",
     {
       value: selectedCourier,
@@ -3153,28 +3301,33 @@ function Couriers({ t, toast, orders = [] }) {
     },
     /* @__PURE__ */ React.createElement("option", { value: "group" }, courierGroupInfo?.configured ? `\u0413\u0440\u0443\u043F\u043F\u0430 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432 (${courierGroupInfo.title || "\u0412\u0437\u044F\u0442\u044C \u0437\u0430\u043A\u0430\u0437"})` : "\u041E\u0431\u0449\u0430\u044F \u0433\u0440\u0443\u043F\u043F\u0430 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432 (\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0439 \u0440\u0430\u0437\u0431\u043E\u0440)"),
     couriersList.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.user_id, value: c.user_id }, c.full_name, " (", c.role === "courier" ? "\u041A\u0443\u0440\u044C\u0435\u0440" : c.role, ")"))
-  )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, selectedCourier !== "group" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, currentOrder.col === "way" || currentOrder.col === "done" ? `\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043A\u0443\u0440\u044C\u0435\u0440\u0443 (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || "\u041A\u0443\u0440\u044C\u0435\u0440"}) \u0432 Telegram` : `\u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C \u043A\u0443\u0440\u044C\u0435\u0440\u0443 (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || "\u041A\u0443\u0440\u044C\u0435\u0440"}) \u0432 Telegram`) : currentOrder.col !== "way" && currentOrder.col !== "done" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, "\u041F\u0435\u0440\u0435\u0434\u0430\u0442\u044C \u0432 \u043E\u0431\u0449\u0443\u044E \u0433\u0440\u0443\u043F\u043F\u0443 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432 (Telegram)") : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E \u0432 \u0433\u0440\u0443\u043F\u043F\u0443 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432"), currentOrder.col === "way" && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => advanceDeliveryStatus(currentOrder, "done", "\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D") }, "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0443 \u043A\u043B\u0438\u0435\u043D\u0442\u0443"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, /* @__PURE__ */ React.createElement(
-    "a",
-    {
-      href: `https://yandex.uz/maps/?rtext=41.2858,69.3402~${getCoordsForAddress(currentOrder.addr)[0]},${getCoordsForAddress(currentOrder.addr)[1]}&rtt=auto`,
-      target: "_blank",
-      rel: "noreferrer",
-      className: "btn btn-sm",
-      style: { textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--surface-3)" }
-    },
-    /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 13 }),
-    " \u042F\u043D\u0434\u0435\u043A\u0441 \u041A\u0430\u0440\u0442\u044B"
-  ), /* @__PURE__ */ React.createElement(
-    "a",
-    {
-      href: `yandexnavi://build_route_on_map?lat_to=${getCoordsForAddress(currentOrder.addr)[0]}&lon_to=${getCoordsForAddress(currentOrder.addr)[1]}`,
-      className: "btn btn-sm",
-      title: "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u042F\u043D\u0434\u0435\u043A\u0441.\u041D\u0430\u0432\u0438\u0433\u0430\u0442\u043E\u0440",
-      style: { textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--surface-3)" }
-    },
-    /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 13 }),
-    " \u041D\u0430\u0432\u0438\u0433\u0430\u0442\u043E\u0440"
-  )), /* @__PURE__ */ React.createElement(
+  )), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } }, selectedCourier !== "group" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, currentOrder.col === "way" || currentOrder.col === "done" ? `\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043A\u0443\u0440\u044C\u0435\u0440\u0443 (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || "\u041A\u0443\u0440\u044C\u0435\u0440"}) \u0432 Telegram` : `\u041D\u0430\u0437\u043D\u0430\u0447\u0438\u0442\u044C \u043A\u0443\u0440\u044C\u0435\u0440\u0443 (${couriersList.find((c) => String(c.user_id) === String(selectedCourier))?.full_name || "\u041A\u0443\u0440\u044C\u0435\u0440"}) \u0432 Telegram`) : currentOrder.col !== "way" && currentOrder.col !== "done" ? /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, "\u041F\u0435\u0440\u0435\u0434\u0430\u0442\u044C \u0432 \u043E\u0431\u0449\u0443\u044E \u0433\u0440\u0443\u043F\u043F\u0443 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432 (Telegram)") : /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "ghost", icon: "bike", onClick: () => dispatchToCourierTelegram(currentOrder) }, "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E \u0432 \u0433\u0440\u0443\u043F\u043F\u0443 \u043A\u0443\u0440\u044C\u0435\u0440\u043E\u0432"), currentOrder.col === "way" && /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => advanceDeliveryStatus(currentOrder, "done", "\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D") }, "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0443 \u043A\u043B\u0438\u0435\u043D\u0442\u0443"), (() => {
+    const cc = getCoordsForAddress(currentOrder.addrRaw || currentOrder.addr);
+    const q = encodeURIComponent(stripCoords(currentOrder.addr) + ", \u0422\u0430\u0448\u043A\u0435\u043D\u0442");
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 } }, !cc && /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1 / -1", fontSize: 11.5, color: "var(--warn)" } }, "\u041A\u043B\u0438\u0435\u043D\u0442 \u043D\u0435 \u043E\u0442\u043C\u0435\u0442\u0438\u043B \u0442\u043E\u0447\u043A\u0443 \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u2014 \u043C\u0430\u0440\u0448\u0440\u0443\u0442 \u043F\u043E \u0442\u0435\u043A\u0441\u0442\u0443 \u0430\u0434\u0440\u0435\u0441\u0430"), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        href: cc ? `https://yandex.uz/maps/?rtext=${FENIX_GEO[0]},${FENIX_GEO[1]}~${cc[0]},${cc[1]}&rtt=auto` : `https://yandex.uz/maps/?text=${q}`,
+        target: "_blank",
+        rel: "noreferrer",
+        className: "btn btn-sm",
+        style: { textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--surface-3)" }
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 13 }),
+      " \u042F\u043D\u0434\u0435\u043A\u0441 \u041A\u0430\u0440\u0442\u044B"
+    ), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        href: cc ? `yandexnavi://build_route_on_map?lat_to=${cc[0]}&lon_to=${cc[1]}` : `https://www.google.com/maps/search/?api=1&query=${q}`,
+        className: "btn btn-sm",
+        title: "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u042F\u043D\u0434\u0435\u043A\u0441.\u041D\u0430\u0432\u0438\u0433\u0430\u0442\u043E\u0440",
+        style: { textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--surface-3)" }
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "pin", size: 13 }),
+      " ",
+      cc ? "\u041D\u0430\u0432\u0438\u0433\u0430\u0442\u043E\u0440" : "Google Maps"
+    ));
+  })(), /* @__PURE__ */ React.createElement(
     "a",
     {
       href: `tel:${currentOrder.phone}`,
@@ -3202,7 +3355,7 @@ function Couriers({ t, toast, orders = [] }) {
           gap: 3
         }
       },
-      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontWeight: 700, fontSize: 12, color: isSel ? "var(--accent-2)" : "var(--text)" } }, "#", o.id), /* @__PURE__ */ React.createElement(Pill, { tone: o.col === "done" ? "ok" : o.col === "way" ? "info" : "warn" }, o.col === "done" ? "\u0414\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D" : o.col === "way" ? "\u0412 \u043F\u0443\u0442\u0438" : "\u041A\u0443\u0445\u043D\u044F")),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("span", { className: "mono", style: { fontWeight: 700, fontSize: 12, color: isSel ? "var(--accent-2)" : "var(--text)" } }, "#", o.id), /* @__PURE__ */ React.createElement(Pill, { tone: o.col === "done" ? "ok" : o.col === "way" ? "info" : o.col === "new" ? "accent" : "warn" }, o.col === "done" ? "\u0414\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D" : o.col === "way" ? "\u0412 \u043F\u0443\u0442\u0438" : o.col === "new" ? "\u041D\u043E\u0432\u044B\u0439" : "\u041A\u0443\u0445\u043D\u044F")),
       /* @__PURE__ */ React.createElement("div", { style: { fontSize: 11.5, color: "var(--text-2)" }, className: "trunc" }, o.client, " \xB7 ", o.courier ? `\u041A\u0443\u0440\u044C\u0435\u0440: ${o.courier}` : o.addr || "\u0410\u0434\u0440\u0435\u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438"),
       /* @__PURE__ */ React.createElement("div", { className: "mono", style: { fontSize: 11, color: "var(--accent)", fontWeight: 600 } }, summ(o.total), " \u0441\u0443\u043C")
     );
@@ -3300,7 +3453,7 @@ function MenuScreen({ t, toast }) {
   };
   const handleDeleteDish = async (dish) => {
     if (!dish) return;
-    if (!window.confirm(`\u0412\u044B \u0443\u0432\u0435\u0440\u0435\u043D\u044B, \u0447\u0442\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0431\u043B\u044E\u0434\u043E "${dish.n}" \u0438\u0437 \u043C\u0435\u043D\u044E?`)) return;
+    if (!await fxConfirm(`\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0431\u043B\u044E\u0434\u043E \xAB${dish.n}\xBB \u0438\u0437 \u043C\u0435\u043D\u044E? \u042D\u0442\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0435\u043B\u044C\u0437\u044F \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C.`, { title: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0431\u043B\u044E\u0434\u043E" })) return;
     try {
       const res = await fetch("/api/admin/menu/delete", {
         method: "POST",
@@ -4293,7 +4446,7 @@ function Staff({ t, toast }) {
     }
   };
   const handleDelete = async (m) => {
-    if (!window.confirm(`\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0441\u043E\u0442\u0440\u0443\u0434\u043D\u0438\u043A\u0430 ${m.name} (${m.role}) \u0438\u0437 \u0448\u0442\u0430\u0442\u0430 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430?`)) return;
+    if (!await fxConfirm(`\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0441\u043E\u0442\u0440\u0443\u0434\u043D\u0438\u043A\u0430 ${m.name} (${m.role}) \u0438\u0437 \u0448\u0442\u0430\u0442\u0430 \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430?`, { title: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0441\u043E\u0442\u0440\u0443\u0434\u043D\u0438\u043A\u0430" })) return;
     try {
       const res = await fetch("/api/admin/staff/delete", {
         method: "POST",
@@ -4555,7 +4708,10 @@ function Analytics({ t, orders = [] }) {
     item.label
   ))), loading ? /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", padding: "60px 0", color: "var(--text-3)" } }, "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0430\u043D\u0430\u043B\u0438\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0434\u0430\u043D\u043D\u044B\u0445...") : tab === "archive" ? (
     /* 4. Saved Shifts Archive View */
-    /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0410\u0440\u0445\u0438\u0432 \u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11, marginTop: 2 } }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0432\u0441\u0435\u0445 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445 \u0441\u043C\u0435\u043D \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430 FENIX \u0441 \u0440\u0430\u0437\u0431\u0438\u0432\u043A\u043E\u0439 \u043F\u043E \u043A\u0430\u0441\u0441\u0435")), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "badge" }, archive.length, " \u0441\u043C\u0435\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435")), /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { className: "shift-archive-tbl" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "\u0421\u043C\u0435\u043D\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041E\u0442\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u0417\u0430\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041A\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0427\u0435\u043A\u043E\u0432"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041A\u0430\u0440\u0442\u044B / \u041E\u043D\u043B\u0430\u0439\u043D"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0418\u0442\u043E\u0433\u043E \u0432\u044B\u0440\u0443\u0447\u043A\u0430"))), /* @__PURE__ */ React.createElement("tbody", null, archive.map((s) => /* @__PURE__ */ React.createElement("tr", { key: s.id }, /* @__PURE__ */ React.createElement("td", { className: "mono", style: { fontWeight: 700, color: "var(--accent)" } }, "#", s.shift_num), /* @__PURE__ */ React.createElement("td", null, s.opened_at ? new Date(s.opened_at.replace(" ", "T")).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.closed_at ? new Date(s.closed_at.replace(" ", "T")).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.auto_closed === 1 ? /* @__PURE__ */ React.createElement("span", { className: "pill", style: { background: "var(--warn-soft)", color: "var(--warn)", fontSize: 9.5, padding: "2px 6px", borderRadius: 4 } }, "\u0410\u0432\u0442\u043E (04:00)") : /* @__PURE__ */ React.createElement("span", null, s.closed_by || "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440")), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right" } }, s.total_orders || 0), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--ok)" } }, summ(s.cash_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--info)" } }, summ(s.card_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", fontWeight: 700, color: "var(--text)" } }, summ(s.total_revenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 9.5 } }, "\u0441\u0443\u043C")))), !archive.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: 8, style: { textAlign: "center", padding: 30, color: "var(--text-3)" } }, "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u043C\u0435\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0430."))))))
+    /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: 14 } }, /* @__PURE__ */ React.createElement("div", { className: "row", style: { marginBottom: 12 } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "label" }, "\u0410\u0440\u0445\u0438\u0432 \u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D"), /* @__PURE__ */ React.createElement("div", { className: "dim", style: { fontSize: 11, marginTop: 2 } }, "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0432\u0441\u0435\u0445 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445 \u0441\u043C\u0435\u043D \u0440\u0435\u0441\u0442\u043E\u0440\u0430\u043D\u0430 FENIX \u0441 \u0440\u0430\u0437\u0431\u0438\u0432\u043A\u043E\u0439 \u043F\u043E \u043A\u0430\u0441\u0441\u0435")), /* @__PURE__ */ React.createElement("span", { className: "grow" }), /* @__PURE__ */ React.createElement("span", { className: "badge" }, archive.length, " \u0441\u043C\u0435\u043D \u0432 \u0430\u0440\u0445\u0438\u0432\u0435")), /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { className: "shift-archive-tbl" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", null, "\u0421\u043C\u0435\u043D\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041E\u0442\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u0417\u0430\u043A\u0440\u044B\u0442\u0430"), /* @__PURE__ */ React.createElement("th", null, "\u041A\u0442\u043E \u0437\u0430\u043A\u0440\u044B\u043B"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0427\u0435\u043A\u043E\u0432"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041F\u0435\u0440\u0435\u0441\u0447\u0451\u0442 \u043A\u0430\u0441\u0441\u044B"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u041A\u0430\u0440\u0442\u044B / \u041E\u043D\u043B\u0430\u0439\u043D"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right" } }, "\u0418\u0442\u043E\u0433\u043E \u0432\u044B\u0440\u0443\u0447\u043A\u0430"))), /* @__PURE__ */ React.createElement("tbody", null, archive.map((s) => /* @__PURE__ */ React.createElement("tr", { key: s.id }, /* @__PURE__ */ React.createElement("td", { className: "mono", style: { fontWeight: 700, color: "var(--accent)" } }, "#", s.shift_num), /* @__PURE__ */ React.createElement("td", null, s.opened_at ? new Date(parseDbTime(s.opened_at)).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.closed_at ? new Date(parseDbTime(s.closed_at)).toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "\u2014"), /* @__PURE__ */ React.createElement("td", null, s.auto_closed === 1 ? /* @__PURE__ */ React.createElement("span", { className: "pill", style: { background: "var(--warn-soft)", color: "var(--warn)", fontSize: 9.5, padding: "2px 6px", borderRadius: 4 } }, "\u0410\u0432\u0442\u043E (04:00)") : /* @__PURE__ */ React.createElement("span", null, s.closed_by || "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440")), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right" } }, s.total_orders || 0), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--ok)" } }, summ(s.cash_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right" }, title: s.cash_note || "" }, s.cash_counted == null ? /* @__PURE__ */ React.createElement("span", { className: "dim" }, "\u2014") : (() => {
+      const d = s.cash_counted - (s.cash_total || 0);
+      return /* @__PURE__ */ React.createElement("span", { style: { color: d === 0 ? "var(--ok)" : "var(--danger)" } }, d === 0 ? "\u0441\u043E\u0448\u043B\u043E\u0441\u044C" : (d > 0 ? "+" : "\u2212") + summ(Math.abs(d)));
+    })()), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", color: "var(--info)" } }, summ(s.card_total || 0)), /* @__PURE__ */ React.createElement("td", { className: "mono", style: { textAlign: "right", fontWeight: 700, color: "var(--text)" } }, summ(s.total_revenue || 0), " ", /* @__PURE__ */ React.createElement("small", { style: { fontSize: 9.5 } }, "\u0441\u0443\u043C")))), !archive.length && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: 8, style: { textAlign: "center", padding: 30, color: "var(--text-3)" } }, "\u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0445 \u0441\u043C\u0435\u043D \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u043C\u0435\u043D\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u0430."))))))
   ) : tab === "7d" ? (
     /* 2. Last 7 Days View */
     /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "kpis" }, [
@@ -4732,20 +4888,14 @@ function LoginScreen({ onLoginSuccess }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: username.trim(),
-          password: password.trim()
+          password: password.trim(),
+          remember
         })
       });
       const data = await res.json();
       if (res.ok && data.ok) {
-        const token = data.token;
-        if (remember) {
-          localStorage.setItem("fenix_admin_auth", token);
-        } else {
-          sessionStorage.setItem("fenix_admin_auth", token);
-        }
-        document.cookie = `fenix_admin_auth=${encodeURIComponent(token)}; path=/; max-age=2592000; SameSite=Lax`;
         if (onLoginSuccess) {
-          onLoginSuccess(token, data.user);
+          onLoginSuccess(null, data.user);
         }
       } else {
         setError(data.error || "\u041D\u0435\u0432\u0435\u0440\u043D\u043E\u0435 \u0438\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F \u0438\u043B\u0438 \u043F\u0430\u0440\u043E\u043B\u044C");
@@ -5049,6 +5199,7 @@ const ACCENTS = {
 function mapBackendStatusToCol(status) {
   if (!status) return "new";
   const s = String(status).toLowerCase();
+  if (s.includes("\u043E\u0442\u043C\u0435\u043D") || s === "cancelled") return "cancelled";
   if (s.includes("\u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D") || s.includes("\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D") || s.includes("\u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D") || s === "done") return "done";
   if (s.includes("\u043F\u0443\u0442\u0438") || s.includes("\u0432\u044B\u0434\u0430\u0447\u0435") || s === "way") return "way";
   if (s.includes("\u043A\u0443\u0445\u043D") || s.includes("\u0433\u043E\u0442\u043E\u0432") || s === "kitchen") return "kitchen";
@@ -5119,20 +5270,10 @@ function parseOrderItems(raw) {
   }
   return [{ n: "\u0417\u0430\u043A\u0430\u0437 \u043F\u043E \u043C\u0435\u043D\u044E", q: 1, p: 0 }];
 }
-if (typeof window !== "undefined" && !window.__fetchInterceptorInstalled) {
-  window.__fetchInterceptorInstalled = true;
-  const origFetch = window.fetch;
-  window.fetch = function(input, init = {}) {
-    try {
-      const token = localStorage.getItem("fenix_admin_auth") || sessionStorage.getItem("fenix_admin_auth");
-      if (token && typeof input === "string" && input.startsWith("/api/admin/")) {
-        init = Object.assign({}, init);
-        init.headers = Object.assign({}, init.headers || {}, { "X-Admin-Key": token });
-      }
-    } catch (_) {
-    }
-    return origFetch.call(this, input, init);
-  };
+try {
+  localStorage.removeItem("fenix_admin_auth");
+  sessionStorage.removeItem("fenix_admin_auth");
+} catch (_) {
 }
 function SwitchOperatorModal({ isOpen, onClose, currentUser, onSelectUser, toast }) {
   const [staffList, setStaffList] = useState([]);
@@ -5226,15 +5367,7 @@ function SwitchOperatorModal({ isOpen, onClose, currentUser, onSelectUser, toast
 function App() {
   const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const theme = tw.theme, dir = tw.dir, lang = tw.lang;
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      const match = document.cookie.match(/(?:^|;\s*)fenix_admin_auth=([^;]+)/);
-      if (match) return true;
-      return Boolean(localStorage.getItem("fenix_admin_auth") || sessionStorage.getItem("fenix_admin_auth"));
-    } catch (_) {
-      return false;
-    }
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [page, setPage] = useState(() => {
     try {
       return localStorage.getItem("fx.page") || "dispatch";
@@ -5254,6 +5387,7 @@ function App() {
   const [printOrder, setPrintOrder] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [bookingsCount, setBookingsCount] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState(0);
   const [cmdk, setCmdk] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toasts, pushToast] = useToasts();
@@ -5276,25 +5410,13 @@ function App() {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (_) {
     }
-    try {
-      localStorage.removeItem("fenix_admin_auth");
-      sessionStorage.removeItem("fenix_admin_auth");
-      document.cookie = "fenix_admin_auth=; path=/; max-age=0; SameSite=Lax";
-    } catch (_) {
-    }
     setIsAuthenticated(false);
     pushToast("\u0412\u044B \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0432\u044B\u0448\u043B\u0438 \u0438\u0437 \u0441\u0438\u0441\u0442\u0435\u043C\u044B", "info", "logOut");
   }, [pushToast]);
   useEffect(() => {
     fetch("/api/auth/me").then((r) => r.json()).then((d) => {
-      if (d && d.authenticated) {
-        setIsAuthenticated(true);
-      } else {
-        const localToken = localStorage.getItem("fenix_admin_auth") || sessionStorage.getItem("fenix_admin_auth");
-        if (!localToken) setIsAuthenticated(false);
-      }
-    }).catch(() => {
-    });
+      setIsAuthenticated(!!(d && d.authenticated));
+    }).catch(() => setIsAuthenticated(false));
   }, []);
   const syncOrders = useCallback(async (isInitial = false) => {
     try {
@@ -5309,7 +5431,8 @@ function App() {
         const mapped = data.orders.map((r) => {
           const type = mapOrderType(r.orderType, r.address);
           const col = mapBackendStatusToCol(r.status);
-          const createdTs = r.createdAt ? new Date(r.createdAt.replace(" ", "T")).getTime() : Date.now();
+          const parsedTs = parseDbTime(r.createdAt);
+          const createdTs = isNaN(parsedTs) ? Date.now() : parsedTs;
           const elapsed = Math.max(1, Math.round((Date.now() - createdTs) / 6e4));
           const items = parseOrderItems(r.items);
           const itemsTotal = items.reduce((sum, it) => sum + Number(it.p || 0) * Number(it.q || 1), 0);
@@ -5323,26 +5446,26 @@ function App() {
             col,
             client: r.customerName || "\u041A\u043B\u0438\u0435\u043D\u0442",
             phone: r.customerPhone || "\u2014",
-            addr: type === "delivery" ? r.address || "\u0410\u0434\u0440\u0435\u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438" : void 0,
+            addr: type === "delivery" ? stripCoords(r.address) || "\u0410\u0434\u0440\u0435\u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438" : void 0,
+            addrRaw: type === "delivery" ? r.address || "" : void 0,
             table: type === "hall" ? r.address || "\u0421\u0442\u043E\u043B \u0432 \u0437\u0430\u043B\u0435" : void 0,
             elapsed: isNaN(elapsed) ? 3 : elapsed,
             sla: type === "delivery" ? 45 : 25,
             pay: (r.paymentMethod || "").toLowerCase().includes("\u043D\u0430\u043B\u0438\u0447") ? "cash" : "card",
-            note: "",
+            note: r.comment || "",
             items,
             fee,
-            total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 12e4),
+            total: r.totalPrice || (itemsTotal > 0 ? itemsTotal + fee : 0),
             createdAt: createdTs,
             isBackend: true,
             courier: r.courier || r.courierName || void 0,
             courierId: r.courierId || void 0
           };
-        });
+        }).filter((o) => o.col !== "cancelled");
         if (!isInitial) {
           mapped.forEach((o) => {
             if (!seenOrderIds.current.has(o.id)) {
               seenOrderIds.current.add(o.id);
-              if (tw.sound) beep("alert");
               pushToast(`\u041D\u043E\u0432\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 #${o.id}!`, "ok", "dpad");
             }
           });
@@ -5369,12 +5492,15 @@ function App() {
       if (!res.ok) return;
       const data = await res.json();
       if (data && data.ok && Array.isArray(data.reservations)) {
-        setBookingsCount(data.reservations.length);
+        const live = data.reservations.filter((r) => bookingStatus(r.status) !== "cancelled");
+        setBookingsCount(live.filter((r) => isTodayDate(r.date)).length);
+        setPendingBookings(live.filter((r) => bookingStatus(r.status) === "pending").length);
       }
     } catch (_) {
     }
   }, []);
   useEffect(() => {
+    if (isAuthenticated !== true) return;
     syncOrders(true);
     syncBookingsCount();
     const interval = setInterval(() => {
@@ -5382,7 +5508,7 @@ function App() {
       syncBookingsCount();
     }, 6e3);
     return () => clearInterval(interval);
-  }, [syncOrders, syncBookingsCount]);
+  }, [syncOrders, syncBookingsCount, isAuthenticated]);
   useEffect(() => {
     try {
       localStorage.setItem("fx.page", page);
@@ -5495,8 +5621,34 @@ function App() {
     } else if (action === "advance") advance(o);
     else if (action === "print") setPrintOrder(o);
   }, [advance, pushToast, orders]);
-  const counts = { live: orders.filter((o) => o.col !== "done").length };
+  const counts = {
+    live: orders.filter((o) => o.col !== "done").length,
+    bookings: pendingBookings,
+    couriers: orders.filter((o) => o.type === "delivery" && o.col !== "done").length
+  };
   const loaded = openOrder ? orders.find((o) => o.id === openOrder.id) || openOrder : null;
+  const waiting = orders.filter((o) => o.col === "new").sort((a, b) => a.createdAt - b.createdAt);
+  const [alarmMuteUntil, setAlarmMuteUntil] = useState(0);
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  useEffect(() => {
+    if (isAuthenticated !== true || !tw.sound || waiting.length === 0) return;
+    const ring = () => {
+      if (Date.now() < alarmMuteUntil) return;
+      beep("order");
+      setTimeout(() => setAudioBlocked(audioState() !== "running"), 300);
+    };
+    ring();
+    const iv = setInterval(ring, 5e3);
+    return () => clearInterval(iv);
+  }, [isAuthenticated, tw.sound, waiting.length, alarmMuteUntil]);
+  useEffect(() => {
+    document.title = waiting.length ? `(${waiting.length}) \u041D\u043E\u0432\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u2014 FENIX` : "FENIX \u2014 \u0414\u0438\u0441\u043F\u0435\u0442\u0447\u0435\u0440\u0441\u043A\u0430\u044F";
+  }, [waiting.length]);
+  useEffect(() => {
+    const unlock = () => unlockAudio().then((st) => setAudioBlocked(st !== "running"));
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
   const screens = {
     dispatch: /* @__PURE__ */ React.createElement(
       Dispatch,
@@ -5512,7 +5664,7 @@ function App() {
         toast: pushToast,
         lang,
         bookingsCount,
-        onUpdateOrder: (updated) => setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o)),
+        onUpdateOrder: (updated) => setOrders((prev) => prev.map((o) => o.id === updated.id ? updated : o).filter((o) => o.col !== "cancelled")),
         onDeleteOrder: (deletedId) => setOrders((prev) => prev.filter((o) => o.id !== deletedId))
       }
     ),
@@ -5540,6 +5692,9 @@ function App() {
       }
     )
   };
+  if (isAuthenticated === null) {
+    return /* @__PURE__ */ React.createElement("div", { className: "auth-boot", "aria-busy": "true" });
+  }
   if (!isAuthenticated) {
     return /* @__PURE__ */ React.createElement(
       LoginScreen,
@@ -5602,7 +5757,7 @@ function App() {
       currentShift,
       onOpenShiftModal: () => setShiftModalOpen(true)
     }
-  ), /* @__PURE__ */ React.createElement("main", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } }, screens[page]), /* @__PURE__ */ React.createElement(
+  ), waiting.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "order-alarm", role: "alert" }, /* @__PURE__ */ React.createElement("span", { className: "order-alarm-bell", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement(Icon, { name: "bell", size: 16 })), /* @__PURE__ */ React.createElement("div", { className: "order-alarm-txt" }, /* @__PURE__ */ React.createElement("b", null, waiting.length === 1 ? "\u041D\u043E\u0432\u044B\u0439 \u0437\u0430\u043A\u0430\u0437" : `\u041D\u043E\u0432\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432: ${waiting.length}`), /* @__PURE__ */ React.createElement("span", null, "#", waiting[0].id, " \xB7 ", waiting[0].client, " \xB7 ", summ(waiting[0].total), " \u0441\u0443\u043C", waiting[0].type === "delivery" ? " \xB7 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0430" : "")), /* @__PURE__ */ React.createElement("div", { className: "order-alarm-act" }, audioBlocked && tw.sound && /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => unlockAudio().then((st) => setAudioBlocked(st !== "running")) }, "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0437\u0432\u0443\u043A"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", onClick: () => setOpenOrder(waiting[0]) }, "\u041E\u0442\u043A\u0440\u044B\u0442\u044C"), /* @__PURE__ */ React.createElement(Btn, { size: "sm", variant: "accent", icon: "check", onClick: () => advance(waiting[0]) }, "\u041F\u0440\u0438\u043D\u044F\u0442\u044C"), Date.now() >= alarmMuteUntil && tw.sound && /* @__PURE__ */ React.createElement("button", { type: "button", className: "order-alarm-mute", onClick: () => setAlarmMuteUntil(Date.now() + 12e4), title: "\u0422\u0438\u0448\u0438\u043D\u0430 \u043D\u0430 2 \u043C\u0438\u043D\u0443\u0442\u044B" }, "\u0422\u0438\u0448\u0435 2 \u043C\u0438\u043D"))), /* @__PURE__ */ React.createElement("main", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } }, screens[page]), /* @__PURE__ */ React.createElement(ConfirmHost, null), /* @__PURE__ */ React.createElement(
     MobileBottomNav,
     {
       page,

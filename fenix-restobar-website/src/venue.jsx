@@ -42,11 +42,7 @@ function Bookings({ t, toast }) {
         const data = await res.json();
         if (active && data && data.ok && Array.isArray(data.reservations)) {
           const mapped = data.reservations.map((r) => {
-            let status = 'pending';
-            const s = (r.status || '').toLowerCase();
-            if (s.includes('подтвержд') || s === 'confirmed') status = 'confirmed';
-            else if (s.includes('посажен') || s === 'seated') status = 'seated';
-            else if (s.includes('отменен') || s === 'cancelled') status = 'cancelled';
+            const status = bookingStatus(r.status);
 
             return {
               id: r.codeFormatted || `WEB-${r.code}`,
@@ -232,18 +228,18 @@ function Bookings({ t, toast }) {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table className="tbl" style={{ tableLayout: 'fixed', width: '100%', minWidth: 920 }}>
+          <table className="tbl tbl-actions" style={{ tableLayout: 'fixed', width: '100%', minWidth: 1140 }}>
             <colgroup>
-              <col style={{ width: '75px' }} />
-              <col style={{ width: '95px' }} />
-              <col style={{ width: '65px' }} />
-              <col style={{ width: '155px' }} />
-              <col style={{ width: '125px' }} />
-              <col style={{ width: '115px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '100px' }} />
               <col style={{ width: '70px' }} />
-              <col style={{ width: '75px' }} />
-              <col style={{ width: '105px' }} />
-              <col style={{ width: '80px' }} />
+              <col />
+              <col style={{ width: '135px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '70px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '220px' }} />
             </colgroup>
           <thead>
             <tr>
@@ -590,18 +586,18 @@ function Banquets({ t, toast }) {
 
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table className="tbl" style={{ tableLayout: 'fixed', width: '100%', minWidth: 920 }}>
+          <table className="tbl tbl-actions" style={{ tableLayout: 'fixed', width: '100%', minWidth: 1140 }}>
             <colgroup>
-              <col style={{ width: '75px' }} />
-              <col style={{ width: '95px' }} />
-              <col style={{ width: '155px' }} />
-              <col style={{ width: '125px' }} />
+              <col style={{ width: '120px' }} />
               <col style={{ width: '100px' }} />
+              <col />
+              <col style={{ width: '135px' }} />
+              <col style={{ width: '150px' }} />
               <col style={{ width: '70px' }} />
               <col style={{ width: '120px' }} />
-              <col style={{ width: '115px' }} />
-              <col style={{ width: '105px' }} />
-              <col style={{ width: '80px' }} />
+              <col style={{ width: '135px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '160px' }} />
             </colgroup>
           <thead>
             <tr>
@@ -620,7 +616,7 @@ function Banquets({ t, toast }) {
           <tbody>
             {filteredRows.map((b) => (
               <tr key={b.id} style={{ cursor: 'default' }}>
-                <td className="mono dim" style={{ paddingLeft: 18 }}>{b.id}</td>
+                <td className="mono dim" style={{ paddingLeft: 18, whiteSpace: 'nowrap' }}>{b.id}</td>
                 <td className="mono" style={{ whiteSpace: 'nowrap' }}>{b.date}</td>
                 <td style={{ fontWeight: 600 }} className="trunc">{b.client}</td>
                 <td className="mono dim" style={{ fontSize: 11 }}>{b.phone}</td>
@@ -656,30 +652,30 @@ function Banquets({ t, toast }) {
 /* ── floor plan (Real Two-Floor Scheme: 120 + 170 seats) ─── */
 const FLOOR_1_TABLES = [
   { id: 'T1', label: 'Стол 1', x: 8, y: 14, seats: 4, st: 'free' },
-  { id: 'T2', label: 'Стол 2', x: 8, y: 42, seats: 4, st: 'occupied' },
-  { id: 'T3', label: 'Стол 3', x: 8, y: 70, seats: 2, st: 'booked' },
-  { id: 'T4', label: 'Стол 4', x: 26, y: 14, seats: 6, st: 'occupied' },
+  { id: 'T2', label: 'Стол 2', x: 8, y: 42, seats: 4, st: 'free' },
+  { id: 'T3', label: 'Стол 3', x: 8, y: 70, seats: 2, st: 'free' },
+  { id: 'T4', label: 'Стол 4', x: 26, y: 14, seats: 6, st: 'free' },
   { id: 'T5', label: 'Стол 5', x: 26, y: 42, seats: 4, st: 'free' },
-  { id: 'T6', label: 'Стол 6', x: 26, y: 70, seats: 4, st: 'cleaning' },
+  { id: 'T6', label: 'Стол 6', x: 26, y: 70, seats: 4, st: 'free' },
   { id: 'T7', label: 'Стол 7', x: 45, y: 14, seats: 8, st: 'free' },
-  { id: 'T8', label: 'Стол 8', x: 45, y: 42, seats: 6, st: 'occupied' },
-  { id: 'T9', label: 'Стол 9', x: 45, y: 70, seats: 4, st: 'booked' },
+  { id: 'T8', label: 'Стол 8', x: 45, y: 42, seats: 6, st: 'free' },
+  { id: 'T9', label: 'Стол 9', x: 45, y: 70, seats: 4, st: 'free' },
   { id: 'T10', label: 'Стол 10', x: 64, y: 14, seats: 4, st: 'free' },
   { id: 'T11', label: 'Стол 11', x: 64, y: 42, seats: 6, st: 'free' },
   { id: 'T12', label: 'Стол 12', x: 64, y: 70, seats: 4, st: 'free' },
   { id: 'STAGE', label: 'Сцена & DJ', x: 83, y: 12, seats: 0, st: 'special', stage: true },
-  { id: 'BAR', label: 'Барная стойка', x: 83, y: 55, seats: 8, st: 'occupied', bar: true },
+  { id: 'BAR', label: 'Барная стойка', x: 83, y: 55, seats: 8, st: 'free', bar: true },
 ];
 
 const FLOOR_2_TABLES = [
-  { id: 'B1', label: 'Банкет Б-1', x: 8, y: 16, seats: 20, st: 'booked', banquet: true },
+  { id: 'B1', label: 'Банкет Б-1', x: 8, y: 16, seats: 20, st: 'free', banquet: true },
   { id: 'B2', label: 'Банкет Б-2', x: 8, y: 58, seats: 20, st: 'free', banquet: true },
   { id: 'B3', label: 'Банкет Б-3', x: 36, y: 16, seats: 24, st: 'free', banquet: true },
-  { id: 'B4', label: 'Банкет Б-4', x: 36, y: 58, seats: 24, st: 'occupied', banquet: true },
+  { id: 'B4', label: 'Банкет Б-4', x: 36, y: 58, seats: 24, st: 'free', banquet: true },
   { id: 'B5', label: 'Банкет Б-5', x: 62, y: 16, seats: 16, st: 'free', banquet: true },
-  { id: 'B6', label: 'Банкет Б-6', x: 62, y: 58, seats: 16, st: 'cleaning', banquet: true },
-  { id: 'VIP1', label: 'VIP 1 Караоке', x: 84, y: 10, seats: 10, st: 'booked', vip: true },
-  { id: 'VIP2', label: 'VIP 2 Лаунж', x: 84, y: 42, seats: 8, st: 'occupied', vip: true },
+  { id: 'B6', label: 'Банкет Б-6', x: 62, y: 58, seats: 16, st: 'free', banquet: true },
+  { id: 'VIP1', label: 'VIP 1 Караоке', x: 84, y: 10, seats: 10, st: 'free', vip: true },
+  { id: 'VIP2', label: 'VIP 2 Лаунж', x: 84, y: 42, seats: 8, st: 'free', vip: true },
   { id: 'VIP3', label: 'VIP 3 Премиум', x: 84, y: 74, seats: 12, st: 'free', vip: true },
 ];
 
@@ -696,6 +692,31 @@ function Floor({ t, toast }) {
   const activeTables = currentFloor === 1 ? floor1Tables : floor2Tables;
   const setActiveTables = currentFloor === 1 ? setFloor1Tables : setFloor2Tables;
 
+  /* shared layout: loaded from the server, saved on every change, refreshed every 15 s */
+  const syncedRef = useRef(null);
+  const [floorErr, setFloorErr] = useState(false);
+  const loadFloor = useCallback(() => {
+    fetch('/api/admin/floor').then((r) => r.json()).then((d) => {
+      if (!d || !d.ok || !d.layout || drag) return;
+      const { f1, f2 } = d.layout;
+      if (!Array.isArray(f1) || !Array.isArray(f2)) return;
+      syncedRef.current = JSON.stringify({ f1, f2 });
+      setFloor1Tables(f1); setFloor2Tables(f2);
+    }).catch(() => {});
+  }, [drag]);
+  useEffect(() => { loadFloor(); const iv = setInterval(loadFloor, 15000); return () => clearInterval(iv); }, [loadFloor]);
+  useEffect(() => {
+    const cur = JSON.stringify({ f1: floor1Tables, f2: floor2Tables });
+    if (syncedRef.current === null) { syncedRef.current = cur; return; }
+    if (cur === syncedRef.current) return;
+    const tm = setTimeout(() => {
+      fetch('/api/admin/floor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: cur })
+        .then((r) => { if (!r.ok) throw new Error(); syncedRef.current = cur; setFloorErr(false); })
+        .catch(() => setFloorErr(true));
+    }, 500);
+    return () => clearTimeout(tm);
+  }, [floor1Tables, floor2Tables]);
+
   useEffect(() => {
     fetch('/api/admin/reservations')
       .then((res) => res.json())
@@ -704,14 +725,14 @@ function Floor({ t, toast }) {
           setLiveBookings(
             data.reservations.map((r) => ({
               id: r.id || r.code,
-              time: r.res_time || '19:00',
-              date: r.res_date || '',
-              client: r.customer_name || 'Гость',
-              phone: r.customer_phone || '',
+              time: r.time || '—',
+              date: r.date || '',
+              client: r.customerName || 'Гость',
+              phone: r.customerPhone || '',
               guests: r.guests || 2,
               zone: r.zone || 'Основной зал',
-              table: r.table || r.zone || 'Основной зал',
-              status: r.status || 'confirmed',
+              table: r.table && r.table !== '—' ? r.table : '',
+              status: bookingStatus(r.status),
             }))
           );
         }
@@ -760,6 +781,7 @@ function Floor({ t, toast }) {
 
   return (
     <div className="page">
+      {floorErr && <div className="floor-err"><Icon name="alert" size={13} /> Не удалось сохранить схему зала — проверьте соединение</div>}
       {/* Floor & Zone Switcher Header */}
       <div className="filters" style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6 }}>

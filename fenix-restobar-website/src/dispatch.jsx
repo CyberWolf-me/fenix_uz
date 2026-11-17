@@ -39,8 +39,8 @@ function Kpis({ t, orders = [], bookingsCount = 0, collapsed = false, onToggleCo
       label: 'bookings_today',
       icon: 'calendar',
       num: bookingsCount,
-      foot: bookingsCount > 0 ? `${bookingsCount} активных броней` : 'Броней на сегодня нет',
-      pills: [{ tone: 'info', text: '3 зала' }],
+      foot: bookingsCount > 0 ? `${bookingsCount} на сегодня` : 'Броней на сегодня нет',
+      pills: [{ tone: 'info', text: t('today') }],
     },
     {
       label: 'attention',
@@ -239,7 +239,14 @@ function OrderCard({ o, t, onOpen, onAdvance, sel, onPrint, onEdit, onDelete, on
             <span className="oaddr-lbl">{t('address')}</span>
             <span className="oaddr-txt">{o.addr}</span>
           </div>
+          <a className="oaddr-map" href={mapsLinks(o.addrRaw || o.addr).yandex} target="_blank" rel="noreferrer"
+             onClick={(e) => e.stopPropagation()} title="Открыть в Яндекс Картах" aria-label="Открыть адрес в Яндекс Картах">
+            <Icon name="pin" size={13} />
+          </a>
         </div>
+      )}
+      {o.note && (
+        <div className="onote" title={o.note}><span aria-hidden="true">💬</span> {o.note}</div>
       )}
       {o.courier && (
         <div className="oaddr" style={{ padding: '4px 8px', background: 'var(--surface-3)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -415,6 +422,13 @@ function OrderDrawer({ o, t, onClose, onAdvance, onPrint, onToast, onCancel }) {
               <div style={{ gridColumn: '1 / -1' }}>
                 <div className="label">{t('address')}</div>
                 <div style={{ fontSize: 11.5, marginTop: 2, color: 'var(--text-2)' }}>{o.addr}</div>
+                {(() => { const ml = mapsLinks(o.addrRaw || o.addr); return (
+                  <div className="drawer-maps">
+                    <a className="btn btn-sm" href={ml.yandex} target="_blank" rel="noreferrer"><Icon name="pin" size={12} /> Яндекс Карты</a>
+                    <a className="btn btn-sm" href={ml.google} target="_blank" rel="noreferrer"><Icon name="pin" size={12} /> Google Maps</a>
+                    {!ml.exact && <span className="drawer-maps-hint">Точка на карте не указана — поиск по адресу</span>}
+                  </div>
+                ); })()}
               </div>
             )}
             {o.table && (
@@ -559,7 +573,7 @@ function EditOrderModal({ o, onClose, onSave, toast }) {
           orderNum: o.orderNum,
           client,
           phone,
-          addr,
+          addr: (o.type === 'delivery' && addr === o.addr && o.addrRaw) ? o.addrRaw : addr,
           total: Number(total),
         }),
       });
@@ -569,6 +583,7 @@ function EditOrderModal({ o, onClose, onSave, toast }) {
           client,
           phone,
           addr: o.type === 'delivery' ? addr : undefined,
+          addrRaw: o.type === 'delivery' ? ((addr === o.addr && o.addrRaw) ? o.addrRaw : addr) : undefined,
           table: o.type === 'hall' ? addr : undefined,
           total: Number(total),
         });
@@ -1015,6 +1030,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
                 <tr>
                   <th>ID</th><th>{t('client')}</th><th>{t('status')}</th><th>{t('items')}</th>
                   <th>SLA</th><th>{t('courier')} / {t('address')}</th><th className="tbl-right">{t('total')}</th>
+                  <th className="tbl-right" style={{ width: 170 }}>{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1032,6 +1048,13 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
                       <td><SlaTime o={o} t={t} /></td>
                       <td className="dim trunc" style={{ maxWidth: 190 }}>{o.courier || o.addr || o.table || '—'}</td>
                       <td className="tbl-right mono" style={{ fontWeight: 700 }}>{summ(o.total)}</td>
+                      <td className="tbl-right" onClick={(e) => e.stopPropagation()}>
+                        {o.col !== 'done' && (
+                          <Btn size="sm" variant={o.col === 'new' ? 'accent' : undefined} icon="check" onClick={() => onAdvance(o)}>
+                            {t({ new: 'accept', kitchen: 'ready', way: 'mark_done' }[o.col])}
+                          </Btn>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -1069,7 +1092,7 @@ function Dispatch({ t, orders, dispatch, view, setView, onOpen, onAdvance, onPri
             if (reason === 'Тест / Дубликат') {
               onDeleteOrder && onDeleteOrder(id);
             } else {
-              onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: 'done', status: 'отменён', cancelReason: reason });
+              onUpdateOrder && onUpdateOrder({ ...cancellingOrder, col: 'cancelled', status: 'отменён', cancelReason: reason });
             }
           }}
           toast={toast}
