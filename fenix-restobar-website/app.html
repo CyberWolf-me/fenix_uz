@@ -527,6 +527,8 @@ html[data-theme="light"] .theme-toggle-btn .icon-moon {
   box-shadow: var(--shadow-card);
   transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 170px 240px;
 }
 
 .dish-card:active {
@@ -3977,7 +3979,7 @@ html[data-theme="light"] .recent-item-type {
 
   function getDishPhoto(id) {
     const p = DISH_PHOTO_MAP[id];
-    return p ? `${p}?v=4` : null;
+    return p ? `${p}?v=5` : null;
   }
 
   function money(val) {
@@ -5022,7 +5024,7 @@ html[data-theme="light"] .recent-item-type {
         <article class="dish-card" data-dish-id="${d.id}" style="${isStopped ? 'opacity:0.65;' : ''}">
           <div class="dish-card-img-wrap" onclick="window.FX_APP.openDishModal('${d.id}')">
             ${hasPhoto ? 
-              `<img class="dish-card-img ${isStudio ? 'png-dish' : ''}" src="${d.img}" alt="${title}" ${loadingAttr} decoding="async" onerror="this.onerror=null;this.src=this.src.replace(/\\.webp($|\\?)/, '.png$1');">` : 
+              `<img class="dish-card-img ${isStudio ? 'png-dish' : ''}" src="${d.img}" alt="${title}" width="320" height="240" ${loadingAttr} decoding="async" onerror="this.onerror=null;this.src=this.src.replace(/\\.webp($|\\?)/, '.png$1');">` : 
               `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-faint);"><svg style="width:28px;height:28px;stroke:currentColor;" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
             }
             ${isStopped ? `<span class="dish-card-tag" style="background:#dc2626;color:#fff;">${t('stopListBadge')}</span>` : (d.tags && d.tags.includes('preorder') ? `<span class="dish-card-tag">${t('preorderBadge')}</span>` : '')}
