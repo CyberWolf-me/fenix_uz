@@ -140,6 +140,7 @@
     'korea-120',
     'korea-118',
     'korea-115',
+    'korea-130', 'korea-131', 'korea-132', 'korea-133', 'korea-134', 'korea-135',
     'bar-179','bar-180','bar-181','bar-182','bar-183','bar-184',
     'tg-lem-01', 'tg-lem-02', 'tg-lem-03', 'tg-lem-04', 'tg-lem-05', 'tg-lem-06', 'tg-lem-07', 'tg-lem-08', 'tg-lem-09', 'tg-lem-10'
   ]);
